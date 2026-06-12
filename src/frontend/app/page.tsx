@@ -42,6 +42,49 @@ export default function DashboardPage() {
     }
   }, [router, theme]);
 
+  // Capture client-side errors and automatically report them to the backend logger
+  useEffect(() => {
+    const handleWindowError = (event: ErrorEvent) => {
+      fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'Client Uncaught Error',
+          severity: 'ERROR',
+          payload: {
+            message: event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            error: event.error?.stack || event.error?.message || String(event.error),
+          },
+        }),
+      }).catch(() => {});
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'Client Unhandled Rejection',
+          severity: 'ERROR',
+          payload: {
+            reason: event.reason?.stack || event.reason?.message || String(event.reason),
+          },
+        }),
+      }).catch(() => {});
+    };
+
+    window.addEventListener('error', handleWindowError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   // Fetch count stats via SQL query queries
   const refreshStats = async () => {
     try {

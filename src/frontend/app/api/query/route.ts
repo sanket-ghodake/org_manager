@@ -1,23 +1,32 @@
 import { NextResponse } from 'next/server';
 import { executeAdminQuery } from '../../../../backend/api/admin/queryEngine';
 import { getSession } from '../../../../backend/auth/sessionManager';
+import { logEvent } from '../../../../backend/utils/logger';
 
 export async function POST(request: Request) {
+  const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+  
   // Check user session
   const session = await getSession(request as any);
   if (!session) {
+    await logEvent(null, 'SQL Query Unauthorized Attempt', 'WARN', {}, ipAddress);
     return NextResponse.json({ error: 'Unauthorized: Session missing' }, { status: 401 });
   }
 
+  let queryText = '';
   try {
     const { query } = await request.json();
-    if (!query) {
+    queryText = query || '';
+    if (!queryText) {
       return NextResponse.json({ error: 'Query cannot be empty' }, { status: 400 });
     }
 
     // Execute the query using our query sandbox
-    const result = await executeAdminQuery(query, session.role);
+    const result = await executeAdminQuery(queryText, session.role);
     
+    // Log successful query execution
+    await logEvent(session.id, 'SQL Query Executed', 'INFO', { query: queryText, role: session.role }, ipAddress);
+
     // Express returns rows in the result property
     return NextResponse.json({ 
       rows: result.rows || result,
@@ -26,6 +35,10 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('SQL Execution failed:', error.message);
+    
+    // Log failed query execution
+    await logEvent(session.id, 'SQL Query Failed', 'ERROR', { query: queryText, error: error.message }, ipAddress);
+    
     return NextResponse.json({ error: error.message || 'Database error' }, { status: 500 });
   }
 }

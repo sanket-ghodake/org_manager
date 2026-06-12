@@ -27,7 +27,7 @@ export default function ForceResetPage() {
     }
   }, []);
 
-  const handlePasswordReset = (e: React.FormEvent) => {
+  const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
@@ -44,34 +44,28 @@ export default function ForceResetPage() {
       return;
     }
 
-    // Read existing cookie, update isPasswordChanged to true
-    const cookies = document.cookie.split(';');
-    const sessionCookie = cookies.find(c => c.trim().startsWith('session_token='));
-    if (sessionCookie) {
-      try {
-        const val = sessionCookie.split('=')[1];
-        const session = JSON.parse(atob(val));
-        
-        // Update the password state
-        session.isPasswordChanged = true;
-        
-        const updatedBase64 = btoa(JSON.stringify(session));
-        document.cookie = `session_token=${updatedBase64}; path=/; max-age=3600; SameSite=Strict`;
-        
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
         setSuccess(true);
         setTimeout(() => {
           router.push('/');
           router.refresh();
         }, 1200);
-      } catch (err) {
-        setError('Error updating session. Please log in again.');
+      } else {
+        setError(data.error || 'Password update failed.');
         setIsLoading(false);
       }
-    } else {
-      setError('No active session found. Redirecting to login.');
-      setTimeout(() => {
-        router.push('/login');
-      }, 1500);
+    } catch (err) {
+      setError('Connection failed. Please try again.');
+      setIsLoading(false);
     }
   };
 

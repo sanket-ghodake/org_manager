@@ -85,7 +85,7 @@ async function main() {
   `);
 
   // Seed default Super Admin user
-  const adminPasswordHash = '$2b$10$YourSecureHashOrBcrypt'; 
+  const adminPasswordHash = '$2b$10$8Gub3V3ScET0bRZPdM8ONeG543SkOwVKLcfO6jU0CjmGlGxPRrAVm'; 
   await db.execute(sql`
     INSERT INTO users (eid, name, email, password_hash, is_password_changed, role)
     VALUES ('E0001', 'Super Admin', 'admin@acmecorp.com', ${adminPasswordHash}, false, 'super_admin')

@@ -5,6 +5,7 @@ This directory contains chronological report files documenting the step-by-step 
 ## Files In Order:
 * **[01_initial_backend_setup.md](file:///home/sanket/Desktop/Sanket/org_website/docs/history/01_initial_backend_setup.md):** Architectural layout, project package environment, PostgreSQL database connections & schemas (Drizzle), and session validation/auth guard handlers.
 * **[02_frontend_sql_workbench.md](file:///home/sanket/Desktop/Sanket/org_website/docs/history/02_frontend_sql_workbench.md):** Next.js frontend integration, cookies-based session middleware routing, and the administrative SQL console workbench with privilege validation guards.
+* **[03_database_auth_logging.md](file:///home/sanket/Desktop/Sanket/org_website/docs/history/03_database_auth_logging.md):** Database-backed authentication and automated logging system for frontend/backend errors and database queries.
 
 ## Rules to Follow:
 1. Do not modify existing report files in place. If you introduce a new feature or stage, create a new numbered report (e.g., `03_<name>.md`) and update this index.

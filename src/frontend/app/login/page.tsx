@@ -10,40 +10,35 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Simulate validation
     if (!email || !password) {
       setError('Please fill in all fields.');
       setIsLoading(false);
       return;
     }
 
-    // Create a session object. Initially isPasswordChanged is false to trigger force-reset middleware!
-    const mockSession = {
-      id: '5d0775f5-eff1-41e5-910b-73cd0dc1299f',
-      eid: 'E0001',
-      email: email,
-      name: 'Super Admin',
-      role: 'super_admin',
-      isPasswordChanged: false, // will trigger the middleware intercept
-    };
-
     try {
-      const base64Session = btoa(JSON.stringify(mockSession));
-      // Set the session cookie
-      document.cookie = `session_token=${base64Session}; path=/; max-age=3600; SameSite=Strict`;
-      
-      // Redirect to main portal (middleware will intercept and redirect to /force-reset)
-      setTimeout(() => {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
         router.push('/');
         router.refresh();
-      }, 800);
+      } else {
+        setError(data.error || 'Login failed.');
+        setIsLoading(false);
+      }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      setError('Connection failed. Please try again.');
       setIsLoading(false);
     }
   };
