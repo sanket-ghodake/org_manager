@@ -8,12 +8,24 @@ import Link from 'next/link';
 
 interface AppConfig {
   id: string;
+  slug?: string;
   name: string;
   description: string;
   icon: string;
-  roles: string[];
+  roles?: string[];
   entryPoint: string;
+  entryUrl?: string;
   directoryName: string;
+  routingMode?: string;
+  database?: {
+    requiresIsolatedSchema?: boolean;
+    schemaName?: string;
+  };
+  targetRules?: {
+    verticals?: string[];
+    designations?: string[];
+    minJobLevel?: number;
+  };
 }
 
 interface UserSessionPayload {
@@ -1046,7 +1058,7 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                       <div className="flex items-center gap-1.5 mt-4">
                         <span className="text-[8px] text-text-tertiary font-bold uppercase">Authorized Access:</span>
                         <div className="flex flex-wrap gap-1">
-                          {app.roles.map(r => (
+                          {(app.roles || []).map(r => (
                             <span key={r} className="text-[8px] bg-surface-elevated border border-border-accent px-1.5 py-0.5 rounded font-mono font-bold text-text-secondary">
                               {r}
                             </span>

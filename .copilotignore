@@ -1,0 +1,10 @@
+# GitHub Copilot ignore file
+node_modules/
+portables/
+graphify-out/
+.git/
+currently_working.md
+.env
+test/coverage/
+.DS_Store
+bun.lock

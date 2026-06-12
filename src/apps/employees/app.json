@@ -1,8 +1,10 @@
 {
   "id": "employees",
+  "slug": "employees",
   "name": "Employee directory",
   "description": "Organizational unit structure, designation assignments, and core profiles directory",
   "icon": "Users",
   "roles": ["super_admin", "admin", "read_only_admin", "user"],
-  "entryPoint": "index.tsx"
+  "entryPoint": "index.tsx",
+  "routingMode": "react-component"
 }

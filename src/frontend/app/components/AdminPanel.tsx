@@ -492,7 +492,7 @@ export default function AdminPanel({
           updated_at = CURRENT_TIMESTAMP
           WHERE id = '${userForm.id}';`;
       } else {
-        const defaultPasswordHash = '$2a$10$fV3C4WkY8aV/u1pG5j7P7uy9Q5m1Zc.k9P0oK9Z5u1v7t2t8t2t2t'; // bcrypt hash for 'password123'
+        const defaultPasswordHash = '$2b$10$8Gub3V3ScET0bRZPdM8ONeG543SkOwVKLcfO6jU0CjmGlGxPRrAVm'; // bcrypt hash for 'password123'
         const randomId = crypto.randomUUID();
         query = `INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id) 
           VALUES (
@@ -538,7 +538,7 @@ export default function AdminPanel({
     if (!confirm(`Reset credentials for "${userName}"? They will be forced to configure a new credential on login.`)) return;
 
     try {
-      const defaultPasswordHash = '$2a$10$fV3C4WkY8aV/u1pG5j7P7uy9Q5m1Zc.k9P0oK9Z5u1v7t2t8t2t2t';
+      const defaultPasswordHash = '$2b$10$8Gub3V3ScET0bRZPdM8ONeG543SkOwVKLcfO6jU0CjmGlGxPRrAVm';
       const query = `UPDATE users SET password_hash = '${defaultPasswordHash}', is_password_changed = false, updated_at = CURRENT_TIMESTAMP WHERE id = '${userId}';`;
 
       const res = await fetch('/api/query', {

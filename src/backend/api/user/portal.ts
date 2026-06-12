@@ -2,6 +2,7 @@ import { db } from '../../../database/connection';
 import { sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
+import { validateManifest, parseAndRegisterManifests } from '../../utils/manifestParser';
 
 export interface UserSessionPayload {
   user: {
@@ -60,12 +61,24 @@ export interface UserSessionPayload {
 
 export interface AppConfig {
   id: string;
+  slug?: string;
   name: string;
   description: string;
   icon: string;
-  roles: string[];
+  roles?: string[];
   entryPoint: string;
+  entryUrl?: string;
   directoryName: string;
+  routingMode?: string;
+  database?: {
+    requiresIsolatedSchema?: boolean;
+    schemaName?: string;
+  };
+  targetRules?: {
+    verticals?: string[];
+    designations?: string[];
+    minJobLevel?: number;
+  };
 }
 
 // Dynamically locate and scan `/src/apps` for applications registry
@@ -92,10 +105,14 @@ export function getDiscoveredApps(): AppConfig[] {
           try {
             const configContent = fs.readFileSync(configPath, 'utf8');
             const config = JSON.parse(configContent);
-            discoveredApps.push({
-              ...config,
-              directoryName: item,
-            });
+            
+            const validation = validateManifest(config, item);
+            if (validation.isValid) {
+              discoveredApps.push({
+                ...config,
+                directoryName: item,
+              });
+            }
           } catch (err) {
             console.error(`Error parsing app config for ${item}:`, err);
           }
@@ -142,6 +159,8 @@ export async function fetchUserDashboardData(userId: string): Promise<UserSessio
       u.email, 
       u.role, 
       u.manager_id as "managerId", 
+      u.vertical_id as "verticalId",
+      u.designation_id as "designationId",
       dm.name as designation, 
       vm.name as "verticalName"
     FROM users u
@@ -166,6 +185,8 @@ export async function fetchUserDashboardData(userId: string): Promise<UserSessio
     role: rawUser.role as string,
     designation: (rawUser.designation as string) || 'Staff Member',
     verticalName: (rawUser.verticalName as string) || 'Corporate',
+    verticalId: (rawUser.verticalId as string) || null,
+    designationId: (rawUser.designationId as string) || null,
     managerId: (rawUser.managerId as string) || null,
     hierarchyLevel,
   };
@@ -260,8 +281,9 @@ export async function fetchUserDashboardData(userId: string): Promise<UserSessio
   `);
   const allMetadata = (metaResult.rows || metaResult) as any[];
 
-  // 7. Get discovered applications
-  const apps = getDiscoveredApps();
+  // 7. Get discovered applications synced & filtered
+  await syncAppsToDatabase();
+  const apps = await getMatchedAppsForUser(userId, user);
 
   return {
     user,
@@ -302,3 +324,80 @@ export async function fetchUserDashboardData(userId: string): Promise<UserSessio
     apps,
   };
 }
+
+export function getJobLevelByName(name: string): number {
+  const n = name.toLowerCase();
+  if (n.includes('ceo')) return 5;
+  if (n.includes('vp') || n.includes('cfo')) return 4;
+  if (n.includes('manager')) return 3;
+  if (n.includes('senior') || n.includes('sr')) return 2;
+  return 1;
+}
+
+export async function syncAppsToDatabase() {
+  await parseAndRegisterManifests();
+}
+
+export async function getMatchedAppsForUser(userId: string, user: any): Promise<AppConfig[]> {
+  const discovered = getDiscoveredApps();
+  const appsResult = await db.execute(sql`
+    SELECT slug, name, entry_url as "entryUrl", target_rules as "targetRules" FROM forge_apps
+  `);
+  const appsRows = appsResult.rows || appsResult;
+  
+  const userJobLevel = getJobLevelByName(user.designation);
+  const matchedApps: AppConfig[] = [];
+
+  for (const appRow of appsRows) {
+    const slug = appRow.slug as string;
+    const diskApp = discovered.find(a => (a.slug || a.id) === slug);
+    if (!diskApp) continue;
+
+    const rules = (appRow.targetRules || diskApp.targetRules || {}) as any;
+    
+    // 1. Check Verticals
+    if (rules.verticals && rules.verticals.length > 0) {
+      if (!rules.verticals.includes('all')) {
+        const targetVerticals = rules.verticals.map((v: string) => {
+          if (v === 'core-tech-uuid-placeholder') return '10000000-0000-0000-0000-000000000002';
+          if (v === 'exec-uuid-placeholder') return '10000000-0000-0000-0000-000000000001';
+          return v;
+        });
+        if (!targetVerticals.includes(user.verticalId)) {
+          continue; 
+        }
+      }
+    }
+
+    // 2. Check Designations
+    if (rules.designations && rules.designations.length > 0) {
+      if (!rules.designations.includes(user.designationId)) {
+        continue; 
+      }
+    }
+
+    // 3. Check Job Level
+    const minJobLevel = rules.minJobLevel !== undefined ? Number(rules.minJobLevel) : 1;
+    if (userJobLevel < minJobLevel) {
+      continue; 
+    }
+
+    matchedApps.push({
+      id: diskApp.id,
+      slug: diskApp.slug || slug,
+      name: diskApp.name,
+      description: diskApp.description || '',
+      icon: diskApp.icon || 'Cpu',
+      roles: diskApp.roles || [],
+      entryPoint: diskApp.entryPoint || diskApp.entryUrl || appRow.entryUrl || '',
+      directoryName: diskApp.directoryName || slug,
+      ...({
+        routingMode: diskApp.routingMode || 'iframe',
+        targetRules: rules
+      } as any)
+    });
+  }
+
+  return matchedApps;
+}
+

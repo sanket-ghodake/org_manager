@@ -22,8 +22,10 @@ export async function getSession(request: NextRequest): Promise<UserSession | nu
     const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
     const decoded = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8'));
     return decoded as UserSession;
-  } catch (error) {
-    console.error('Session decryption failed:', error);
+  } catch (error: any) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Session decryption failed:', error.message || error);
+    }
     return null;
   }
 }

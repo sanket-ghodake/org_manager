@@ -5,6 +5,8 @@ async function main() {
   console.log('Initializing local database schema...');
 
   // Drop existing tables to ensure clean state
+  await db.execute(sql`DROP TABLE IF EXISTS forge_app_storage CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS forge_apps CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS system_logs CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS users CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS structural_metadata CASCADE;`);
@@ -50,6 +52,30 @@ async function main() {
       payload JSONB DEFAULT '{}'::jsonb,
       ip_address VARCHAR(45),
       timestamp TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Create forge_apps table
+  await db.execute(sql`
+    CREATE TABLE forge_apps (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      slug VARCHAR(50) UNIQUE NOT NULL,
+      name VARCHAR(100) NOT NULL,
+      entry_url VARCHAR(255) NOT NULL,
+      is_isolated_lifecycle BOOLEAN DEFAULT true NOT NULL,
+      target_rules JSONB DEFAULT '{}'::jsonb NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Create forge_app_storage table
+  await db.execute(sql`
+    CREATE TABLE forge_app_storage (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      app_id UUID REFERENCES forge_apps(id) NOT NULL,
+      custom_schema_namespace VARCHAR(63) UNIQUE NOT NULL,
+      allow_base_read_access BOOLEAN DEFAULT false NOT NULL
     );
   `);
 
@@ -195,6 +221,7 @@ async function main() {
   `);
 
   console.log('Local database initialization completed successfully!');
+  process.exit(0);
 }
 
 main().catch((err) => {

@@ -37,3 +37,28 @@ export const systemLogs = pgTable('system_logs', {
   ipAddress: varchar('ip_address', { length: 45 }),
   timestamp: timestamp('timestamp').defaultNow().notNull(),
 });
+
+// Forge App Registry Ledger
+export const forgeApps = pgTable('forge_apps', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  slug: varchar('slug', { length: 50 }).unique().notNull(), // e.g., 'nexus-provisioning'
+  name: varchar('name', { length: 100 }).notNull(),
+  entryUrl: varchar('entry_url', { length: 255 }).notNull(), // Intranet target IP or internal routing path
+  isIsolatedLifecycle: boolean('is_isolated_lifecycle').default(true).notNull(),
+  
+  // Conditional Allocation Matrix Rule
+  // Example Value: { "designations": ["uuid-1"], "verticals": ["uuid-2"], "minJobLevel": 2 }
+  targetRules: jsonb('target_rules').default({}).notNull(),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// App Database Isolation Provisioning Matrix
+export const forgeAppStorage = pgTable('forge_app_storage', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  appId: uuid('app_id').references(() => forgeApps.id).notNull(),
+  customSchemaNamespace: varchar('custom_schema_namespace', { length: 63 }).unique().notNull(), // Isolated database namespace
+  allowBaseReadAccess: boolean('allow_base_read_access').default(false).notNull(),
+});
+

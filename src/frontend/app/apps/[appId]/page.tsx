@@ -16,6 +16,9 @@ export default function AppContainerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [iframeOffline, setIframeOffline] = useState(false);
+  const [iframeLoading, setIframeLoading] = useState(false);
+
   // Sync theme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -58,6 +61,20 @@ export default function AppContainerPage() {
             setError(`Privilege Violation: Role "${currentUser.role}" does not have access permissions for this app.`);
           } else {
             setAppConfig(config);
+            // If it's an iframe routing mode, verify network connectivity
+            if (config.routingMode === 'iframe' || config.entryPoint?.startsWith('http')) {
+              setIframeLoading(true);
+              try {
+                const checkRes = await fetch(`/forge-apps/${appId}`, { method: 'GET' });
+                if (!checkRes.ok || checkRes.status === 504) {
+                  setIframeOffline(true);
+                }
+              } catch (err) {
+                setIframeOffline(true);
+              } finally {
+                setIframeLoading(false);
+              }
+            }
           }
         }
       } catch (err) {
@@ -91,9 +108,31 @@ export default function AppContainerPage() {
     router.push('/login');
   };
 
-  // Dynamically import the app entrypoint.
-  // Next.js (Webpack/Turbopack) resolves dynamic imports with template strings at build time.
-  const DynamicApp = appConfig ? dynamic<any>(() => import(`../../../../apps/${appId}/index.tsx`), {
+  const handleIframeLoad = (e: any) => {
+    const iframe = e.target;
+    if (iframe && session) {
+      const tokenPayload = {
+        type: 'FORGE_AUTH_TOKEN',
+        token: btoa(JSON.stringify({
+          userId: session.id,
+          role: session.role,
+          timestamp: Date.now()
+        })),
+        user: {
+          id: session.id,
+          name: session.name,
+          email: session.email,
+          role: session.role,
+        }
+      };
+      iframe.contentWindow?.postMessage(tokenPayload, '*');
+    }
+  };
+
+  const isIframe = appConfig?.routingMode === 'iframe' || appConfig?.entryPoint?.startsWith('http');
+
+  // Dynamically import the app entrypoint only if it's a local react component.
+  const DynamicApp = (appConfig && !isIframe) ? dynamic<any>(() => import(`../../../../apps/${appId}/index.tsx`), {
     loading: () => (
       <div className="flex justify-center items-center py-24">
         <span className="w-8 h-8 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin"></span>
@@ -101,7 +140,6 @@ export default function AppContainerPage() {
     ),
     ssr: false // Keep client-side only for standalone sandbox predictability
   }) : null;
-
 
   if (loading) {
     return (
@@ -193,7 +231,46 @@ export default function AppContainerPage() {
           </div>
         ) : (
           <div className="p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md">
-            {DynamicApp && <DynamicApp user={session} runQuery={runQuery} />}
+            {isIframe ? (
+              iframeOffline ? (
+                <div className="p-8 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center space-y-4 max-w-xl mx-auto my-12">
+                  <div className="p-3 bg-amber-500/20 text-amber-400 rounded-full w-fit mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="font-bold text-lg text-amber-400">Extension Network Offline</h3>
+                  <p className="text-sm text-gray-400">
+                    ⚠️ Extension Network Offline: Verify Local Intranet Connection Configuration Address
+                  </p>
+                  <div className="pt-4">
+                    <button
+                      onClick={() => router.refresh()}
+                      className="px-6 py-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] rounded-lg text-xs font-bold transition-all"
+                    >
+                      Retry Connection
+                    </button>
+                  </div>
+                </div>
+              ) : iframeLoading ? (
+                <div className="space-y-4 animate-pulse py-12">
+                  <div className="h-8 bg-white/5 rounded-lg w-1/4"></div>
+                  <div className="h-64 bg-white/5 rounded-2xl w-full"></div>
+                  <div className="h-12 bg-white/5 rounded-lg w-1/2"></div>
+                </div>
+              ) : (
+                <div className="relative w-full h-[600px] border border-white/5 rounded-xl overflow-hidden bg-black/20">
+                  <iframe
+                    src={`/forge-apps/${appId}`}
+                    className="w-full h-full border-none"
+                    sandbox="allow-scripts allow-same-origin allow-forms"
+                    onLoad={handleIframeLoad}
+                  />
+                </div>
+              )
+            ) : (
+              DynamicApp && <DynamicApp user={session} runQuery={runQuery} />
+            )}
           </div>
         )}
       </main>

@@ -1,10 +1,14 @@
-import { expect, test, describe, mock, spyOn } from "bun:test";
+import { expect, test, describe, mock, spyOn, afterAll } from "bun:test";
 import { executeAdminQuery } from "../../src/backend/api/admin/queryEngine";
 import { db } from "../../src/database/connection";
 
 // Mock the db.execute method
 const mockExecute = spyOn(db, "execute").mockImplementation(async (sqlObj: any) => {
   return { rows: [{ result: "mocked" }], rowCount: 1 };
+});
+
+afterAll(() => {
+  mockExecute.mockRestore();
 });
 
 describe("Administrative Query Engine Sandbox", () => {
