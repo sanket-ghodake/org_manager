@@ -1,9 +1,9 @@
 // src/backend/middleware/authGuard.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getSession } from '@/backend/auth/sessionManager';
+import { getSession } from '../auth/sessionManager';
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: any) {
   const session = await getSession(request);
 
   // If no active token exists, route back to primary entry portal

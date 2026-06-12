@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 @theme {
   --color-background-portal: var(--bg-portal);
   --color-surface-card: var(--surface-card);

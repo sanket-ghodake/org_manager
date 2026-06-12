@@ -9,7 +9,7 @@ const client = new Client({
 });
 
 // Establish a connection
-await client.connect().catch((err) => {
+await client.connect().catch((err: any) => {
   console.warn('Database connection failed, will retry on query execution:', err.message);
 });
 
