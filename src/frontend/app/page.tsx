@@ -106,6 +106,13 @@ export default function DashboardPage() {
         const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
         const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
         const parsed = JSON.parse(atob(padded));
+        
+        // Redirect standard users to the User launchpad
+        if (parsed.role === 'user') {
+          router.replace('/user');
+          return;
+        }
+
         setSession(parsed);
         setSimulatedRole(parsed.role);
         setIsSessionLoading(false);
