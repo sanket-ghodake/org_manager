@@ -194,9 +194,9 @@ export default function BillingApp({ user, runQuery }: BillingAppProps) {
                       <td className="px-4 py-3 font-mono">${parseFloat(inv.amount).toFixed(2)}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          inv.status === 'paid' ? 'bg-green-500/20 text-green-400' :
-                          inv.status === 'overdue' ? 'bg-red-500/20 text-red-400' :
-                          'bg-yellow-500/20 text-yellow-400'
+                          inv.status === 'paid' ? 'bg-success/20 text-success' :
+                          inv.status === 'overdue' ? 'bg-danger/20 text-danger' :
+                          'bg-warning/20 text-warning-text'
                         }`}>
                           {inv.status}
                         </span>

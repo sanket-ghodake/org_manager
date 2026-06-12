@@ -11,10 +11,12 @@ interface SettingsPanelProps {
   setDensity: (d: 'comfortable' | 'compact') => void;
   simulatedRole: string;
   loadWorkspaceData?: () => Promise<void>;
+  font: string;
+  setFont: (f: string) => void;
 }
 
 export default function SettingsPanel({
-  session, users, metadata, theme, setTheme, density, setDensity, simulatedRole, loadWorkspaceData,
+  session, users, metadata, theme, setTheme, density, setDensity, simulatedRole, loadWorkspaceData, font, setFont,
 }: SettingsPanelProps) {
   const [tab, setTab] = useState<'appearance' | 'security' | 'profile' | 'sessions' | 'platform' | 'modules' | 'sandbox' | 'extensions'>('appearance');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -223,74 +225,48 @@ export default function SettingsPanel({
           <div className="space-y-8 max-w-4xl">
             <div>
               <h1 className="text-lg font-black text-text-primary">Theme Selection</h1>
-              <p className="text-xs text-text-secondary mt-0.5">Choose from 7 curated visual themes for your interface</p>
+              <p className="text-xs text-text-secondary mt-0.5">Choose from 5 curated visual themes for your interface</p>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {[
                 {
-                  id: 'system',
-                  label: 'System Default',
-                  desc: 'Follows OS preference',
-                  preview: 'bg-gradient-to-br from-slate-100 via-slate-400 to-slate-900',
-                  dot: '#64748b',
+                  id: 'default',
+                  label: 'Default Theme',
+                  desc: 'Corporate Slate Dark',
+                  preview: 'bg-gradient-to-br from-[#0f172a] to-[#1e293b]',
+                  dot: '#6366f1',
                 },
                 {
                   id: 'light',
-                  label: 'Light',
-                  desc: 'Clean high-contrast slate',
-                  preview: 'bg-gradient-to-br from-slate-50 to-slate-200',
+                  label: 'Light Mode',
+                  desc: 'Clean High-Contrast Light',
+                  preview: 'bg-gradient-to-br from-slate-50 to-slate-200 border border-slate-300',
                   dot: '#4f46e5',
                 },
                 {
                   id: 'dark',
-                  label: 'Dark',
-                  desc: 'Deep obsidian canvas',
-                  preview: 'bg-gradient-to-br from-[#0b0f19] to-[#1e293b]',
-                  dot: '#6366f1',
-                },
-                {
-                  id: 'cyberpunk',
-                  label: 'Cyberpunk',
-                  desc: 'Neon developer mode',
-                  preview: 'bg-gradient-to-br from-[#0a0118] via-purple-950 to-pink-700',
-                  dot: '#f43f5e',
-                },
-                {
-                  id: 'forest',
-                  label: 'Forest',
-                  desc: 'Deep emerald nature',
-                  preview: 'bg-gradient-to-br from-[#0a140d] via-green-950 to-emerald-800',
-                  dot: '#22c55e',
-                },
-                {
-                  id: 'sunset',
-                  label: 'Sunset',
-                  desc: 'Warm amber & crimson',
-                  preview: 'bg-gradient-to-br from-[#12080a] via-rose-950 to-orange-700',
-                  dot: '#f97316',
-                },
-                {
-                  id: 'ocean',
-                  label: 'Ocean',
-                  desc: 'Deep teal abyss',
-                  preview: 'bg-gradient-to-br from-[#020c18] via-cyan-950 to-teal-700',
-                  dot: '#06b6d4',
-                },
-                {
-                  id: 'midnight',
-                  label: 'Midnight',
-                  desc: 'Cool blue-violet night',
-                  preview: 'bg-gradient-to-br from-[#07071a] via-indigo-950 to-violet-900',
+                  label: 'Obsidian Dark',
+                  desc: 'Deep Obsidian Canvas',
+                  preview: 'bg-gradient-to-br from-[#09090b] to-[#18181b]',
                   dot: '#818cf8',
                 },
+                {
+                  id: 'solarized-dark',
+                  label: 'Solarized Dark',
+                  desc: 'Warm Precision Teal',
+                  preview: 'bg-[#002b36]',
+                  dot: '#268bd2',
+                },
+                {
+                  id: 'solarized-light',
+                  label: 'Solarized Light',
+                  desc: 'Crisp Warm Paper',
+                  preview: 'bg-[#fdf6e3] border border-[#decda3]',
+                  dot: '#268bd2',
+                },
               ].map(t => (
-                <button key={t.id} onClick={() => {
-                  if (t.id === 'system') {
-                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    setTheme(prefersDark ? 'dark' : 'light');
-                  } else { setTheme(t.id); }
-                }}
+                <button key={t.id} onClick={() => setTheme(t.id)}
                   className={`group relative p-4 rounded-2xl border-2 transition-all text-left ${
                     theme === t.id ? 'border-brand-accent shadow-lg shadow-brand-accent/10 scale-[1.02]' : 'border-border-accent hover:border-brand-accent/40'
                   }`}>
@@ -319,6 +295,25 @@ export default function SettingsPanel({
                       density === d ? 'border-brand-accent bg-brand-accent/5 text-brand-accent' : 'border-border-accent text-text-secondary hover:border-brand-accent/40'
                     }`}>
                     {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Typography */}
+            <div className="space-y-3">
+              <h2 className="text-sm font-black text-text-primary">UI Typography</h2>
+              <div className="flex gap-3">
+                {[
+                  { id: 'default', label: 'Default Proportional', desc: 'Refined Inter Sans' },
+                  { id: 'monospace', label: 'Developer Monospace', desc: 'Droid Sans Mono' }
+                ].map(f => (
+                  <button key={f.id} onClick={() => setFont(f.id)}
+                    className={`px-5 py-3.5 rounded-xl border-2 text-xs font-bold text-left transition-all flex flex-col gap-1 min-w-[200px] ${
+                      font === f.id ? 'border-brand-accent bg-brand-accent/5 text-brand-accent' : 'border-border-accent text-text-secondary hover:border-brand-accent/40'
+                    }`}>
+                    <span className="font-black">{f.label}</span>
+                    <span className="text-[10px] text-text-tertiary">{f.desc}</span>
                   </button>
                 ))}
               </div>
@@ -579,7 +574,7 @@ export default function SettingsPanel({
                           </div>
                           <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${
                             app.database?.requiresIsolatedSchema 
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/25' 
+                              ? 'bg-warning/10 text-warning-text border-warning/25' 
                               : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/25'
                           }`}>
                             {app.database?.requiresIsolatedSchema ? 'Isolated DB' : 'Shared DB'}
@@ -589,7 +584,7 @@ export default function SettingsPanel({
                         {app.database?.requiresIsolatedSchema && (
                           <div className="p-3 bg-background-portal/50 rounded-xl border border-border-accent flex items-center justify-between text-[10px]">
                             <span className="font-bold text-text-secondary font-mono">Schema Namespace:</span>
-                            <span className="font-black text-amber-400 font-mono">{app.database.schemaName || `forge_${app.id}`}</span>
+                            <span className="font-black text-warning-text font-mono">{app.database.schemaName || `forge_${app.id}`}</span>
                           </div>
                         )}
 

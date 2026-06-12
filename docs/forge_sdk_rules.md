@@ -17,6 +17,12 @@ Each application requiring storage runs in its own isolated database schema name
 * Applications are prohibited from executing raw SQL queries or Drizzle transactions against the `public` schema tables (`users`, `system_logs`, `forge_apps`).
 * Shared state is managed strictly by the host backend and exposed through verified api contracts.
 
+### 3. UI Theme Inheritance & Overwriting
+Sub-apps must follow standard contracts to synchronize theme state with the host platform or custom-brand themselves.
+* **Theme Inheritance**: Sub-apps rendered inside an `<iframe>` must listen for parent message broadcasts (`postMessage`) containing `{ type: 'THEME_CHANGE', theme: string }` and update the root `data-theme` attribute on `document.documentElement` accordingly.
+* **Theme-Aware Tokens**: Instead of hardcoding color shades (e.g., `text-amber-400` or `bg-yellow-500/10`), sub-apps should use theme-dependent CSS variables (e.g. `--warning`, `--success`, `--danger`, `--accent`) to ensure high contrast and readability across light, dark, and solarized themes.
+* **Local Theme Overwriting**: Sub-apps that require custom corporate branding or independent visual states can explicitly ignore the `THEME_CHANGE` event listener and configure a static `data-theme` or hardcoded CSS variables directly in their local markup.
+
 ---
 
 ## Immutable Rules

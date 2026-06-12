@@ -6,5 +6,10 @@
   "icon": "Users",
   "roles": ["super_admin", "admin", "read_only_admin", "user"],
   "entryPoint": "index.tsx",
-  "routingMode": "react-component"
+  "routingMode": "react-component",
+  "ui": {
+    "themePolicy": "inherit",
+    "densityPolicy": "inherit",
+    "fontPolicy": "inherit"
+  }
 }

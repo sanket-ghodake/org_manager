@@ -1,16 +1,14 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Client } from 'pg';
+import { Pool } from 'pg';
 import * as schema from './schema';
 
 const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/org_db';
 
-const client = new Client({
+const pool = new Pool({
   connectionString,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
-// Establish a connection
-await client.connect().catch((err: any) => {
-  console.warn('Database connection failed, will retry on query execution:', err.message);
-});
-
-export const db = drizzle(client, { schema });
+export const db = drizzle(pool, { schema });

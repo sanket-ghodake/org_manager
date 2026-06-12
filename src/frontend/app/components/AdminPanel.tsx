@@ -928,7 +928,7 @@ export default function AdminPanel({
   const severityBadge = (severity: string) => {
     const map: Record<string, string> = {
       INFO: 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20',
-      WARN: 'bg-amber-500/10 text-amber-500 border border-amber-500/20',
+      WARN: 'bg-warning/10 text-warning-text border border-warning/20',
       ERROR: 'bg-rose-500/10 text-rose-500 border border-rose-500/20',
       CRITICAL: 'bg-red-500/15 text-red-500 border border-red-500/30 animate-pulse font-extrabold',
     };
@@ -938,7 +938,7 @@ export default function AdminPanel({
   const getLogSeverityColorClass = (severity: string) => {
     const map: Record<string, string> = {
       INFO: 'text-text-secondary hover:bg-table-row-hover',
-      WARN: 'text-amber-500 border-l-2 border-l-amber-500/60 bg-amber-500/5 hover:bg-amber-500/10',
+      WARN: 'text-warning-text border-l-2 border-l-warning/60 bg-warning/5 hover:bg-warning/10',
       ERROR: 'text-rose-500 border-l-2 border-l-rose-500/60 bg-rose-500/5 hover:bg-rose-500/10',
       CRITICAL: 'text-red-500 border-l-4 border-l-red-500 bg-red-500/10 hover:bg-red-500/15 font-bold animate-pulse',
     };
@@ -1293,7 +1293,7 @@ export default function AdminPanel({
                               <td className="px-4 py-3 text-right space-x-1 whitespace-nowrap">
                                 <button
                                   onClick={() => handleResetPassword(u.id, u.name)}
-                                  className="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded text-[10px] font-bold"
+                                  className="px-2 py-1 bg-warning/10 hover:bg-warning/20 text-warning-text rounded text-[10px] font-bold"
                                   title="Reset credentials"
                                 >
                                   Reset Key
@@ -1872,7 +1872,7 @@ export default function AdminPanel({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Telemetry Volume:</span>
-                      <span className="text-amber-500 font-bold">{stats.totalLogs} entries</span>
+                      <span className="text-warning-text font-bold">{stats.totalLogs} entries</span>
                     </div>
                   </div>
 

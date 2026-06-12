@@ -91,13 +91,19 @@ interface UserLaunchpadProps {
 export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadProps) {
   const router = useRouter();
 
-  // Theme state synced with documentElement
-  const [theme, setTheme] = useState('dark');
+  // Theme & Font state synced with documentElement
+  const [theme, setTheme] = useState('default');
+  const [font, setFont] = useState('default');
+
   useEffect(() => {
     // Read from localStorage or default
-    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const savedTheme = localStorage.getItem('theme') || 'default';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
+
+    const savedFont = localStorage.getItem('font') || 'default';
+    setFont(savedFont);
+    document.documentElement.setAttribute('data-font', savedFont);
   }, []);
 
   const changeTheme = (newTheme: string) => {
@@ -408,8 +414,8 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
           {!sidebarOpen && (
             <button
               onClick={() => {
-                const themes = ['dark', 'cyberpunk', 'forest', 'sunset', 'ocean', 'midnight', 'light'];
-                const nextT = themes[(themes.indexOf(theme) + 1) % themes.length];
+                const themes = ['default', 'light', 'dark', 'solarized-dark', 'solarized-light'];
+                const nextT = themes[themes.indexOf(theme) !== -1 ? (themes.indexOf(theme) + 1) % themes.length : 0];
                 changeTheme(nextT);
               }}
               className="w-12 h-12 rounded-xl border border-border-accent/40 text-text-secondary hover:text-text-primary transition-all flex items-center justify-center mx-auto"
@@ -417,11 +423,9 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
             >
               <span>{
                 theme === 'light' ? '☀️' :
-                theme === 'cyberpunk' ? '🌸' :
-                theme === 'forest' ? '🌿' :
-                theme === 'sunset' ? '🌅' :
-                theme === 'ocean' ? '🌊' :
-                theme === 'midnight' ? '🔮' : '🌙'
+                theme === 'solarized-dark' ? '🕶️' :
+                theme === 'solarized-light' ? '📄' :
+                theme === 'dark' ? '🌙' : '✨'
               }</span>
             </button>
           )}
@@ -485,13 +489,11 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                 <button className="px-3 py-1.5 rounded-xl bg-surface-card border border-border-accent text-xs font-bold hover:bg-surface-elevated transition-colors flex items-center gap-2 cursor-pointer shadow-sm">
                   <span>{
                     theme === 'light' ? '☀️' :
-                    theme === 'cyberpunk' ? '🌸' :
-                    theme === 'forest' ? '🌿' :
-                    theme === 'sunset' ? '🌅' :
-                    theme === 'ocean' ? '🌊' :
-                    theme === 'midnight' ? '🔮' : '🌙'
+                    theme === 'solarized-dark' ? '🕶️' :
+                    theme === 'solarized-light' ? '📄' :
+                    theme === 'dark' ? '🌙' : '✨'
                   }</span>
-                  <span className="capitalize text-text-secondary">{theme}</span>
+                  <span className="capitalize text-text-secondary">{theme === 'default' ? 'Default' : theme}</span>
                   <span className="text-[10px] text-text-tertiary">▼</span>
                 </button>
               </DropdownMenu.Trigger>
@@ -505,13 +507,11 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                     Select Layout Theme
                   </DropdownMenu.Label>
                   {[
-                    { id: 'dark', label: 'Obsidian Dark', icon: '🌙' },
-                    { id: 'cyberpunk', label: 'Cyberpunk Neon', icon: '🌸' },
-                    { id: 'forest', label: 'Sage Forest', icon: '🌿' },
-                    { id: 'sunset', label: 'Warm Sunset', icon: '🌅' },
-                    { id: 'ocean', label: 'Deep Ocean', icon: '🌊' },
-                    { id: 'midnight', label: '🔮 Midnight', icon: '🔮' },
+                    { id: 'default', label: 'Default Theme', icon: '✨' },
                     { id: 'light', label: 'Light Mode', icon: '☀️' },
+                    { id: 'dark', label: 'Obsidian Dark', icon: '🌙' },
+                    { id: 'solarized-dark', label: 'Solarized Dark', icon: '🕶️' },
+                    { id: 'solarized-light', label: 'Solarized Light', icon: '📄' },
                   ].map(item => (
                     <DropdownMenu.Item
                       key={item.id}

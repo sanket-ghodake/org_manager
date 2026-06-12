@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 export default function AppContainerPage() {
   const params = useParams();
@@ -11,7 +12,7 @@ export default function AppContainerPage() {
   const router = useRouter();
   
   const [session, setSession] = useState<any>(null);
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState('default');
   const [appConfig, setAppConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -19,10 +20,23 @@ export default function AppContainerPage() {
   const [iframeOffline, setIframeOffline] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(false);
 
-  // Sync theme
+  // Load initial theme on mount
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+    const savedTheme = localStorage.getItem('theme') || 'default';
+    setTheme(savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, []);
+
+  const changeTheme = (newTheme: string) => {
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+
+    const iframe = document.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'THEME_CHANGE', theme: newTheme }, '*');
+    }
+  };
 
   // Load session and app config
   useEffect(() => {
@@ -65,7 +79,7 @@ export default function AppContainerPage() {
             if (config.routingMode === 'iframe' || config.entryPoint?.startsWith('http')) {
               setIframeLoading(true);
               try {
-                const checkRes = await fetch(`/forge-apps/${appId}`, { method: 'GET' });
+                const checkRes = await fetch(`/forge-apps/${config.slug}`, { method: 'GET' });
                 if (!checkRes.ok || checkRes.status === 504) {
                   setIframeOffline(true);
                 }
@@ -126,6 +140,7 @@ export default function AppContainerPage() {
         }
       };
       iframe.contentWindow?.postMessage(tokenPayload, '*');
+      iframe.contentWindow?.postMessage({ type: 'THEME_CHANGE', theme }, '*');
     }
   };
 
@@ -152,52 +167,87 @@ export default function AppContainerPage() {
   return (
     <div className="min-h-screen bg-background-portal text-text-primary transition-colors duration-200 font-sans pb-12">
       {/* Top Navbar */}
-      <header className="border-b border-white/5 bg-surface-card/60 backdrop-blur-md sticky top-0 z-30">
+      <header className="border-b border-border-accent bg-surface-card/60 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="p-2 rounded-lg bg-gradient-to-tr from-[#ff007f] to-[#2563eb] text-white font-extrabold text-sm tracking-wider hover:opacity-90">
+            <Link href="/" className="p-2 rounded-lg bg-gradient-to-tr from-[#ff007f] to-brand-accent text-white font-extrabold text-sm tracking-wider hover:opacity-90">
               AC
             </Link>
-            <span className="font-bold text-sm tracking-tight text-gray-400">/</span>
-            <span className="font-bold text-sm tracking-tight">{appConfig?.name || 'Application'}</span>
+            <span className="font-bold text-sm tracking-tight text-text-tertiary">/</span>
+            <span className="font-bold text-sm tracking-tight text-text-primary">{appConfig?.name || 'Application'}</span>
           </div>
 
           <div className="flex items-center gap-4">
             {/* Back to main portal button */}
             <Link
               href="/"
-              className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold border border-white/10 transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-card text-text-primary text-xs font-semibold border border-border-accent transition-colors flex items-center gap-1.5"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
               Portal Home
             </Link>
 
-            {/* Theme Selector */}
-            <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 text-xs">
-              {['light', 'dark', 'cyberpunk'].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTheme(t)}
-                  className={`px-3 py-1.5 rounded-md capitalize font-medium transition-all ${
-                    theme === t ? 'bg-[#2563eb] text-white shadow-sm' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {t}
+            {/* Theme Selector Dropdown */}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button className="px-3 py-1.5 rounded-xl bg-surface-card border border-border-accent text-xs font-bold text-text-primary hover:bg-surface-elevated transition-all flex items-center gap-2 cursor-pointer shadow-sm">
+                  <span>{
+                    theme === 'light' ? '☀️' :
+                    theme === 'solarized-dark' ? '🕶️' :
+                    theme === 'solarized-light' ? '📄' :
+                    theme === 'dark' ? '🌙' : '✨'
+                  }</span>
+                  <span className="capitalize text-text-secondary">{theme === 'default' ? 'Default' : theme.replace('-', ' ')}</span>
+                  <span className="text-[10px] text-text-tertiary">▼</span>
                 </button>
-              ))}
-            </div>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  className="bg-surface-elevated border border-border-accent p-2.5 rounded-2xl shadow-2xl min-w-[170px] space-y-1 z-50 animate-fadeIn"
+                  sideOffset={5}
+                  align="end"
+                >
+                  <DropdownMenu.Label className="px-2.5 py-1.5 text-[9px] font-black uppercase text-text-tertiary tracking-wider">
+                    Select Layout Theme
+                  </DropdownMenu.Label>
+                  {[
+                    { id: 'default', label: 'Default Theme', icon: '✨' },
+                    { id: 'light', label: 'Light Mode', icon: '☀️' },
+                    { id: 'dark', label: 'Obsidian Dark', icon: '🌙' },
+                    { id: 'solarized-dark', label: 'Solarized Dark', icon: '🕶️' },
+                    { id: 'solarized-light', label: 'Solarized Light', icon: '📄' },
+                  ].map(item => (
+                    <DropdownMenu.Item
+                      key={item.id}
+                      onClick={() => changeTheme(item.id)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between cursor-pointer outline-none transition-colors ${
+                        theme === item.id 
+                          ? 'bg-brand-accent text-white' 
+                          : 'text-text-primary hover:bg-surface-card'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{item.icon}</span>
+                        <span>{item.label}</span>
+                      </div>
+                      {theme === item.id && <span className="text-[10px]">✓</span>}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
 
             {/* Profile Dropdown */}
-            <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+            <div className="flex items-center gap-3 pl-4 border-l border-border-accent">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold">{session?.name}</p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider">{session?.role}</p>
+                <p className="text-xs font-semibold text-text-primary">{session?.name}</p>
+                <p className="text-[10px] text-text-tertiary uppercase tracking-wider">{session?.role}</p>
               </div>
               <button
                 onClick={handleLogout}
-                className="p-2 hover:bg-white/5 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                className="p-2 hover:bg-surface-elevated rounded-lg text-red-400 hover:text-red-300 transition-colors"
                 title="Log Out"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -219,34 +269,34 @@ export default function AppContainerPage() {
               </svg>
             </div>
             <h3 className="font-bold text-lg text-red-400">Access Restricted</h3>
-            <p className="text-sm text-gray-400">{error}</p>
+            <p className="text-sm text-text-secondary">{error}</p>
             <div className="pt-4">
               <Link
                 href="/"
-                className="px-6 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs font-bold transition-all inline-block"
+                className="px-6 py-2 bg-surface-elevated border border-border-accent hover:bg-surface-card rounded-lg text-xs font-bold text-text-primary transition-all inline-block"
               >
                 Return to Dashboard
               </Link>
             </div>
           </div>
         ) : (
-          <div className="p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md">
+          <div className="p-6 rounded-2xl bg-surface-card border border-border-accent shadow-md">
             {isIframe ? (
               iframeOffline ? (
-                <div className="p-8 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center space-y-4 max-w-xl mx-auto my-12">
-                  <div className="p-3 bg-amber-500/20 text-amber-400 rounded-full w-fit mx-auto">
+                <div className="p-8 rounded-2xl bg-warning/10 border border-warning/20 text-center space-y-4 max-w-xl mx-auto my-12">
+                  <div className="p-3 bg-warning/20 text-warning-text rounded-full w-fit mx-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                   </div>
-                  <h3 className="font-bold text-lg text-amber-400">Extension Network Offline</h3>
-                  <p className="text-sm text-gray-400">
+                  <h3 className="font-bold text-lg text-warning-text">Extension Network Offline</h3>
+                  <p className="text-sm text-text-secondary">
                     ⚠️ Extension Network Offline: Verify Local Intranet Connection Configuration Address
                   </p>
                   <div className="pt-4">
                     <button
                       onClick={() => router.refresh()}
-                      className="px-6 py-2 bg-[#2563eb] text-white hover:bg-[#1d4ed8] rounded-lg text-xs font-bold transition-all"
+                      className="px-6 py-2 bg-brand-accent text-white hover:bg-brand-hover rounded-lg text-xs font-bold transition-all"
                     >
                       Retry Connection
                     </button>
@@ -254,16 +304,16 @@ export default function AppContainerPage() {
                 </div>
               ) : iframeLoading ? (
                 <div className="space-y-4 animate-pulse py-12">
-                  <div className="h-8 bg-white/5 rounded-lg w-1/4"></div>
-                  <div className="h-64 bg-white/5 rounded-2xl w-full"></div>
-                  <div className="h-12 bg-white/5 rounded-lg w-1/2"></div>
+                  <div className="h-8 bg-surface-elevated rounded-lg w-1/4"></div>
+                  <div className="h-64 bg-surface-elevated rounded-2xl w-full"></div>
+                  <div className="h-12 bg-surface-elevated rounded-lg w-1/2"></div>
                 </div>
               ) : (
-                <div className="relative w-full h-[600px] border border-white/5 rounded-xl overflow-hidden bg-black/20">
+                <div className="relative w-full h-[600px] border border-border-accent rounded-xl overflow-hidden bg-black/5">
                   <iframe
-                    src={`/forge-apps/${appId}`}
+                    src={`/forge-apps/${appConfig.slug}`}
                     className="w-full h-full border-none"
-                    sandbox="allow-scripts allow-same-origin allow-forms"
+                    sandbox="allow-scripts allow-forms"
                     onLoad={handleIframeLoad}
                   />
                 </div>

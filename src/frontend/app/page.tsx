@@ -11,7 +11,8 @@ export default function DashboardPage() {
   // Settings & App States
   const [session, setSession] = useState<any>(null);
   const [isSessionLoading, setIsSessionLoading] = useState(true);
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState('default');
+  const [font, setFont] = useState('default');
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const [activeTab, setActiveTab] = useState<'canvas' | 'dashboard' | 'users' | 'metadata' | 'access' | 'database' | 'logs' | 'settings'>('dashboard');
   const [sidebarWidth, setSidebarWidth] = useState(256);
@@ -90,10 +91,23 @@ export default function DashboardPage() {
     }
   ];
 
-  // 1. Initial Authentication & Theme setup
+  // 1. Initial Authentication & Theme / Font setup
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'default';
+    setTheme(savedTheme);
+    const savedFont = localStorage.getItem('font') || 'default';
+    setFont(savedFont);
+  }, []);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-font', font);
+    localStorage.setItem('font', font);
+  }, [font]);
 
   useEffect(() => {
     // Read session cookie
@@ -723,9 +737,9 @@ export default function DashboardPage() {
             <div className="flex justify-center">
               <button
                 onClick={() => {
-                  const themes = ['dark', 'cyberpunk', 'forest', 'sunset', 'ocean', 'midnight', 'light'];
+                  const themes = ['default', 'light', 'dark', 'solarized-dark', 'solarized-light'];
                   const currentIndex = themes.indexOf(theme);
-                  const nextTheme = themes[(currentIndex + 1) % themes.length];
+                  const nextTheme = themes[currentIndex !== -1 ? (currentIndex + 1) % themes.length : 0];
                   setTheme(nextTheme);
                 }}
                 className="p-2 rounded-xl hover:bg-background-portal border border-border-accent/40 text-text-secondary hover:text-text-primary transition-all flex items-center gap-2 text-xs font-bold w-full justify-center"
@@ -733,11 +747,9 @@ export default function DashboardPage() {
               >
                 <span>{
                   theme === 'light' ? '☀️' :
-                  theme === 'cyberpunk' ? '🌸' :
-                  theme === 'forest' ? '🌿' :
-                  theme === 'sunset' ? '🌅' :
-                  theme === 'ocean' ? '🌊' :
-                  theme === 'midnight' ? '🔮' : '🌙'
+                  theme === 'solarized-dark' ? '🕶️' :
+                  theme === 'solarized-light' ? '📄' :
+                  theme === 'dark' ? '🌙' : '✨'
                 }</span>
                 {!sidebarCollapsed && <span className="capitalize">{theme}</span>}
               </button>
@@ -1067,6 +1079,8 @@ export default function DashboardPage() {
             setDensity={setDensity}
             simulatedRole={simulatedRole}
             loadWorkspaceData={loadWorkspaceData}
+            font={font}
+            setFont={setFont}
           />
         )}
 
