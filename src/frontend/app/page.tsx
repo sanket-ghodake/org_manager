@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const [session, setSession] = useState<any>(null);
@@ -11,6 +12,7 @@ export default function DashboardPage() {
   const [queryError, setQueryError] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [simulatedRole, setSimulatedRole] = useState('super_admin');
+  const [apps, setApps] = useState<any[]>([]);
   
   // Stats
   const [stats, setStats] = useState({
@@ -119,9 +121,20 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchApps = async () => {
+    try {
+      const res = await fetch('/api/apps');
+      const data = await res.json();
+      setApps(data.apps || []);
+    } catch (err) {
+      // Ignore
+    }
+  };
+
   useEffect(() => {
     if (session) {
       refreshStats();
+      fetchApps();
     }
   }, [session]);
 
@@ -288,8 +301,72 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        {/* Installed Plug-and-Play Applications */}
+        {apps.length > 0 && (
+          <section className="mb-8">
+            <h3 className="text-lg font-bold mb-4">Installed Applications</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {apps.map((app) => {
+                const hasAccess = app.roles ? app.roles.includes(simulatedRole) : true;
+                return (
+                  <div
+                    key={app.id}
+                    className={`p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md flex flex-col justify-between transition-all hover:scale-[1.01] ${
+                      hasAccess ? 'hover:border-white/10' : 'opacity-50'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="p-2.5 bg-white/5 rounded-xl text-brand-accent border border-white/10">
+                          {app.icon === 'CreditCard' ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          )}
+                        </span>
+                        {hasAccess ? (
+                          <span className="text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full">
+                            Locked
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="font-bold text-sm text-text-primary mb-1 capitalize">{app.name}</h4>
+                      <p className="text-xs text-gray-400 mb-4">{app.description}</p>
+                    </div>
+                    
+                    {hasAccess ? (
+                      <Link
+                        href={`/apps/${app.id}`}
+                        className="w-full py-2 bg-white/5 hover:bg-white/10 text-xs font-semibold rounded-lg border border-white/10 transition-colors text-center inline-block"
+                      >
+                        Launch Application
+                      </Link>
+                    ) : (
+                      <button
+                        disabled
+                        className="w-full py-2 bg-white/5 text-gray-500 text-xs font-semibold rounded-lg border border-white/5 cursor-not-allowed"
+                      >
+                        Access Denied
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* Database Work Bench */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
           {/* SQL terminal panel */}
           <div className="lg:col-span-2 p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md">
             <div className="flex items-center justify-between mb-4">

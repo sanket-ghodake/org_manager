@@ -1,0 +1,202 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+export default function AppContainerPage() {
+  const params = useParams();
+  const appId = params?.appId as string;
+  const router = useRouter();
+  
+  const [session, setSession] = useState<any>(null);
+  const [theme, setTheme] = useState('dark');
+  const [appConfig, setAppConfig] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Sync theme
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  // Load session and app config
+  useEffect(() => {
+    const initPage = async () => {
+      setLoading(true);
+      
+      // Load session
+      const cookies = document.cookie.split(';');
+      const sessionCookie = cookies.find(c => c.trim().startsWith('session_token='));
+      let currentUser = null;
+      if (sessionCookie) {
+        try {
+          const val = sessionCookie.split('=')[1];
+          currentUser = JSON.parse(atob(val));
+          setSession(currentUser);
+        } catch (err) {
+          router.push('/login');
+          return;
+        }
+      } else {
+        router.push('/login');
+        return;
+      }
+
+      // Load app configs
+      try {
+        const res = await fetch('/api/apps');
+        const data = await res.json();
+        const config = data.apps?.find((a: any) => a.id === appId);
+        
+        if (!config) {
+          setError(`Application "${appId}" not found in local registries.`);
+        } else {
+          // Check role permissions
+          if (config.roles && !config.roles.includes(currentUser.role)) {
+            setError(`Privilege Violation: Role "${currentUser.role}" does not have access permissions for this app.`);
+          } else {
+            setAppConfig(config);
+          }
+        }
+      } catch (err) {
+        setError('Failed to load application configurations.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (appId) {
+      initPage();
+    }
+  }, [appId, router]);
+
+  // Client-side query runner wrapper
+  const runQuery = async (queryStr: string) => {
+    const res = await fetch('/api/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: queryStr })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Database query failed.');
+    }
+    return data;
+  };
+
+  const handleLogout = () => {
+    document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    router.push('/login');
+  };
+
+  // Dynamically import the app entrypoint.
+  // Next.js (Webpack/Turbopack) resolves dynamic imports with template strings at build time.
+  const DynamicApp = appConfig ? dynamic<any>(() => import(`../../../../apps/${appId}/index.tsx`), {
+    loading: () => (
+      <div className="flex justify-center items-center py-24">
+        <span className="w-8 h-8 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin"></span>
+      </div>
+    ),
+    ssr: false // Keep client-side only for standalone sandbox predictability
+  }) : null;
+
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#090d16] text-[#f9fafb]">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#00ffcc] border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background-portal text-text-primary transition-colors duration-200 font-sans pb-12">
+      {/* Top Navbar */}
+      <header className="border-b border-white/5 bg-surface-card/60 backdrop-blur-md sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="p-2 rounded-lg bg-gradient-to-tr from-[#ff007f] to-[#2563eb] text-white font-extrabold text-sm tracking-wider hover:opacity-90">
+              AC
+            </Link>
+            <span className="font-bold text-sm tracking-tight text-gray-400">/</span>
+            <span className="font-bold text-sm tracking-tight">{appConfig?.name || 'Application'}</span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Back to main portal button */}
+            <Link
+              href="/"
+              className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold border border-white/10 transition-colors flex items-center gap-1.5"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Portal Home
+            </Link>
+
+            {/* Theme Selector */}
+            <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 text-xs">
+              {['light', 'dark', 'cyberpunk'].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTheme(t)}
+                  className={`px-3 py-1.5 rounded-md capitalize font-medium transition-all ${
+                    theme === t ? 'bg-[#2563eb] text-white shadow-sm' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {/* Profile Dropdown */}
+            <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs font-semibold">{session?.name}</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider">{session?.role}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 hover:bg-white/5 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                title="Log Out"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Workspace */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        {error ? (
+          <div className="p-8 rounded-2xl bg-red-500/10 border border-red-500/20 text-center space-y-4 max-w-xl mx-auto">
+            <div className="p-3 bg-red-500/20 text-red-400 rounded-full w-fit mx-auto">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="font-bold text-lg text-red-400">Access Restricted</h3>
+            <p className="text-sm text-gray-400">{error}</p>
+            <div className="pt-4">
+              <Link
+                href="/"
+                className="px-6 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs font-bold transition-all inline-block"
+              >
+                Return to Dashboard
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md">
+            {DynamicApp && <DynamicApp user={session} runQuery={runQuery} />}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

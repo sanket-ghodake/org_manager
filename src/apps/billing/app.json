@@ -1,0 +1,8 @@
+{
+  "id": "billing",
+  "name": "Billing operations",
+  "description": "Enterprise billing, invoice tracker, and transaction logging engine",
+  "icon": "CreditCard",
+  "roles": ["super_admin", "admin"],
+  "entryPoint": "index.tsx"
+}
