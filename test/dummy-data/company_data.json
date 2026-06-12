@@ -1,0 +1,561 @@
+{
+  "subsidiaries": [
+    {
+      "name": "Acme Corp Ltd"
+    },
+    {
+      "name": "Initech LLC"
+    },
+    {
+      "name": "Hooli Inc"
+    }
+  ],
+  "verticals": [
+    {
+      "name": "Engineering"
+    },
+    {
+      "name": "Marketing & Growth"
+    },
+    {
+      "name": "Sales & Operations"
+    },
+    {
+      "name": "Product Management"
+    },
+    {
+      "name": "Human Resources"
+    }
+  ],
+  "jobLevels": [
+    {
+      "name": "VP of Engineering"
+    },
+    {
+      "name": "Engineering Manager"
+    },
+    {
+      "name": "Lead Software Architect"
+    },
+    {
+      "name": "Senior Frontend Engineer"
+    },
+    {
+      "name": "Senior Backend Engineer"
+    },
+    {
+      "name": "Product Director"
+    },
+    {
+      "name": "Product Manager"
+    },
+    {
+      "name": "HR Lead"
+    },
+    {
+      "name": "Operations Director"
+    }
+  ],
+  "employees": [
+    {
+      "eid": "E1001",
+      "name": "Arthur Pendragon",
+      "email": "arthur@acmecorp.com",
+      "role": "super_admin",
+      "designation": "VP of Engineering",
+      "vertical": "Engineering",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": null
+    },
+    {
+      "eid": "E1002",
+      "name": "Guinevere Vance",
+      "email": "guinevere@acmecorp.com",
+      "role": "admin",
+      "designation": "Product Director",
+      "vertical": "Product Management",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": null
+    },
+    {
+      "eid": "E1003",
+      "name": "Lancelot DuLac",
+      "email": "lancelot@acmecorp.com",
+      "role": "admin",
+      "designation": "Operations Director",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Initech LLC",
+      "managerEid": null
+    },
+    {
+      "eid": "E0004",
+      "name": "Karen Johnson",
+      "email": "karen.johnson@acmecorp.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0005",
+      "name": "Karen Garcia",
+      "email": "karen.garcia@acmecorp.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Hooli Inc",
+      "managerEid": null
+    },
+    {
+      "eid": "E0006",
+      "name": "Robert Moore",
+      "email": "robert.moore@acmecorp.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0007",
+      "name": "James Williams",
+      "email": "james.williams@acmecorp.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Initech LLC",
+      "managerEid": null
+    },
+    {
+      "eid": "E0008",
+      "name": "Barbara Martin",
+      "email": "barbara.martin@acmecorp.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0009",
+      "name": "Patricia Brown",
+      "email": "patricia.brown@acmecorp.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0010",
+      "name": "Joseph Johnson",
+      "email": "joseph.johnson@acmecorp.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0011",
+      "name": "Michael Hernandez",
+      "email": "michael.hernandez@acmecorp.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Initech LLC",
+      "managerEid": null
+    },
+    {
+      "eid": "E0012",
+      "name": "Michael Moore",
+      "email": "michael.moore@acmecorp.com",
+      "role": "user",
+      "designation": "Senior Backend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0013",
+      "name": "Charles Rodriguez",
+      "email": "charles.rodriguez@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0014",
+      "name": "Susan Jackson",
+      "email": "susan.jackson@acmecorp.com",
+      "role": "user",
+      "designation": "Engineering Manager",
+      "vertical": "Engineering",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0015",
+      "name": "John Wilson",
+      "email": "john.wilson@acmecorp.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0016",
+      "name": "James Davis",
+      "email": "james.davis@acmecorp.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0017",
+      "name": "Jennifer Miller",
+      "email": "jennifer.miller@acmecorp.com",
+      "role": "user",
+      "designation": "Engineering Manager",
+      "vertical": "Engineering",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0018",
+      "name": "Barbara Davis",
+      "email": "barbara.davis@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0019",
+      "name": "Linda Moore",
+      "email": "linda.moore@acmecorp.com",
+      "role": "user",
+      "designation": "Senior Frontend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0020",
+      "name": "Patricia Moore",
+      "email": "patricia.moore@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0021",
+      "name": "Sarah Moore",
+      "email": "sarah.moore@acmecorp.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Hooli Inc",
+      "managerEid": null
+    },
+    {
+      "eid": "E0022",
+      "name": "Charles Jackson",
+      "email": "charles.jackson@acmecorp.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0023",
+      "name": "Joseph Hernandez",
+      "email": "joseph.hernandez@acmecorp.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0024",
+      "name": "David Johnson",
+      "email": "david.johnson@acmecorp.com",
+      "role": "user",
+      "designation": "Senior Backend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0025",
+      "name": "Linda Lopez",
+      "email": "linda.lopez@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0026",
+      "name": "Sarah Williams",
+      "email": "sarah.williams@acmecorp.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0027",
+      "name": "Barbara Brown",
+      "email": "barbara.brown@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0028",
+      "name": "Karen Lopez",
+      "email": "karen.lopez@acmecorp.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Initech LLC",
+      "managerEid": null
+    },
+    {
+      "eid": "E0029",
+      "name": "James Martin",
+      "email": "james.martin@acmecorp.com",
+      "role": "user",
+      "designation": "Engineering Manager",
+      "vertical": "Engineering",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0030",
+      "name": "Joseph Anderson",
+      "email": "joseph.anderson@acmecorp.com",
+      "role": "user",
+      "designation": "Senior Frontend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0031",
+      "name": "Linda Williams",
+      "email": "linda.williams@acmecorp.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0032",
+      "name": "Mary Davis",
+      "email": "mary.davis@acmecorp.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Hooli Inc",
+      "managerEid": null
+    },
+    {
+      "eid": "E0033",
+      "name": "James Garcia",
+      "email": "james.garcia@acmecorp.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0034",
+      "name": "Jennifer Brown",
+      "email": "jennifer.brown@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0035",
+      "name": "Karen Anderson",
+      "email": "karen.anderson@acmecorp.com",
+      "role": "user",
+      "designation": "Senior Frontend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0036",
+      "name": "John Williams",
+      "email": "john.williams@acmecorp.com",
+      "role": "user",
+      "designation": "Engineering Manager",
+      "vertical": "Engineering",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0037",
+      "name": "John Taylor",
+      "email": "john.taylor@acmecorp.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0038",
+      "name": "Barbara Martinez",
+      "email": "barbara.martinez@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0039",
+      "name": "John Garcia",
+      "email": "john.garcia@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Software Architect",
+      "vertical": "Engineering",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0040",
+      "name": "Elizabeth Anderson",
+      "email": "elizabeth.anderson@acmecorp.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Hooli Inc",
+      "managerEid": null
+    },
+    {
+      "eid": "E0041",
+      "name": "Michael Miller",
+      "email": "michael.miller@acmecorp.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0042",
+      "name": "Charles Smith",
+      "email": "charles.smith@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0043",
+      "name": "Linda Rodriguez",
+      "email": "linda.rodriguez@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0044",
+      "name": "Sarah Smith",
+      "email": "sarah.smith@acmecorp.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Initech LLC",
+      "managerEid": null
+    },
+    {
+      "eid": "E0045",
+      "name": "Barbara Martin",
+      "email": "barbara.martin@acmecorp.com",
+      "role": "user",
+      "designation": "Senior Backend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0046",
+      "name": "Joseph Martin",
+      "email": "joseph.martin@acmecorp.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": null
+    },
+    {
+      "eid": "E0047",
+      "name": "Jessica Jones",
+      "email": "jessica.jones@acmecorp.com",
+      "role": "user",
+      "designation": "Senior Backend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0048",
+      "name": "Patricia Davis",
+      "email": "patricia.davis@acmecorp.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": null
+    },
+    {
+      "eid": "E0049",
+      "name": "Susan Gonzalez",
+      "email": "susan.gonzalez@acmecorp.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Acme Corp Ltd",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0050",
+      "name": "Mary Lopez",
+      "email": "mary.lopez@acmecorp.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1002"
+    }
+  ]
+}

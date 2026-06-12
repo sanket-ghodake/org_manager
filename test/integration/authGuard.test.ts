@@ -1,0 +1,108 @@
+import { expect, test, describe, spyOn, beforeAll, afterAll } from "bun:test";
+import { middleware } from "../../src/backend/middleware/authGuard";
+import { NextResponse } from "next/server";
+
+describe("Middleware Authentication Guard Pipeline", () => {
+  let originalFetch: typeof fetch;
+
+  beforeAll(() => {
+    originalFetch = global.fetch;
+    // Mock global fetch to prevent actual network calls in tests
+    global.fetch = async (input: any, init: any) => {
+      return new Response(JSON.stringify({ success: true }), { status: 200 });
+    };
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
+  });
+
+  test("Redirects to /login if there is no session token", async () => {
+    const mockRequest = {
+      url: "http://localhost:3000/dashboard",
+      nextUrl: {
+        pathname: "/dashboard",
+      },
+      headers: {
+        get: (name: string) => "127.0.0.1",
+      },
+      cookies: {
+        get: (name: string) => null,
+      },
+    } as any;
+
+    const response = await middleware(mockRequest);
+    expect(response).toBeDefined();
+    expect(response.status).toBe(307); // Temporary Redirect
+    expect(response.headers.get("location")).toBe("http://localhost:3000/login");
+  });
+
+  test("Redirects to /force-reset if password is not changed and path is not /force-reset", async () => {
+    const expectedUser = {
+      id: "abc-123",
+      eid: "E0001",
+      email: "test@acmecorp.com",
+      name: "Test User",
+      role: "user",
+      isPasswordChanged: false, // Password reset required
+    };
+    const base64Value = Buffer.from(JSON.stringify(expectedUser)).toString("base64");
+
+    const mockRequest = {
+      url: "http://localhost:3000/dashboard",
+      nextUrl: {
+        pathname: "/dashboard",
+      },
+      headers: {
+        get: (name: string) => "127.0.0.1",
+      },
+      cookies: {
+        get: (name: string) => {
+          if (name === "session_token") return { value: base64Value };
+          return null;
+        },
+      },
+    } as any;
+
+    const fetchSpy = spyOn(global, "fetch");
+
+    const response = await middleware(mockRequest);
+    expect(response).toBeDefined();
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/force-reset");
+    expect(fetchSpy).toHaveBeenCalled();
+  });
+
+  test("Allows request to proceed if password is changed", async () => {
+    const expectedUser = {
+      id: "abc-123",
+      eid: "E0001",
+      email: "test@acmecorp.com",
+      name: "Test User",
+      role: "user",
+      isPasswordChanged: true, // Password already changed
+    };
+    const base64Value = Buffer.from(JSON.stringify(expectedUser)).toString("base64");
+
+    const mockRequest = {
+      url: "http://localhost:3000/dashboard",
+      nextUrl: {
+        pathname: "/dashboard",
+      },
+      headers: {
+        get: (name: string) => "127.0.0.1",
+      },
+      cookies: {
+        get: (name: string) => {
+          if (name === "session_token") return { value: base64Value };
+          return null;
+        },
+      },
+    } as any;
+
+    const response = await middleware(mockRequest);
+    expect(response).toBeDefined();
+    // In Next.js middleware, a successful pass-through response will return a status 200 or an internal Next rewrite
+    expect(response.status).toBe(200);
+  });
+});

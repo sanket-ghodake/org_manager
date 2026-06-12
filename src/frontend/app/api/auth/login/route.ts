@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '../../../../../database/connection';
 import { users } from '../../../../../database/schema';
 import { eq } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 import { logEvent } from '../../../../../backend/utils/logger';
 
 export async function POST(request: Request) {
@@ -29,8 +30,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Verify password hash using Bun's built-in bcrypt verification
-    const isPasswordValid = await Bun.password.verify(password, user.passwordHash);
+    // Verify password hash using bcryptjs verification
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       await logEvent(null, 'User Login Failed', 'WARN', { email, reason: 'Password invalid' }, ipAddress);
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '../../../../../database/connection';
 import { users } from '../../../../../database/schema';
 import { eq } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 import { getSession } from '../../../../../backend/auth/sessionManager';
 import { logEvent } from '../../../../../backend/utils/logger';
 
@@ -22,11 +23,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Password must be at least 8 characters long.' }, { status: 400 });
     }
 
-    // Hash the new password with bcrypt
-    const passwordHash = await Bun.password.hash(newPassword, {
-      algorithm: 'bcrypt',
-      cost: 10,
-    });
+    // Hash the new password with bcryptjs
+    const passwordHash = await bcrypt.hash(newPassword, 10);
 
     // Update in database
     await db

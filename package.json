@@ -6,13 +6,16 @@
   "type": "module",
   "scripts": {
     "setup": "bash scripts/setup.sh",
-    "run-dev": "bash scripts/run.sh"
+    "run-dev": "bash scripts/run.sh",
+    "test": "bun test"
   },
   "dependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.30.0",
-    "pg": "^8.11.0",
+    "iron-session": "^8.0.0",
     "jose": "^5.2.0",
-    "iron-session": "^8.0.0"
+    "pg": "^8.11.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

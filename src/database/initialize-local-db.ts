@@ -92,6 +92,39 @@ async function main() {
     ON CONFLICT (email) DO NOTHING;
   `);
 
+  // Seed 3 Admins
+  const adminData = [
+    { eid: 'E0002', name: 'Admin One', email: 'admin1@acmecorp.com', role: 'admin' },
+    { eid: 'E0003', name: 'Admin Two', email: 'admin2@acmecorp.com', role: 'admin' },
+    { eid: 'E0004', name: 'ReadOnly Admin', email: 'readonly@acmecorp.com', role: 'read_only_admin' },
+  ];
+
+  for (const admin of adminData) {
+    await db.execute(sql`
+      INSERT INTO users (eid, name, email, password_hash, is_password_changed, role)
+      VALUES (${admin.eid}, ${admin.name}, ${admin.email}, ${adminPasswordHash}, false, ${admin.role})
+      ON CONFLICT (email) DO NOTHING;
+    `);
+  }
+
+  // Seed 6 regular users
+  const userData = [
+    { eid: 'E0005', name: 'Alice Smith', email: 'alice@acmecorp.com', role: 'user' },
+    { eid: 'E0006', name: 'Bob Jones', email: 'bob@acmecorp.com', role: 'user' },
+    { eid: 'E0007', name: 'Charlie Brown', email: 'charlie@acmecorp.com', role: 'user' },
+    { eid: 'E0008', name: 'Diana Prince', email: 'diana@acmecorp.com', role: 'user' },
+    { eid: 'E0009', name: 'Evan Wright', email: 'evan@acmecorp.com', role: 'user' },
+    { eid: 'E0010', name: 'Fiona Gallagher', email: 'fiona@acmecorp.com', role: 'user' },
+  ];
+
+  for (const user of userData) {
+    await db.execute(sql`
+      INSERT INTO users (eid, name, email, password_hash, is_password_changed, role)
+      VALUES (${user.eid}, ${user.name}, ${user.email}, ${adminPasswordHash}, false, ${user.role})
+      ON CONFLICT (email) DO NOTHING;
+    `);
+  }
+
   console.log('Local database initialization completed successfully!');
 }
 
