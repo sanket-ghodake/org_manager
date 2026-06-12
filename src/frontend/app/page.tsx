@@ -1,160 +1,505 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import AdminPanel from './components/AdminPanel';
+import SettingsPanel from './components/SettingsPanel';
 
 export default function DashboardPage() {
+  const router = useRouter();
+
+  // Settings & App States
   const [session, setSession] = useState<any>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
   const [theme, setTheme] = useState('dark');
+  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
+  const [activeTab, setActiveTab] = useState<'canvas' | 'dashboard' | 'users' | 'metadata' | 'access' | 'database' | 'logs' | 'settings'>('dashboard');
+  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showDebugDock, setShowDebugDock] = useState(false);
+
+  // Database / User / Metadata Lists
+  const [users, setUsers] = useState<any[]>([]);
+  const [metadata, setMetadata] = useState<any[]>([]);
+  const [systemLogs, setSystemLogs] = useState<any[]>([]);
+  const [simulatedRole, setSimulatedRole] = useState('super_admin');
+
+  // Canvas States
+  const [zoom, setZoom] = useState(1.0);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [highlightedUserPath, setHighlightedUserPath] = useState<string[]>([]);
+  const [selectedUserNode, setSelectedUserNode] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Admin sub-tab navigation state
+  const [adminSubTab, setAdminSubTab] = useState<'users' | 'ingest' | 'structure' | 'logs'>('users');
+
+  // Omni-Search (Cmd+K)
+  const [omniOpen, setOmniOpen] = useState(false);
+  const [omniQuery, setOmniQuery] = useState('');
+
+  // Bulk Ingestion Upload States
+  const [csvRawText, setCsvRawText] = useState('');
+  const [parsedRows, setParsedRows] = useState<any[]>([]);
+  const [validationErrors, setValidationErrors] = useState<{ [key: number]: string[] }>({});
+  const [showErrorDrawer, setShowErrorDrawer] = useState(false);
+  const [commitLoading, setCommitLoading] = useState(false);
+
+  // Metadata Configurator States
+  const [selectedMetaType, setSelectedMetaType] = useState<'vertical' | 'job_level'>('vertical');
+  const [metaNameInput, setMetaNameInput] = useState('');
+  const [metaParentInput, setMetaParentInput] = useState('');
+
+  // SQL Workbench States
   const [sqlQuery, setSqlQuery] = useState('SELECT * FROM users;');
   const [queryResult, setQueryResult] = useState<any>(null);
   const [queryError, setQueryError] = useState('');
-  const [isRunning, setIsRunning] = useState(false);
-  const [simulatedRole, setSimulatedRole] = useState('super_admin');
-  const [apps, setApps] = useState<any[]>([]);
-  
-  // Stats
+  const [isQueryRunning, setIsQueryRunning] = useState(false);
+
+  // Statistics
   const [stats, setStats] = useState({
-    usersCount: 1,
+    usersCount: 0,
     logsCount: 0,
-    metadataCount: 1,
+    metadataCount: 0,
   });
 
-  const router = useRouter();
+  // Table Schemas Left Panel Details
+  const tablesSchema = [
+    {
+      name: 'users',
+      rows: stats.usersCount,
+      limit: 'Unlimited',
+      columns: ['id (UUID)', 'eid (VARCHAR)', 'name (VARCHAR)', 'email (VARCHAR)', 'role (VARCHAR)', 'designation_id (UUID)', 'vertical_id (UUID)', 'manager_id (UUID)'],
+      indexes: ['users_pkey (id)', 'users_eid_key (eid)', 'users_email_key (email)']
+    },
+    {
+      name: 'structural_metadata',
+      rows: stats.metadataCount,
+      limit: 'Unlimited',
+      columns: ['id (UUID)', 'type (VARCHAR)', 'name (VARCHAR)', 'parent_id (UUID)', 'sort_order (INT)', 'extended_attributes (JSONB)'],
+      indexes: ['structural_metadata_pkey (id)']
+    },
+    {
+      name: 'system_logs',
+      rows: stats.logsCount,
+      limit: '100,000 (pruning trigger active)',
+      columns: ['id (UUID)', 'user_id (UUID)', 'action (VARCHAR)', 'severity (VARCHAR)', 'payload (JSONB)', 'ip_address (VARCHAR)', 'timestamp (TIMESTAMP)'],
+      indexes: ['system_logs_pkey (id)']
+    }
+  ];
+
+  // 1. Initial Authentication & Theme setup
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
-    // Sync theme on load
-    document.documentElement.setAttribute('data-theme', theme);
-
-    // Read session
+    // Read session cookie
     const cookies = document.cookie.split(';');
     const sessionCookie = cookies.find(c => c.trim().startsWith('session_token='));
     if (sessionCookie) {
       try {
-        const val = sessionCookie.split('=')[1];
-        const parsed = JSON.parse(atob(val));
+        // Cookie is base64url encoded (no +, /, = chars) - restore standard base64
+        const b64url = sessionCookie.trim().substring('session_token='.length);
+        const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
+        const parsed = JSON.parse(atob(padded));
         setSession(parsed);
         setSimulatedRole(parsed.role);
+        setIsSessionLoading(false);
+
+        // Auto-redirect if password not reset
+        if (parsed.isPasswordChanged === false) {
+          router.replace('/force-reset');
+        }
       } catch (err) {
-        router.push('/login');
+        // Clear corrupt cookie and redirect to login
+        document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        router.replace('/login');
       }
     } else {
-      router.push('/login');
+      router.replace('/login');
     }
-  }, [router, theme]);
+  }, [router]);
 
-  // Capture client-side errors and automatically report them to the backend logger
-  useEffect(() => {
-    const handleWindowError = (event: ErrorEvent) => {
-      fetch('/api/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'Client Uncaught Error',
-          severity: 'ERROR',
-          payload: {
-            message: event.message,
-            filename: event.filename,
-            lineno: event.lineno,
-            colno: event.colno,
-            error: event.error?.stack || event.error?.message || String(event.error),
-          },
-        }),
-      }).catch(() => {});
-    };
-
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      fetch('/api/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'Client Unhandled Rejection',
-          severity: 'ERROR',
-          payload: {
-            reason: event.reason?.stack || event.reason?.message || String(event.reason),
-          },
-        }),
-      }).catch(() => {});
-    };
-
-    window.addEventListener('error', handleWindowError);
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-    return () => {
-      window.removeEventListener('error', handleWindowError);
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    };
-  }, []);
-
-  // Fetch count stats via SQL query queries
-  const refreshStats = async () => {
+  // Load Data
+  const loadWorkspaceData = async () => {
     try {
-      const uRes = await fetch('/api/query', {
+      const usersRes = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: 'SELECT count(*)::integer FROM users;' })
+        body: JSON.stringify({ query: 'SELECT u.*, m.name as designation, v.name as vertical FROM users u LEFT JOIN structural_metadata m ON u.designation_id = m.id LEFT JOIN structural_metadata v ON u.vertical_id = v.id ORDER BY u.eid;' })
       });
-      const uData = await uRes.json();
+      const usersData = await usersRes.json();
+      if (usersData.rows) setUsers(usersData.rows);
 
-      const lRes = await fetch('/api/query', {
+      const metaRes = await fetch('/api/admin/metadata');
+      const metaData = await metaRes.json();
+      if (metaData.metadata) setMetadata(metaData.metadata);
+
+      const logsCountRes = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: 'SELECT count(*)::integer FROM system_logs;' })
       });
-      const lData = await lRes.json();
+      const logsCountData = await logsCountRes.json();
 
-      const mRes = await fetch('/api/query', {
+      const logsRes = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: 'SELECT count(*)::integer FROM structural_metadata;' })
+        body: JSON.stringify({ query: 'SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT 200;' })
       });
-      const mData = await mRes.json();
+      const logsData = await logsRes.json();
+      if (logsData.rows) setSystemLogs(logsData.rows);
 
       setStats({
-        usersCount: uData.rows?.[0]?.count ?? 1,
-        logsCount: lData.rows?.[0]?.count ?? 0,
-        metadataCount: mData.rows?.[0]?.count ?? 1,
+        usersCount: usersData.rows?.length || 0,
+        logsCount: logsCountData.rows?.[0]?.count || 0,
+        metadataCount: metaData.metadata?.length || 0,
       });
-    } catch (err) {
-      // Ignore
-    }
-  };
-
-  const fetchApps = async () => {
-    try {
-      const res = await fetch('/api/apps');
-      const data = await res.json();
-      setApps(data.apps || []);
-    } catch (err) {
-      // Ignore
+    } catch (e) {
+      console.error('Failed to retrieve workspace datasets', e);
     }
   };
 
   useEffect(() => {
     if (session) {
-      refreshStats();
-      fetchApps();
+      loadWorkspaceData();
     }
   }, [session]);
 
-  const handleRunQuery = async (queryStr = sqlQuery) => {
-    setIsRunning(true);
+  // 2. Global Keyboard listener for Cmd+K / Ctrl+K & Cmd+D / Ctrl+D
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setOmniOpen(prev => !prev);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+        e.preventDefault();
+        setShowDebugDock(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // 3. Tree Positions Calculation (Dynamic hierarchical drawing)
+  const computePositions = () => {
+    const spacingX = 280;
+    const spacingY = 220;
+    const positions: { [key: string]: { x: number; y: number } } = {};
+    const childrenMap: { [key: string]: string[] } = {};
+
+    // Group children by manager
+    users.forEach(u => {
+      if (u.manager_id) {
+        if (!childrenMap[u.manager_id]) childrenMap[u.manager_id] = [];
+        childrenMap[u.manager_id].push(u.id);
+      }
+    });
+
+    // Roots are users whose manager_id is null or not in the user list
+    const roots = users.filter(u => !u.manager_id || !users.some(parent => parent.id === u.manager_id));
+
+    let nextX = 0;
+
+    const traverse = (nodeId: string, depth: number): number => {
+      const children = childrenMap[nodeId] || [];
+      const childrenX: number[] = [];
+
+      children.forEach(childId => {
+        childrenX.push(traverse(childId, depth + 1));
+      });
+
+      let x = 0;
+      if (children.length > 0) {
+        const minX = Math.min(...childrenX);
+        const maxX = Math.max(...childrenX);
+        x = (minX + maxX) / 2;
+      } else {
+        x = nextX;
+        nextX += spacingX;
+      }
+
+      positions[nodeId] = { x, y: depth * spacingY };
+      return x;
+    };
+
+    roots.forEach(r => {
+      traverse(r.id, 0);
+      nextX += spacingX; // Space out disjoint trees
+    });
+
+    return positions;
+  };
+
+  const nodePositions = computePositions();
+
+  // Find User Reporting Line Path to C-suite
+  const highlightReportingLine = (userId: string) => {
+    const path: string[] = [];
+    let currentId: string | null = userId;
+    
+    while (currentId) {
+      path.push(currentId);
+      const currentUser = users.find(u => u.id === currentId);
+      currentId = currentUser ? currentUser.manager_id : null;
+    }
+    setHighlightedUserPath(path);
+  };
+
+  // Center Canvas on specific User
+  const centerCanvasOnNode = (userId: string) => {
+    const pos = nodePositions[userId];
+    if (pos && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const newPanX = rect.width / 2 - pos.x * 1.5;
+      const newPanY = rect.height / 2 - pos.y * 1.5;
+      setZoom(1.5); // Micro Level
+      setPan({ x: newPanX, y: newPanY });
+      setSelectedUserNode(userId);
+      highlightReportingLine(userId);
+    }
+  };
+
+  const handleWhereAmI = () => {
+    if (session) {
+      const currentUser = users.find(u => u.email.toLowerCase() === session.email.toLowerCase());
+      if (currentUser) {
+        centerCanvasOnNode(currentUser.id);
+      }
+    }
+  };
+
+  // 4. Canvas Mouse Panning & Zooming handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Left click only
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPan({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Wheel zoom handler — attached imperatively with { passive: false } to allow preventDefault
+  // React's synthetic onWheel is passive by default in modern browsers and cannot call preventDefault
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = 1.1;
+      setZoom(prev => e.deltaY < 0
+        ? Math.min(prev * zoomFactor, 2.5)
+        : Math.max(prev / zoomFactor, 0.4)
+      );
+    };
+    // { passive: false } is required to allow preventDefault inside the wheel handler
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', onWheel);
+  }, []);
+
+  // 5. Admin Bulk CSV Parser & Inline Edit Validation
+  const handleCsvUpload = (text: string) => {
+    setCsvRawText(text);
+    const lines = text.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    
+    const parsed: any[] = [];
+    const errors: { [key: number]: string[] } = {};
+
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const cells = lines[i].split(',').map(c => c.trim());
+      
+      const rowData: any = {};
+      headers.forEach((h, index) => {
+        rowData[h] = cells[index] || '';
+      });
+
+      // Validations
+      const rowErrors: string[] = [];
+      const eidRegex = /^E\d{4}$/;
+      if (!rowData.eid || !eidRegex.test(rowData.eid)) {
+        rowErrors.push('EID format invalid (Must be E followed by 4 digits)');
+      }
+      if (!rowData.name) {
+        rowErrors.push('Name field is missing');
+      }
+      if (!rowData.email || !rowData.email.includes('@')) {
+        rowErrors.push('Email address invalid');
+      }
+      if (!rowData.designation) {
+        rowErrors.push('Missing Designation');
+      }
+
+      parsed.push(rowData);
+      if (rowErrors.length > 0) {
+        errors[i - 1] = rowErrors;
+      }
+    }
+
+    setParsedRows(parsed);
+    setValidationErrors(errors);
+    setShowErrorDrawer(true);
+  };
+
+  // Inline Cell Editor
+  const handleCellEdit = (rowIndex: number, field: string, val: string) => {
+    const updated = [...parsedRows];
+    updated[rowIndex][field] = val;
+    setParsedRows(updated);
+
+    // Revalidate row
+    const rowData = updated[rowIndex];
+    const rowErrors: string[] = [];
+    const eidRegex = /^E\d{4}$/;
+    if (!rowData.eid || !eidRegex.test(rowData.eid)) {
+      rowErrors.push('EID format invalid (Must be E followed by 4 digits)');
+    }
+    if (!rowData.name) {
+      rowErrors.push('Name field is missing');
+    }
+    if (!rowData.email || !rowData.email.includes('@')) {
+      rowErrors.push('Email address invalid');
+    }
+    if (!rowData.designation) {
+      rowErrors.push('Missing Designation');
+    }
+
+    setValidationErrors(prev => {
+      const next = { ...prev };
+      if (rowErrors.length > 0) {
+        next[rowIndex] = rowErrors;
+      } else {
+        delete next[rowIndex];
+      }
+      return next;
+    });
+  };
+
+  // Commit Parsed & Validated CSV to Database
+  const handleCommitIngest = async () => {
+    if (Object.keys(validationErrors).length > 0) return;
+    setCommitLoading(true);
+    try {
+      const res = await fetch('/api/admin/bulk-ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: parsedRows })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowErrorDrawer(false);
+        setParsedRows([]);
+        setCsvRawText('');
+        await loadWorkspaceData();
+      } else {
+        alert(data.error || 'Ingestion failed');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCommitLoading(false);
+    }
+  };
+
+  // 6. Metadata Hierarchy updates
+  const handleAddMetadata = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!metaNameInput) return;
+
+    try {
+      const res = await fetch('/api/admin/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: selectedMetaType,
+          name: metaNameInput,
+          parentId: metaParentInput || null,
+          sortOrder: metadata.filter(m => m.type === selectedMetaType).length + 1
+        })
+      });
+      if (res.ok) {
+        setMetaNameInput('');
+        setMetaParentInput('');
+        await loadWorkspaceData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMetadataReorder = async (id: string, direction: 'up' | 'down') => {
+    const index = metadata.findIndex(m => m.id === id);
+    if (index === -1) return;
+    
+    const targetType = metadata[index].type;
+    const sameTypeList = metadata.filter(m => m.type === targetType);
+    const innerIndex = sameTypeList.findIndex(m => m.id === id);
+    
+    let swapWith: any = null;
+    if (direction === 'up' && innerIndex > 0) {
+      swapWith = sameTypeList[innerIndex - 1];
+    } else if (direction === 'down' && innerIndex < sameTypeList.length - 1) {
+      swapWith = sameTypeList[innerIndex + 1];
+    }
+
+    if (swapWith) {
+      const currentSort = metadata[index].sort_order;
+      const targetSort = swapWith.sort_order;
+
+      // Update both
+      await fetch('/api/admin/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, sortOrder: targetSort })
+      });
+
+      await fetch('/api/admin/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: swapWith.id, sortOrder: currentSort })
+      });
+
+      await loadWorkspaceData();
+    }
+  };
+
+  // Delete metadata
+  const handleMetadataDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to remove this structure element?')) return;
+    try {
+      const res = await fetch(`/api/admin/metadata?id=${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        await loadWorkspaceData();
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // 7. SQL Query Console Executions
+  const handleRunSQL = async (queryStr = sqlQuery) => {
+    setIsQueryRunning(true);
     setQueryError('');
     setQueryResult(null);
 
     try {
-      // Simulate changing role temporarily for sandbox testing
-      const tempCookies = document.cookie.split(';');
-      const sessionCookie = tempCookies.find(c => c.trim().startsWith('session_token='));
-      if (sessionCookie) {
-        const val = sessionCookie.split('=')[1];
-        const currentSession = JSON.parse(atob(val));
-        currentSession.role = simulatedRole;
-        const updated = btoa(JSON.stringify(currentSession));
-        document.cookie = `session_token=${updated}; path=/; max-age=3600; SameSite=Strict`;
-      }
-
       const res = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,390 +509,713 @@ export default function DashboardPage() {
       
       if (res.ok) {
         setQueryResult(data);
-        refreshStats();
+        await loadWorkspaceData();
       } else {
         setQueryError(data.error || 'Execution failed.');
       }
     } catch (err: any) {
       setQueryError(err.message || 'Error occurred.');
     } finally {
-      setIsRunning(false);
+      setIsQueryRunning(false);
     }
   };
 
-  const generateMockLog = async (severity: string, action: string) => {
-    if (!session) return;
-    const payload = JSON.stringify({ detail: `Triggered ${action} mock event` });
-    const insertQuery = `
-      INSERT INTO system_logs (user_id, action, severity, payload, ip_address)
-      VALUES ('${session.id}', '${action}', '${severity}', '${payload}'::jsonb, '127.0.0.1');
-    `;
-    await handleRunQuery(insertQuery);
-    setSqlQuery('SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT 5;');
+  // SQL syntax highlighter markup generator
+  const highlightSQLKeywords = (code: string) => {
+    const keywords = ['SELECT', 'FROM', 'WHERE', 'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE', 'DROP', 'TABLE', 'JOIN', 'LEFT', 'ON', 'LIMIT', 'ORDER', 'BY', 'ASC', 'DESC', 'AND', 'OR', 'NOT', 'NULL', 'PRIMARY', 'KEY', 'REFERENCES', 'CREATE', 'IF', 'EXISTS', 'CASCADE', 'ON CONFLICT', 'DO', 'NOTHING'];
+    let highlighted = code;
+    
+    // Simple regex replacement (excluding tags)
+    keywords.forEach(kw => {
+      const regex = new RegExp(`\\b${kw}\\b`, 'gi');
+      highlighted = highlighted.replace(regex, `<span class="text-brand-accent font-bold">${kw.toUpperCase()}</span>`);
+    });
+    
+    return highlighted;
   };
 
-  const handleLogout = () => {
-    document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    router.push('/login');
-  };
+  // Filter Employees in Omni-search
+  const filteredOmniUsers = users.filter(u => 
+    u.name.toLowerCase().includes(omniQuery.toLowerCase()) || 
+    u.eid.toLowerCase().includes(omniQuery.toLowerCase())
+  );
 
-  if (!session) {
+  // Show a premium loading screen while session is being read from cookie
+  if (isSessionLoading || !session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#090d16] text-[#f9fafb]">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#00ffcc] border-t-transparent"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#090d16]">
+        <div className="flex flex-col items-center gap-4">
+          <span className="p-3 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold text-xl tracking-wider shadow-lg shadow-brand-accent/20">AC</span>
+          <div className="w-6 h-6 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+        </div>
       </div>
     );
   }
 
+  const startResizing = (
+    e: React.MouseEvent,
+    initialSize: number,
+    direction: 'horizontal' | 'vertical',
+    minVal: number,
+    maxVal: number,
+    setter: (val: number) => void
+  ) => {
+    e.preventDefault();
+    const startPos = direction === 'horizontal' ? e.clientX : e.clientY;
+    
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const currentPos = direction === 'horizontal' ? moveEvent.clientX : moveEvent.clientY;
+      const delta = currentPos - startPos;
+      const newVal = initialSize + delta;
+      setter(Math.max(minVal, Math.min(maxVal, newVal)));
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
   return (
-    <div className="min-h-screen bg-background-portal text-text-primary transition-colors duration-200 font-sans pb-12">
-      {/* Top Navbar */}
-      <header className="border-b border-white/5 bg-surface-card/60 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="p-2 rounded-lg bg-gradient-to-tr from-[#ff007f] to-[#2563eb] text-white font-extrabold text-lg tracking-wider">
-              AC
-            </span>
-            <span className="font-bold text-lg tracking-tight">Acme Corp Portal</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Theme Selector */}
-            <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 text-xs">
-              {['light', 'dark', 'cyberpunk'].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTheme(t)}
-                  className={`px-3 py-1.5 rounded-md capitalize font-medium transition-all ${
-                    theme === t ? 'bg-[#2563eb] text-white shadow-sm' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
+    <div className={`min-h-screen bg-background-portal text-text-primary transition-colors duration-200 flex overflow-hidden`}>
+      
+      {/* ─── LEFT SIDEBAR NAVIGATION (Unified & Resizable) ─── */}
+      <aside
+        className="relative bg-sidebar-bg border-r border-border-accent flex flex-col transition-all flex-shrink-0 h-screen overflow-hidden animate-fadeIn"
+        style={{ width: sidebarCollapsed ? 64 : sidebarWidth }}
+      >
+        <div className="flex-1 flex flex-col min-h-0">
+          
+          {/* Logo / Brand identity */}
+          <div className="p-4.5 border-b border-border-accent flex items-center justify-between overflow-hidden">
+            <div className="flex items-center gap-3">
+              <span className="p-2 rounded-lg bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold text-sm tracking-wider shadow-lg shadow-brand-accent/20 flex-shrink-0">
+                AC
+              </span>
+              {!sidebarCollapsed && (
+                <span className="font-extrabold text-sm tracking-tight bg-gradient-to-r from-text-primary via-text-primary to-brand-accent bg-clip-text text-transparent whitespace-nowrap">
+                  Acme Corp
+                </span>
+              )}
             </div>
-
-            {/* Profile Dropdown */}
-            <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold">{session.name}</p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider">{simulatedRole}</p>
-              </div>
+            {!sidebarCollapsed && (
               <button
-                onClick={handleLogout}
-                className="p-2 hover:bg-white/5 rounded-lg text-red-400 hover:text-red-300 transition-colors"
-                title="Log Out"
+                onClick={() => setSidebarCollapsed(true)}
+                className="p-1 rounded hover:bg-background-portal text-text-secondary text-[10px]"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
+                ◀
               </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Workspace */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        {/* Banner Alert if password reset simulated */}
-        {session.isPasswordChanged && (
-          <div className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-green-400">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>Successfully bypassed auth guard middleware using default password update flag!</span>
-            </div>
-            <span className="text-xs px-2.5 py-1 bg-green-500/20 text-green-300 rounded-full font-semibold">SECURE</span>
-          </div>
-        )}
-
-        {/* Stats Grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-          <div className="p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">User Directory</p>
-              <h3 className="text-3xl font-bold mt-2">{stats.usersCount}</h3>
-            </div>
-            <span className="p-3 bg-blue-500/10 rounded-xl text-[#2563eb]">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </span>
+            )}
+            {sidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(false)}
+                className="w-full py-2 hover:bg-background-portal text-text-secondary text-[10px] flex justify-center"
+              >
+                ▶
+              </button>
+            )}
           </div>
 
-          <div className="p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Structural Layers</p>
-              <h3 className="text-3xl font-bold mt-2">{stats.metadataCount}</h3>
-            </div>
-            <span className="p-3 bg-teal-500/10 rounded-xl text-teal-400">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </span>
+          {/* Omni Search Box */}
+          <div className="p-3 border-b border-border-accent">
+            {sidebarCollapsed ? (
+              <button
+                onClick={() => setOmniOpen(true)}
+                className="w-10 h-10 rounded-xl hover:bg-background-portal border border-border-accent/40 flex items-center justify-center text-text-secondary hover:text-text-primary transition-all mx-auto"
+                title="Search (⌘K)"
+              >
+                🔍
+              </button>
+            ) : (
+              <button
+                onClick={() => setOmniOpen(true)}
+                className="w-full flex items-center justify-between bg-background-portal border border-border-accent hover:border-brand-accent/40 rounded-xl px-3 py-2 text-[11px] text-text-secondary hover:text-text-primary transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <span>🔍</span>
+                  <span className="font-medium">Search...</span>
+                </div>
+                <kbd className="bg-surface-card px-1.5 py-0.5 rounded border border-border-accent text-[9px] font-sans font-semibold tracking-widest text-text-primary">
+                  ⌘K
+                </kbd>
+              </button>
+            )}
           </div>
 
-          <div className="p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">System Log Buffer</p>
-              <h3 className="text-3xl font-bold mt-2">{stats.logsCount}</h3>
-            </div>
-            <span className="p-3 bg-fuchsia-500/10 rounded-xl text-fuchsia-400">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </span>
-          </div>
-        </section>
-
-        {/* Installed Plug-and-Play Applications */}
-        {apps.length > 0 && (
-          <section className="mb-8">
-            <h3 className="text-lg font-bold mb-4">Installed Applications</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {apps.map((app) => {
-                const hasAccess = app.roles ? app.roles.includes(simulatedRole) : true;
+          {/* Navigation Items */}
+          <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+              { id: 'users', label: 'Users & Ingest', icon: '👥' },
+              {
+                id: 'metadata_group',
+                label: 'Metadata/Org',
+                icon: '🪢',
+                subItems: [
+                  { id: 'metadata', label: 'Hierarchy Blueprint', icon: '🌳' },
+                  { id: 'canvas', label: 'Semantic Canvas', icon: '🌐' }
+                ]
+              },
+              { id: 'access', label: 'Access Control', icon: '🔐' },
+              { id: 'database', label: 'DB Terminal', icon: '🗄️' },
+              { id: 'logs', label: 'Audit Logs', icon: '📜' },
+              { id: 'settings', label: 'Settings', icon: '⚙️' },
+            ].map(item => {
+              if (item.subItems) {
                 return (
-                  <div
-                    key={app.id}
-                    className={`p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md flex flex-col justify-between transition-all hover:scale-[1.01] ${
-                      hasAccess ? 'hover:border-white/10' : 'opacity-50'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="p-2.5 bg-white/5 rounded-xl text-brand-accent border border-white/10">
-                          {app.icon === 'CreditCard' ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                            </svg>
-                          ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                          )}
-                        </span>
-                        {hasAccess ? (
-                          <span className="text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full">
-                            Locked
-                          </span>
-                        )}
+                  <div key={item.id} className="space-y-0.5 pt-2">
+                    {!sidebarCollapsed && (
+                      <div className="px-3 py-1 text-[9px] text-text-tertiary font-black uppercase tracking-wider">
+                        {item.label}
                       </div>
-                      <h4 className="font-bold text-sm text-text-primary mb-1 capitalize">{app.name}</h4>
-                      <p className="text-xs text-gray-400 mb-4">{app.description}</p>
-                    </div>
-                    
-                    {hasAccess ? (
-                      <Link
-                        href={`/apps/${app.id}`}
-                        className="w-full py-2 bg-white/5 hover:bg-white/10 text-xs font-semibold rounded-lg border border-white/10 transition-colors text-center inline-block"
-                      >
-                        Launch Application
-                      </Link>
-                    ) : (
-                      <button
-                        disabled
-                        className="w-full py-2 bg-white/5 text-gray-500 text-xs font-semibold rounded-lg border border-white/5 cursor-not-allowed"
-                      >
-                        Access Denied
-                      </button>
                     )}
+                    {item.subItems.map(subItem => (
+                      <button
+                        key={subItem.id}
+                        onClick={() => setActiveTab(subItem.id as any)}
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-3 transition-all ${
+                          activeTab === subItem.id
+                            ? 'bg-sidebar-active text-sidebar-text-active shadow-sm font-black'
+                            : 'text-sidebar-text hover:bg-sidebar-hover hover:text-text-primary'
+                        }`}
+                        title={subItem.label}
+                      >
+                        <span className="text-sm">{subItem.icon}</span>
+                        {!sidebarCollapsed && <span className="truncate">{subItem.label}</span>}
+                      </button>
+                    ))}
                   </div>
                 );
-              })}
-            </div>
-          </section>
-        )}
+              }
 
-        {/* Database Work Bench */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* SQL terminal panel */}
-          <div className="lg:col-span-2 p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg">Administrative SQL Query Console</h3>
-              
-              {/* Role Simulation Switch */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400 font-medium">Test Role:</span>
-                <select
-                  value={simulatedRole}
-                  onChange={(e) => setSimulatedRole(e.target.value)}
-                  className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
-                >
-                  <option value="super_admin">super_admin (Full Access)</option>
-                  <option value="read_only_admin">read_only_admin (Read Safeguard)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="relative mb-4">
-              <textarea
-                value={sqlQuery}
-                onChange={(e) => setSqlQuery(e.target.value)}
-                className="w-full h-36 p-4 rounded-xl bg-black/30 border border-white/10 font-mono text-xs text-[#00ffcc] focus:outline-none focus:ring-2 focus:ring-[#2563eb] focus:border-transparent resize-none"
-                placeholder="Write database queries here..."
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-3 justify-between">
-              {/* Quick queries templates */}
-              <div className="flex flex-wrap gap-2">
+              return (
                 <button
-                  onClick={() => { setSqlQuery('SELECT * FROM users;'); handleRunQuery('SELECT * FROM users;'); }}
-                  className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-medium border border-white/5 transition-colors"
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id as any)}
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-3 transition-all ${
+                    activeTab === item.id
+                      ? 'bg-sidebar-active text-sidebar-text-active shadow-sm font-black'
+                      : 'text-sidebar-text hover:bg-sidebar-hover hover:text-text-primary'
+                  }`}
+                  title={item.label}
                 >
-                  View Users
+                  <span className="text-sm">{item.icon}</span>
+                  {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
                 </button>
-                <button
-                  onClick={() => { setSqlQuery('SELECT * FROM structural_metadata;'); handleRunQuery('SELECT * FROM structural_metadata;'); }}
-                  className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-medium border border-white/5 transition-colors"
-                >
-                  View Metadata
-                </button>
-                <button
-                  onClick={() => { setSqlQuery('SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT 5;'); handleRunQuery('SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT 5;'); }}
-                  className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-medium border border-white/5 transition-colors"
-                >
-                  View Logs
-                </button>
-              </div>
+              );
+            })}
+          </nav>
 
+          {/* Bottom Sidebar Tools */}
+          <div className="p-3 border-t border-border-accent bg-surface-card/10 space-y-3">
+            
+            {/* Theme Toggle icon */}
+            <div className="flex justify-center">
               <button
-                onClick={() => handleRunQuery()}
-                disabled={isRunning}
-                className="px-6 py-2 rounded-lg bg-gradient-to-r from-[#2563eb] to-[#00ffcc] text-white text-xs font-bold shadow-md hover:from-blue-600 hover:to-teal-400 active:scale-[0.98] transition-all flex items-center gap-2"
+                onClick={() => {
+                  const themes = ['dark', 'cyberpunk', 'forest', 'sunset', 'ocean', 'midnight', 'light'];
+                  const currentIndex = themes.indexOf(theme);
+                  const nextTheme = themes[(currentIndex + 1) % themes.length];
+                  setTheme(nextTheme);
+                }}
+                className="p-2 rounded-xl hover:bg-background-portal border border-border-accent/40 text-text-secondary hover:text-text-primary transition-all flex items-center gap-2 text-xs font-bold w-full justify-center"
+                title="Cycle UI Theme"
               >
-                {isRunning ? (
-                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                ) : (
-                  'Run Query'
-                )}
+                <span>{
+                  theme === 'light' ? '☀️' :
+                  theme === 'cyberpunk' ? '🌸' :
+                  theme === 'forest' ? '🌿' :
+                  theme === 'sunset' ? '🌅' :
+                  theme === 'ocean' ? '🌊' :
+                  theme === 'midnight' ? '🔮' : '🌙'
+                }</span>
+                {!sidebarCollapsed && <span className="capitalize">{theme}</span>}
               </button>
             </div>
 
-            {/* Error panel */}
-            {queryError && (
-              <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs font-semibold font-mono">
-                {queryError}
-              </div>
-            )}
-
-            {/* Results Table */}
-            {queryResult && (
-              <div className="mt-6">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-gray-400">
-                    Query completed successfully ({queryResult.rowCount} rows affected)
-                  </span>
-                </div>
-                
-                <div className="overflow-x-auto border border-white/5 rounded-xl max-h-72">
-                  {queryResult.rows && queryResult.rows.length > 0 ? (
-                    <table className="min-w-full divide-y divide-white/5 text-left text-xs font-mono">
-                      <thead className="bg-white/5 text-gray-300">
-                        <tr>
-                          {Object.keys(queryResult.rows[0]).map((key) => (
-                            <th key={key} className="px-4 py-3 font-semibold uppercase tracking-wider">
-                              {key}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5 text-gray-400 bg-black/10">
-                        {queryResult.rows.map((row: any, i: number) => (
-                          <tr key={i} className="hover:bg-white/5 transition-colors">
-                            {Object.values(row).map((val: any, j: number) => (
-                              <td key={j} className="px-4 py-3 whitespace-nowrap">
-                                {val === null ? (
-                                  <span className="text-red-500/50 italic">null</span>
-                                ) : typeof val === 'object' ? (
-                                  JSON.stringify(val)
-                                ) : (
-                                  String(val)
-                                )}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="p-6 text-center text-gray-500 text-xs italic">
-                      Empty set returned (no records or schema modification query completed)
+            {/* Profile badge + Logout */}
+            {session && (
+              <div className="flex items-center justify-between p-2 rounded-xl bg-background-portal/50 border border-border-accent/40">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold flex items-center justify-center text-xs flex-shrink-0">
+                    {session.name.charAt(0)}
+                  </div>
+                  {!sidebarCollapsed && (
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black truncate text-text-primary leading-tight">{session.name}</p>
+                      <p className="text-[8px] text-text-secondary uppercase tracking-widest font-semibold mt-0.5">{session.role}</p>
                     </div>
                   )}
                 </div>
+                <button
+                  onClick={() => {
+                    document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                    router.push('/login');
+                  }}
+                  className="p-1.5 hover:bg-background-portal rounded-lg text-warning hover:scale-105 transition-all flex-shrink-0"
+                  title="Log Out"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </button>
               </div>
             )}
           </div>
+        </div>
 
-          {/* Sandbox controls panel */}
-          <div className="space-y-6">
-            {/* Log Buffer Simulation */}
-            <div className="p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md">
-              <h3 className="font-bold text-base mb-2">Log Buffer Sandbox</h3>
-              <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-                Test the 100,000 rolling log limit trigger in PostgreSQL. Insert logs to watch the count refresh dynamically.
-              </p>
+        {/* Resizer Handle */}
+        {!sidebarCollapsed && (
+          <div
+            className="w-1 cursor-col-resize absolute right-0 top-0 bottom-0 hover:bg-brand-accent/50 z-10"
+            onMouseDown={(e) => startResizing(e, sidebarWidth, 'horizontal', 180, 400, setSidebarWidth)}
+          />
+        )}
+      </aside>
 
-              <div className="space-y-3">
+      {/* ─── MAIN WORKSPACE CANVAS (Native Full Height, Overflow Clean) ─── */}
+      <main className="flex-1 h-screen overflow-hidden flex flex-col relative bg-background-portal">
+        
+        {/* Tab 1: Semantic Canvas */}
+        {activeTab === 'canvas' && (
+          <div className="flex-1 flex flex-col relative overflow-hidden h-full">
+            
+            {/* Top Canvas Controls Panel */}
+            <div className="absolute top-4 left-4 z-10 bg-surface-card/90 backdrop-blur border border-border-accent p-3 rounded-2xl shadow-xl flex items-center gap-3">
+              <div className="text-xs">
+                <span className="font-bold text-text-secondary mr-2">Zoom Level:</span>
+                <span className="font-black text-brand-accent px-2 py-0.5 bg-background-portal border border-border-accent rounded">
+                  {zoom < 0.8 ? 'Macro (Verticals)' : zoom < 1.4 ? 'Meso (Managers)' : 'Micro (Cards)'} ({Math.round(zoom * 100)}%)
+                </span>
+              </div>
+              
+              <div className="h-4 w-[1px] bg-border-accent"></div>
+
+              <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => generateMockLog('INFO', 'User Login')}
-                  className="w-full py-2 bg-blue-500/10 hover:bg-blue-500/20 text-[#2563eb] text-xs font-semibold rounded-lg border border-blue-500/20 transition-all flex items-center justify-center gap-2"
+                  onClick={() => setZoom(z => Math.min(z + 0.2, 2.5))}
+                  className="p-1.5 rounded-lg hover:bg-background-portal border border-border-accent text-text-primary transition-all font-extrabold text-sm"
+                  title="Zoom In"
                 >
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                  Generate INFO Log
+                  ＋
                 </button>
-                
                 <button
-                  onClick={() => generateMockLog('WARN', 'Unauthorized Attempt')}
-                  className="w-full py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 text-xs font-semibold rounded-lg border border-yellow-500/20 transition-all flex items-center justify-center gap-2"
+                  onClick={() => setZoom(z => Math.max(z - 0.2, 0.4))}
+                  className="p-1.5 rounded-lg hover:bg-background-portal border border-border-accent text-text-primary transition-all font-extrabold text-sm"
+                  title="Zoom Out"
                 >
-                  <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                  Generate WARN Log
+                  －
                 </button>
-
                 <button
-                  onClick={() => generateMockLog('CRITICAL', 'Database Schema Altered')}
-                  className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-semibold rounded-lg border border-red-500/20 transition-all flex items-center justify-center gap-2"
+                  onClick={() => { setZoom(1.0); setPan({ x: 0, y: 0 }); setHighlightedUserPath([]); setSelectedUserNode(null); }}
+                  className="px-2.5 py-1.5 rounded-lg hover:bg-background-portal border border-border-accent text-xs font-bold transition-all"
+                  title="Reset View"
                 >
-                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                  Generate CRITICAL Log
+                  Reset
                 </button>
               </div>
             </div>
 
-            {/* Read-Only Safeguard Test */}
-            <div className="p-6 rounded-2xl bg-surface-card border border-white/5 shadow-md border-amber-500/20">
-              <h3 className="font-bold text-base mb-2 text-amber-500">Read-Only Guard Test</h3>
-              <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-                Select <code className="text-amber-400">read_only_admin</code> above and run a destructive command to verify execution guards.
-              </p>
-              
-              <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-xs text-amber-500/80 font-mono">
-                DROP TABLE system_logs;
-              </div>
-
-              <button
-                onClick={() => {
-                  setSimulatedRole('read_only_admin');
-                  setSqlQuery('DROP TABLE system_logs;');
-                  handleRunQuery('DROP TABLE system_logs;');
+            {/* Main Interactive Zoom / Pan SVG viewport Canvas */}
+            <div
+              ref={canvasRef}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              className={`flex-1 w-full relative outline-none select-none overflow-hidden bg-[radial-gradient(var(--border-accent)_1px,transparent_1px)] bg-[size:24px_24px] cursor-grab ${isDragging ? 'cursor-grabbing' : ''}`}
+            >
+              <div
+                className="absolute origin-top-left transition-transform duration-100 ease-out"
+                style={{
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                 }}
-                className="w-full mt-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-xs font-bold rounded-lg transition-all"
               >
-                Simulate Destructive Guard Trigger
+                {/* SVG Connections Layer */}
+                {zoom >= 0.8 && (
+                  <svg className="absolute overflow-visible pointer-events-none" style={{ left: 0, top: 0, width: 2000, height: 2000 }}>
+                    <defs>
+                      <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+                    
+                    {users.map(u => {
+                      if (!u.manager_id || !nodePositions[u.id] || !nodePositions[u.manager_id]) return null;
+                      const from = nodePositions[u.manager_id];
+                      const to = nodePositions[u.id];
+                      
+                      const isHighlighted = highlightedUserPath.includes(u.id) && highlightedUserPath.includes(u.manager_id);
+                      
+                      // Beautiful cubic bezier curves
+                      const controlY = (from.y + to.y) / 2;
+                      const d = `M ${from.x + 100} ${from.y + 60} C ${from.x + 100} ${controlY}, ${to.x + 100} ${controlY}, ${to.x + 100} ${to.y}`;
+
+                      return (
+                        <path
+                          key={u.id}
+                          d={d}
+                          fill="none"
+                          stroke={isHighlighted ? 'var(--brand-accent)' : 'var(--border-accent)'}
+                          strokeWidth={isHighlighted ? 4 : 2}
+                          strokeDasharray={isHighlighted ? '0' : '4 4'}
+                          style={{
+                            filter: isHighlighted ? 'url(#neon-glow)' : 'none',
+                            opacity: highlightedUserPath.length > 0 && !isHighlighted ? 0.25 : 1.0,
+                          }}
+                          className="transition-all duration-300"
+                        />
+                      );
+                    })}
+                  </svg>
+                )}
+
+                {/* ZOOM LEVEL 1: MACRO VIEW */}
+                {zoom < 0.8 && (
+                  <div className="absolute grid grid-cols-2 gap-12 p-24 w-[1200px]" style={{ left: 100, top: 100 }}>
+                    {metadata.filter(m => m.type === 'vertical').map(v => {
+                      const deptUsers = users.filter(u => u.vertical_id === v.id);
+                      return (
+                        <div
+                          key={v.id}
+                          className="p-8 rounded-3xl bg-surface-card border-2 border-border-accent shadow-2xl hover:border-brand-accent transition-all duration-300 transform hover:scale-[1.02]"
+                        >
+                          <div className="flex items-center justify-between mb-4 border-b border-border-accent pb-4">
+                            <h2 className="text-2xl font-black text-brand-accent">{v.name} Department</h2>
+                            <span className="px-3.5 py-1 bg-brand-accent/10 border border-brand-accent/20 rounded-full text-xs font-bold text-brand-accent">
+                              {deptUsers.length} Members
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 max-h-[180px] overflow-y-auto pr-2">
+                            {deptUsers.map(du => (
+                              <div key={du.id} className="p-3 bg-background-portal rounded-xl border border-border-accent flex items-center gap-2">
+                                <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold flex items-center justify-center text-[10px] uppercase">
+                                  {du.name.charAt(0)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold truncate">{du.name}</p>
+                                  <p className="text-[10px] text-text-secondary truncate">{du.designation || 'Specialist'}</p>
+                                </div>
+                              </div>
+                            ))}
+                            {deptUsers.length === 0 && (
+                              <p className="text-xs text-text-secondary italic">No active structural assignments in this vertical</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* ZOOM LEVEL 2: MESO VIEW */}
+                {zoom >= 0.8 && zoom < 1.4 && (
+                  <div className="absolute" style={{ left: 0, top: 0 }}>
+                    {users.map(u => {
+                      const pos = nodePositions[u.id];
+                      if (!pos) return null;
+
+                      const isHighlighted = highlightedUserPath.includes(u.id);
+                      const isSelected = selectedUserNode === u.id;
+
+                      return (
+                        <div
+                          key={u.id}
+                          onClick={() => { setSelectedUserNode(u.id); highlightReportingLine(u.id); }}
+                          className={`absolute p-4 rounded-2xl bg-surface-card border-2 shadow-lg cursor-pointer transition-all duration-300 w-[200px] hover:border-brand-accent ${
+                            isSelected ? 'border-success scale-105 shadow-success/25' : isHighlighted ? 'border-brand-accent' : 'border-border-accent'
+                          }`}
+                          style={{
+                            left: pos.x,
+                            top: pos.y,
+                            opacity: highlightedUserPath.length > 0 && !isHighlighted ? 0.4 : 1.0,
+                          }}
+                        >
+                          <p className="text-xs font-bold truncate text-text-primary">{u.name}</p>
+                          <p className="text-[10px] truncate text-brand-accent font-semibold">{u.designation || 'Specialist'}</p>
+                          <div className="mt-2 flex items-center justify-between text-[8px] text-text-secondary uppercase font-semibold">
+                            <span>{u.eid}</span>
+                            <span>{u.vertical || 'Acme'}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* ZOOM LEVEL 3: MICRO VIEW */}
+                {zoom >= 1.4 && (
+                  <div className="absolute" style={{ left: 0, top: 0 }}>
+                    {users.map(u => {
+                      const pos = nodePositions[u.id];
+                      if (!pos) return null;
+
+                      const isHighlighted = highlightedUserPath.includes(u.id);
+                      const isSelected = selectedUserNode === u.id;
+
+                      return (
+                        <div
+                          key={u.id}
+                          onClick={() => { setSelectedUserNode(u.id); highlightReportingLine(u.id); }}
+                          className={`absolute p-5 rounded-2xl bg-surface-card border-2 shadow-2xl cursor-pointer transition-all duration-300 w-[240px] flex gap-4 ${
+                            isSelected ? 'border-success scale-105 shadow-success/20 ring-4 ring-success/20' : isHighlighted ? 'border-brand-accent shadow-brand-accent/20 ring-2 ring-brand-accent/20' : 'border-border-accent'
+                          }`}
+                          style={{
+                            left: pos.x,
+                            top: pos.y,
+                            opacity: highlightedUserPath.length > 0 && !isHighlighted ? 0.3 : 1.0,
+                          }}
+                        >
+                          <div className="relative flex-shrink-0">
+                            <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-brand-accent to-success flex items-center justify-center text-white text-base font-extrabold shadow-inner">
+                              {u.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 bg-success rounded-full border-2 border-surface-card animate-pulse shadow-md"></span>
+                          </div>
+
+                          <div className="min-w-0 flex-1 flex flex-col justify-between">
+                            <div>
+                              <h4 className="text-sm font-black truncate text-text-primary leading-tight">{u.name}</h4>
+                              <p className="text-[10px] text-brand-accent font-extrabold uppercase tracking-wide truncate mt-0.5">{u.designation || 'Staff Member'}</p>
+                            </div>
+                            
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-accent/40 text-[9px] text-text-secondary font-bold uppercase tracking-wider">
+                              <span>EID: {u.eid}</span>
+                              <span className="px-1.5 py-0.5 bg-background-portal border border-border-accent rounded text-[8px] truncate max-w-[80px]">
+                                {u.vertical || 'Corporate'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+              </div>
+            </div>
+
+            <button
+              onClick={handleWhereAmI}
+              className="absolute bottom-6 right-6 p-4 rounded-full bg-brand-accent text-white hover:bg-brand-accent/90 shadow-2xl hover:scale-110 active:scale-95 transition-all cursor-pointer border border-white/20 z-10 flex items-center justify-center"
+              title="Locate Myself and trace reporting line"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* Tab 2: Premium Admin Command Center Modules */}
+        {['dashboard', 'users', 'metadata', 'access', 'database', 'logs'].includes(activeTab) && (simulatedRole === 'super_admin' || simulatedRole === 'admin' || simulatedRole === 'read_only_admin') && (
+          <AdminPanel
+            session={session}
+            users={users}
+            metadata={metadata}
+            systemLogs={systemLogs}
+            simulatedRole={simulatedRole}
+            loadWorkspaceData={loadWorkspaceData}
+            csvRawText={csvRawText}
+            parsedRows={parsedRows}
+            validationErrors={validationErrors}
+            showErrorDrawer={showErrorDrawer}
+            commitLoading={commitLoading}
+            setCsvRawText={setCsvRawText}
+            handleCsvUpload={handleCsvUpload}
+            handleCellEdit={handleCellEdit}
+            handleCommitIngest={handleCommitIngest}
+            setParsedRows={setParsedRows}
+            setShowErrorDrawer={setShowErrorDrawer}
+            selectedMetaType={selectedMetaType}
+            metaNameInput={metaNameInput}
+            metaParentInput={metaParentInput}
+            setSelectedMetaType={setSelectedMetaType}
+            setMetaNameInput={setMetaNameInput}
+            setMetaParentInput={setMetaParentInput}
+            handleAddMetadata={handleAddMetadata}
+            handleMetadataReorder={handleMetadataReorder}
+            handleMetadataDelete={handleMetadataDelete}
+            sub={activeTab as any}
+            onSubChange={(v) => setActiveTab(v)}
+            hideSidebar={true}
+          />
+        )}
+
+        {/* Tab 3: Settings Page */}
+        {activeTab === 'settings' && (
+          <SettingsPanel
+            session={session}
+            users={users}
+            metadata={metadata}
+            theme={theme}
+            setTheme={setTheme}
+            density={density}
+            setDensity={setDensity}
+            simulatedRole={simulatedRole}
+            loadWorkspaceData={loadWorkspaceData}
+          />
+        )}
+
+      </main>
+
+      {/* ─── FLOATING DEBUG DOCK (Ctrl + D) ─── */}
+      {showDebugDock && (
+        <div className="fixed bottom-6 right-20 z-50 p-4 bg-surface-elevated border-2 border-brand-accent/50 rounded-2xl shadow-2xl flex flex-col gap-3 min-w-[200px] animate-fadeIn">
+          <div className="flex items-center justify-between border-b border-border-accent pb-2">
+            <span className="text-[10px] font-black uppercase tracking-wider text-brand-accent">Developer Sandbox Dock</span>
+            <button onClick={() => setShowDebugDock(false)} className="text-[9px] hover:text-brand-accent font-bold">✕</button>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[9px] font-bold text-text-secondary">Simulated Local Role:</label>
+            <select
+              value={simulatedRole}
+              onChange={(e) => setSimulatedRole(e.target.value)}
+              className="px-2 py-1.5 bg-input-bg border border-input-border rounded-lg text-xs font-bold text-text-primary focus:outline-none focus:border-brand-accent cursor-pointer"
+            >
+              <option value="super_admin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="read_only_admin">Read-Only Admin</option>
+              <option value="user">Standard User</option>
+            </select>
+          </div>
+          <span className="text-[8px] text-text-tertiary italic text-center">Toggle debug mode using Ctrl + D</span>
+        </div>
+      )}
+      {/* 3. Global Command Omni-Search Backdrop Modal (Cmd+K) */}
+      {omniOpen && (
+        <div className="fixed inset-0 z-50 bg-[#090d16]/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-surface-card border border-border-accent rounded-3xl shadow-2xl overflow-hidden transform transition-all">
+            
+            {/* Search Input */}
+            <div className="p-6 border-b border-border-accent/40 flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={omniQuery}
+                onChange={(e) => setOmniQuery(e.target.value)}
+                placeholder="Type to search page settings, navigation, or employees..."
+                className="flex-1 bg-transparent text-text-primary placeholder-text-secondary focus:outline-none font-bold text-base"
+                autoFocus
+              />
+              <button
+                onClick={() => setOmniOpen(false)}
+                className="px-2 py-1 rounded hover:bg-background-portal text-[10px] border border-border-accent text-text-secondary uppercase font-semibold"
+              >
+                Esc
               </button>
             </div>
+
+            {/* Suggestions list */}
+            <div className="p-6 max-h-[350px] overflow-y-auto space-y-6">
+              
+              {/* Navigation Options */}
+              {!omniQuery && (
+                <div className="space-y-2">
+                  <span className="text-[10px] text-text-secondary font-black uppercase tracking-wider block">Application Navigation</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => { setActiveTab('canvas'); setOmniOpen(false); }}
+                      className="p-3 bg-background-portal border border-border-accent hover:border-brand-accent rounded-xl text-left text-xs font-bold transition-all"
+                    >
+                      🌐 Go to Org Canvas
+                    </button>
+                    <button
+                      onClick={() => { setActiveTab('dashboard'); setOmniOpen(false); }}
+                      className="p-3 bg-background-portal border border-border-accent hover:border-brand-accent rounded-xl text-left text-xs font-bold transition-all"
+                    >
+                      🛠️ Go to Admin Controls
+                    </button>
+                    <button
+                      onClick={() => { setActiveTab('database'); setOmniOpen(false); }}
+                      className="p-3 bg-background-portal border border-border-accent hover:border-brand-accent rounded-xl text-left text-xs font-bold transition-all"
+                    >
+                      💻 Go to SQL Studio
+                    </button>
+                    <button
+                      onClick={() => {
+                        document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                        router.push('/login');
+                      }}
+                      className="p-3 bg-background-portal border border-border-accent hover:border-warning rounded-xl text-left text-xs font-bold text-warning transition-all"
+                    >
+                      🚪 Log Out Session
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Theme Settings shortcuts */}
+              {!omniQuery && (
+                <div className="space-y-2">
+                  <span className="text-[10px] text-text-secondary font-black uppercase tracking-wider block">Theme Shortcuts</span>
+                  <div className="flex gap-2">
+                    {['light', 'dark', 'cyberpunk'].map(t => (
+                      <button
+                        key={t}
+                        onClick={() => { setTheme(t); setOmniOpen(false); }}
+                        className="px-4 py-2 bg-background-portal border border-border-accent hover:border-brand-accent rounded-xl text-xs font-bold capitalize transition-all"
+                      >
+                        {t} mode
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Employee Directory Results */}
+              <div className="space-y-2">
+                <span className="text-[10px] text-text-secondary font-black uppercase tracking-wider block">
+                  {omniQuery ? 'Employee Search Results' : 'Quick Employee Finder'}
+                </span>
+                
+                <div className="space-y-2">
+                  {filteredOmniUsers.slice(0, 5).map(u => (
+                    <div
+                      key={u.id}
+                      onClick={() => {
+                        setActiveTab('canvas');
+                        setOmniOpen(false);
+                        // Delay centering slightly so canvas can render/mount if tab changes
+                        setTimeout(() => centerCanvasOnNode(u.id), 200);
+                      }}
+                      className="p-3 bg-background-portal border border-border-accent hover:border-brand-accent rounded-xl flex items-center justify-between cursor-pointer transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold flex items-center justify-center text-xs">
+                          {u.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-text-primary">{u.name}</p>
+                          <p className="text-[9px] text-brand-accent font-extrabold uppercase mt-0.5">{u.designation || 'Staff Member'}</p>
+                        </div>
+                      </div>
+
+                      <div className="text-right text-[10px] text-text-secondary font-bold font-mono">
+                        <span>{u.eid}</span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {filteredOmniUsers.length === 0 && (
+                    <p className="text-xs text-text-secondary italic">No employees match "{omniQuery}"</p>
+                  )}
+                </div>
+              </div>
+
+            </div>
           </div>
-        </section>
-      </main>
+        </div>
+      )}
+
     </div>
   );
 }

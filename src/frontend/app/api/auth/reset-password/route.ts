@@ -42,7 +42,9 @@ export async function POST(request: Request) {
       isPasswordChanged: true,
     };
 
-    const base64Session = Buffer.from(JSON.stringify(updatedSession)).toString('base64');
+    // Use base64url encoding (no +, /, or = chars) so cookie is always URL/cookie-safe
+    const base64Session = Buffer.from(JSON.stringify(updatedSession)).toString('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
     // Log the successful password reset event
     await logEvent(session.id, 'Password Changed', 'INFO', { email: session.email }, ipAddress);

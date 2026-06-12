@@ -4,36 +4,68 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ForceResetPage() {
+  const [session, setSession] = useState<any>(null);
+  const [step, setStep] = useState(1);
+  const [tempPassword, setTempPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
+  const [isCelebrated, setIsCelebrated] = useState(false);
+  
   const router = useRouter();
 
   useEffect(() => {
-    // Read the email from the current session token if possible
     const cookies = document.cookie.split(';');
     const sessionCookie = cookies.find(c => c.trim().startsWith('session_token='));
     if (sessionCookie) {
       try {
-        const val = sessionCookie.split('=')[1];
-        const parsed = JSON.parse(atob(val));
-        setUserEmail(parsed.email);
+        // Cookie is base64url encoded - restore standard base64
+        const b64url = sessionCookie.trim().substring('session_token='.length);
+        const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
+        const parsed = JSON.parse(atob(padded));
+        setSession(parsed);
       } catch (err) {
-        // Fallback
+        router.replace('/login');
       }
+    } else {
+      router.replace('/login');
     }
-  }, []);
+  }, [router]);
+
+  // Real-time password strength evaluator
+  const getPasswordStrength = () => {
+    let score = 0;
+    if (newPassword.length >= 8) score++;
+    if (/[A-Z]/.test(newPassword)) score++;
+    if (/[a-z]/.test(newPassword)) score++;
+    if (/[0-9]/.test(newPassword) || /[^A-Za-z0-9]/.test(newPassword)) score++;
+    return score;
+  };
+
+  const strengthScore = getPasswordStrength();
+  const isStrengthMet = strengthScore === 4;
+
+  const handleVerifyTempPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    // In our system, the initial temporary password seeded is 'password123'
+    if (tempPassword === 'password123') {
+      setStep(3);
+    } else {
+      setError('Invalid temporary password. Please verify your onboarding welcome letter.');
+    }
+  };
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long.');
+    if (!isStrengthMet) {
+      setError('Password must meet all security strength parameters.');
       setIsLoading(false);
       return;
     }
@@ -54,11 +86,11 @@ export default function ForceResetPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setSuccess(true);
+        setIsCelebrated(true);
+        // Smooth celebratory fade-out micro-transition before dashboard routing
         setTimeout(() => {
-          router.push('/');
-          router.refresh();
-        }, 1200);
+          router.replace('/');
+        }, 1800);
       } else {
         setError(data.error || 'Password update failed.');
         setIsLoading(false);
@@ -69,90 +101,222 @@ export default function ForceResetPage() {
     }
   };
 
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background-portal text-text-primary">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-accent border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f051d] text-[#f9fafb] relative overflow-hidden font-sans">
-      {/* Background ambient glowing blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#ff007f]/10 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#00ffcc]/10 blur-[120px] pointer-events-none"></div>
+    <div className={`min-h-screen flex items-center justify-center bg-[#090d16] text-[#f9fafb] relative overflow-hidden font-sans transition-opacity duration-700 ${isCelebrated ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
+      
+      {/* Neo-ambient background glows */}
+      <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-brand-accent/15 blur-[160px] pointer-events-none"></div>
+      <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] rounded-full bg-success/15 blur-[160px] pointer-events-none"></div>
 
-      <div className="w-full max-w-md p-8 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl shadow-2xl relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex p-3 rounded-full bg-amber-500/10 text-amber-500 mb-4 border border-amber-500/20 animate-pulse">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white via-white to-amber-400 bg-clip-text text-transparent">
-            Security Notice
-          </h1>
-          <p className="text-[#94a3b8] mt-2 text-sm">
-            Forced Password Reset Required
-          </p>
-          {userEmail && (
-            <span className="inline-block mt-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs text-[#00ffcc]">
-              Account: {userEmail}
-            </span>
-          )}
-        </div>
+      <div className="w-full max-w-lg p-8 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-2xl shadow-2xl relative z-10 transition-all duration-300 hover:border-white/20">
+        
+        {/* Step 1: Personalized Onboarding Welcome Card */}
+        {step === 1 && (
+          <div className="text-center py-4">
+            <div className="inline-flex p-4 rounded-3xl bg-gradient-to-tr from-brand-accent to-success text-white font-black text-2xl tracking-wider mb-6 shadow-xl shadow-brand-accent/20">
+              ACME
+            </div>
+            
+            <h1 className="text-3xl font-black bg-gradient-to-r from-white via-white to-brand-accent bg-clip-text text-transparent leading-tight">
+              Welcome, {session.name}!
+            </h1>
+            
+            <p className="text-gray-400 mt-3 text-sm leading-relaxed max-w-sm mx-auto">
+              Your onboarding profile is initialized with EID <span className="font-extrabold text-success font-mono">{session.eid}</span>. To activate your secure workspace, let's complete a quick configuration setup.
+            </p>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-sm">
-            Password updated successfully! Redirecting to dashboard...
+            <button
+              onClick={() => setStep(2)}
+              className="mt-8 px-8 py-3.5 bg-brand-accent hover:bg-brand-accent/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-brand-accent/25 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              Begin Account Activation
+            </button>
           </div>
         )}
 
-        <form onSubmit={handlePasswordReset} className="space-y-6">
+        {/* Step 2: Verification of temporary password */}
+        {step === 2 && (
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#94a3b8] mb-2">
-              New Secure Password
-            </label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-              placeholder="At least 8 characters"
-              required
-            />
-          </div>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-black text-text-primary">Identity Authorization</h2>
+              <p className="text-xs text-gray-400 mt-2">Enter the temporary shared initialization credentials provided by HR.</p>
+            </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#94a3b8] mb-2">
-              Confirm Secure Password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-              placeholder="Confirm new password"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading || success}
-            className="w-full py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold shadow-lg shadow-orange-500/20 transition-all duration-200 transform active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
-          >
-            {isLoading ? (
-              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-            ) : (
-              'Reset Password & Continue'
+            {error && (
+              <div className="mb-6 p-4 bg-warning/10 border border-warning/20 text-warning rounded-xl text-xs font-semibold">
+                {error}
+              </div>
             )}
-          </button>
-        </form>
 
-        <div className="mt-8 text-center border-t border-white/5 pt-6 text-xs text-[#64748b]">
-          <p>This flow is intercepted by `authGuard.ts` middleware</p>
-          <p className="mt-2 text-[#00ffcc]">Status flag: `is_password_changed = false`</p>
-        </div>
+            <form onSubmit={handleVerifyTempPassword} className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                  Temporary Initialization Password
+                </label>
+                <input
+                  type="password"
+                  value={tempPassword}
+                  onChange={(e) => setTempPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all duration-200"
+                  placeholder="Enter temp code (password123)"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-between items-center pt-4">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="text-xs font-bold text-gray-400 hover:text-white transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-brand-accent hover:bg-brand-accent/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-brand-accent/20 cursor-pointer"
+                >
+                  Authorize Code
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Step 3: Interactive Password Engine */}
+        {step === 3 && (
+          <div>
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-black text-text-primary">Establish Secure Key</h2>
+              <p className="text-xs text-gray-400 mt-1">Design a high-entropy password to secure your admin credentials.</p>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3.5 bg-warning/10 border border-warning/20 text-warning rounded-xl text-xs font-semibold">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordReset} className="space-y-5">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                  New Private Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-white placeholder-gray-600 focus:outline-none transition-all duration-300 ${
+                    newPassword ? (isStrengthMet ? 'border-success ring-2 ring-success/20' : 'border-warning ring-2 ring-warning/20') : 'border-white/10'
+                  }`}
+                  placeholder="Minimum 8 high-entropy characters"
+                  required
+                />
+              </div>
+
+              {/* Real-time requirements checklist & border color shifts */}
+              <div className="p-4 bg-black/20 rounded-2xl border border-white/5 space-y-2">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[9px] text-gray-400 font-extrabold uppercase">Strength Metrics</span>
+                  <span className={`text-[10px] font-black uppercase ${
+                    strengthScore === 4 ? 'text-success' : 'text-warning'
+                  }`}>
+                    {strengthScore === 0 && 'Unacceptable'}
+                    {strengthScore === 1 && 'Weak'}
+                    {strengthScore === 2 && 'Fair'}
+                    {strengthScore === 3 && 'Strong'}
+                    {strengthScore === 4 && 'Excellent / Compliant'}
+                  </span>
+                </div>
+                
+                {/* Visual score bar */}
+                <div className="flex gap-1.5 h-1">
+                  {[1, 2, 3, 4].map(s => (
+                    <div
+                      key={s}
+                      className={`flex-1 h-full rounded-full transition-all duration-300 ${
+                        s <= strengthScore
+                          ? strengthScore === 4
+                            ? 'bg-success shadow shadow-success'
+                            : 'bg-warning shadow shadow-warning'
+                          : 'bg-white/10'
+                      }`}
+                    ></div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-3 text-[9px] font-bold">
+                  <div className={`flex items-center gap-1.5 ${newPassword.length >= 8 ? 'text-success' : 'text-gray-500'}`}>
+                    <span>{newPassword.length >= 8 ? '✓' : '✕'}</span>
+                    <span>8+ Characters</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${/[A-Z]/.test(newPassword) ? 'text-success' : 'text-gray-500'}`}>
+                    <span>{/[A-Z]/.test(newPassword) ? '✓' : '✕'}</span>
+                    <span>Uppercase (A-Z)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${/[a-z]/.test(newPassword) ? 'text-success' : 'text-gray-500'}`}>
+                    <span>{/[a-z]/.test(newPassword) ? '✓' : '✕'}</span>
+                    <span>Lowercase (a-z)</span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${(/[0-9]/.test(newPassword) || /[^A-Za-z0-9]/.test(newPassword)) ? 'text-success' : 'text-gray-500'}`}>
+                    <span>{(/[0-9]/.test(newPassword) || /[^A-Za-z0-9]/.test(newPassword)) ? '✓' : '✕'}</span>
+                    <span>Number / Special</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all duration-200"
+                  placeholder="Repeat secure password"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || !isStrengthMet || newPassword !== confirmPassword}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-accent to-success hover:from-brand-accent/90 hover:to-success/90 text-white font-bold text-xs uppercase tracking-wider shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                  'Activate Workspace Profile'
+                )}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Celebratory Transition Screen */}
+        {isCelebrated && (
+          <div className="text-center py-12 space-y-6 animate-bounce">
+            <div className="inline-flex p-6 bg-success/20 rounded-full text-success border border-success/30 shadow-2xl shadow-success/25">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            
+            <div>
+              <h2 className="text-3xl font-black text-success">Onboarding Complete!</h2>
+              <p className="text-sm text-gray-400 mt-2">Workspace initialized. Booting up dashboard engines...</p>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

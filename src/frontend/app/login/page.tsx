@@ -1,14 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('admin@acmecorp.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  // Clear any stale or expired session cookie when landing on login page
+  useEffect(() => {
+    document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,8 +36,12 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        router.push('/');
-        router.refresh();
+        // Use replace so back button doesn't loop back to login
+        if (data.user && data.user.isPasswordChanged === false) {
+          router.replace('/force-reset');
+        } else {
+          router.replace('/');
+        }
       } else {
         setError(data.error || 'Login failed.');
         setIsLoading(false);
@@ -111,8 +120,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-8 text-center border-t border-white/5 pt-6 text-xs text-[#64748b]">
-          <p>Demo credentials: admin@acmecorp.com / password123</p>
-          <p className="mt-2 text-[#00ffcc]">Stateless security powered by Jose & Iron Session</p>
+          <p className="mt-2 text-[#00ffcc]/70">Secure authentication powered by bcrypt & session tokens</p>
         </div>
       </div>
     </div>

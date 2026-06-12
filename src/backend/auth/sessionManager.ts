@@ -16,8 +16,11 @@ export async function getSession(request: NextRequest): Promise<UserSession | nu
   }
 
   try {
-    // Decode base64 representation of session for demonstration purposes
-    const decoded = JSON.parse(Buffer.from(tokenCookie.value, 'base64').toString('utf-8'));
+    // Cookie is base64url encoded - restore standard base64 before decoding
+    const b64url = tokenCookie.value;
+    const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
+    const decoded = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8'));
     return decoded as UserSession;
   } catch (error) {
     console.error('Session decryption failed:', error);

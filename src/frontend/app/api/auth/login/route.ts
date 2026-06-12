@@ -47,7 +47,9 @@ export async function POST(request: Request) {
       isPasswordChanged: user.isPasswordChanged,
     };
 
-    const base64Session = Buffer.from(JSON.stringify(sessionPayload)).toString('base64');
+    // Use base64url encoding (no +, /, or = chars) so cookie is always URL/cookie-safe
+    const base64Session = Buffer.from(JSON.stringify(sessionPayload)).toString('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     
     // Log successful login event
     await logEvent(user.id, 'User Login', 'INFO', { email: user.email, role: user.role }, ipAddress);
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
       path: '/',
       maxAge: 3600,
       sameSite: 'strict',
-      httpOnly: false, // Allow client side redirection check but keep secure constraints
+      httpOnly: false,
     });
 
     return response;
