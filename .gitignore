@@ -1,0 +1,6 @@
+/portables
+/node_modules
+/.env
+/graphify-out
+.DS_Store
+/test/coverage

@@ -1,0 +1,11 @@
+/portables/
+/node_modules/
+/.env*
+/graphify-out/
+/.git/
+/.agents/
+/test/coverage/
+/test/dummy-data/
+/scripts/
+.DS_Store
+idea.md

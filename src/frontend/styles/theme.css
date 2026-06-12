@@ -1,0 +1,27 @@
+@theme {
+  --color-background-portal: var(--bg-portal);
+  --color-surface-card: var(--surface-card);
+  --color-text-primary: var(--text-primary);
+  --color-brand-accent: var(--brand-accent);
+}
+
+:root, [data-theme="light"] {
+  --bg-portal: #f8fafc;
+  --surface-card: #ffffff;
+  --text-primary: #0f172a;
+  --brand-accent: #2563eb;
+}
+
+[data-theme="dark"] {
+  --bg-portal: #090d16;
+  --surface-card: #111827;
+  --text-primary: #f9fafb;
+  --brand-accent: #3b82f6;
+}
+
+[data-theme="cyberpunk"] {
+  --bg-portal: #0f051d;
+  --surface-card: #1a0b2e;
+  --text-primary: #00ffcc;
+  --brand-accent: #ff007f;
+}
