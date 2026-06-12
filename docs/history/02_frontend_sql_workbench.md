@@ -1,4 +1,4 @@
-# Frontend Integration & SQL Workbench Report
+# Frontend Integration & SQL Workbench Report (Part 2 - Frontend & SQL Workbench)
 
 This report outlines the design, implementation, and type-safety validation for the frontend user interface of the Modular Corporate Portal Engine.
 

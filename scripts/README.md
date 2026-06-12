@@ -1,0 +1,11 @@
+# Orchestration Scripts (`scripts/`)
+
+This directory contains cross-platform convenience wrappers to initialize the development environment and boot the dev server.
+
+## Scripts list:
+* **`setup.sh` / `setup.bat`:** Automatically pulls down the local portable Bun binary (version 1.2.0), executes `bun install` for package dependencies, and boots the PostgreSQL database migration/seeding routines.
+* **`run.sh` / `run.bat`:** Exports the portable Bun binary path and launches the frontend Next.js dev server.
+
+## Rules to Follow:
+1. **Portable Paths:** Do not add absolute environment pathing in script lines. All relative paths should compute from the project's root folder.
+2. **Cross-Platform Parity:** If you update shell logic inside the `.sh` scripts, verify you replicate the corresponding adjustments in the `.bat` scripts to maintain Windows comparability.
