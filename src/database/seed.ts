@@ -15,7 +15,7 @@ async function main() {
   // Company metadata
   await db.execute(sql`
     INSERT INTO structural_metadata (id, type, name, sort_order)
-    VALUES ('a0000000-0000-0000-0000-000000000001', 'company_name', 'Acme Corp', 0);
+    VALUES ('a0000000-0000-0000-0000-000000000001', 'company_name', 'SG Forge', 0);
   `);
 
   console.log('Inserting 3 Business Verticals...');
@@ -55,7 +55,7 @@ async function main() {
       '90000000-0000-0000-0000-000000000001',
       'E0001',
       'Super Admin',
-      'admin@acmecorp.com',
+      'admin@sgforge.com',
       ${adminPasswordHash},
       false,
       'super_admin',

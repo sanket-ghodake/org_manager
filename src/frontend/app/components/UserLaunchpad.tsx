@@ -272,11 +272,11 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
         <div className="p-5 border-b border-border-accent flex items-center justify-between overflow-hidden">
           <div className="flex items-center gap-3">
             <span className="p-2.5 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-black text-sm tracking-wider shadow-lg shadow-brand-accent/25 flex-shrink-0">
-              AC
+              SG
             </span>
             {sidebarOpen && (
               <span className="font-extrabold text-sm tracking-tight bg-gradient-to-r from-text-primary via-text-primary to-brand-accent bg-clip-text text-transparent whitespace-nowrap">
-                Acme Launchpad
+                SG Forge Launchpad
               </span>
             )}
           </div>

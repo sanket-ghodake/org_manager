@@ -89,7 +89,7 @@ async function main() {
   // Seed default metadata
   await db.execute(sql`
     INSERT INTO structural_metadata (id, type, name, sort_order)
-    VALUES ('a0000000-0000-0000-0000-000000000001', 'company_name', 'Acme Corp', 0);
+    VALUES ('a0000000-0000-0000-0000-000000000001', 'company_name', 'SG Forge', 0);
   `);
 
   // Seed Verticals
@@ -132,70 +132,70 @@ async function main() {
   const ceoId = '90000000-0000-0000-0000-000000000001';
   await db.execute(sql`
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${ceoId}, 'E0001', 'Super Admin', 'admin@acmecorp.com', ${adminPasswordHash}, false, 'super_admin', '20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', NULL);
+    VALUES (${ceoId}, 'E0001', 'Super Admin', 'admin@sgforge.com', ${adminPasswordHash}, false, 'super_admin', '20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', NULL);
   `);
 
   // E0002: VP of Eng
   const vpEngId = '90000000-0000-0000-0000-000000000002';
   await db.execute(sql`
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${vpEngId}, 'E0002', 'Admin One', 'admin1@acmecorp.com', ${adminPasswordHash}, false, 'admin', '20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', ${ceoId});
+    VALUES (${vpEngId}, 'E0002', 'Admin One', 'admin1@sgforge.com', ${adminPasswordHash}, false, 'admin', '20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', ${ceoId});
   `);
 
   // E0003: VP of Mkt
   const vpMktId = '90000000-0000-0000-0000-000000000003';
   await db.execute(sql`
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${vpMktId}, 'E0003', 'Admin Two', 'admin2@acmecorp.com', ${adminPasswordHash}, false, 'admin', '20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', ${ceoId});
+    VALUES (${vpMktId}, 'E0003', 'Admin Two', 'admin2@sgforge.com', ${adminPasswordHash}, false, 'admin', '20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', ${ceoId});
   `);
 
   // E0004: CFO
   const cfoId = '90000000-0000-0000-0000-000000000004';
   await db.execute(sql`
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${cfoId}, 'E0004', 'ReadOnly Admin', 'readonly@acmecorp.com', ${adminPasswordHash}, false, 'read_only_admin', '20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000004', ${ceoId});
+    VALUES (${cfoId}, 'E0004', 'ReadOnly Admin', 'readonly@sgforge.com', ${adminPasswordHash}, false, 'read_only_admin', '20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000004', ${ceoId});
   `);
 
   // E0005: Engineering Manager
   const engMgrId = '90000000-0000-0000-0000-000000000005';
   await db.execute(sql`
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${engMgrId}, 'E0005', 'Alice Smith', 'alice@acmecorp.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000002', ${vpEngId});
+    VALUES (${engMgrId}, 'E0005', 'Alice Smith', 'alice@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000002', ${vpEngId});
   `);
 
   // E0006: Senior Engineer (reports to Eng Manager)
   const srEngId = '90000000-0000-0000-0000-000000000006';
   await db.execute(sql`
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${srEngId}, 'E0006', 'Bob Jones', 'bob@acmecorp.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000002', ${engMgrId});
+    VALUES (${srEngId}, 'E0006', 'Bob Jones', 'bob@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000002', ${engMgrId});
   `);
 
   // E0007: Software Engineer (reports to Eng Manager)
   const swEngId = '90000000-0000-0000-0000-000000000007';
   await db.execute(sql`
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${swEngId}, 'E0007', 'Charlie Brown', 'charlie@acmecorp.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000002', ${engMgrId});
+    VALUES (${swEngId}, 'E0007', 'Charlie Brown', 'charlie@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000002', ${engMgrId});
   `);
 
   // E0008: Software Engineer (reports to VP of Eng directly for testing flat structures)
   const swEngId2 = '90000000-0000-0000-0000-000000000008';
   await db.execute(sql`
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${swEngId2}, 'E0008', 'Diana Prince', 'diana@acmecorp.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000002', ${vpEngId});
+    VALUES (${swEngId2}, 'E0008', 'Diana Prince', 'diana@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000002', ${vpEngId});
   `);
 
   // E0009: Marketing Specialist (reports to VP of Marketing)
   const mktSpecId = '90000000-0000-0000-0000-000000000009';
   await db.execute(sql`
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${mktSpecId}, 'E0009', 'Evan Wright', 'evan@acmecorp.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000003', ${vpMktId});
+    VALUES (${mktSpecId}, 'E0009', 'Evan Wright', 'evan@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000003', ${vpMktId});
   `);
 
   // E0010: Financial Analyst (reports to CFO)
   const finId = '90000000-0000-0000-0000-000000000010';
   await db.execute(sql`
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${finId}, 'E0010', 'Fiona Gallagher', 'fiona@acmecorp.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000004', ${cfoId});
+    VALUES (${finId}, 'E0010', 'Fiona Gallagher', 'fiona@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000004', ${cfoId});
   `);
 
   console.log('Local database initialization completed successfully!');

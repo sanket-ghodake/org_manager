@@ -565,7 +565,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#090d16]">
         <div className="flex flex-col items-center gap-4">
-          <span className="p-3 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold text-xl tracking-wider shadow-lg shadow-brand-accent/20">AC</span>
+          <span className="p-3 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold text-xl tracking-wider shadow-lg shadow-brand-accent/20">SG</span>
           <div className="w-6 h-6 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
@@ -613,11 +613,11 @@ export default function DashboardPage() {
           <div className="p-4.5 border-b border-border-accent flex items-center justify-between overflow-hidden">
             <div className="flex items-center gap-3">
               <span className="p-2 rounded-lg bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold text-sm tracking-wider shadow-lg shadow-brand-accent/20 flex-shrink-0">
-                AC
+                SG
               </span>
               {!sidebarCollapsed && (
                 <span className="font-extrabold text-sm tracking-tight bg-gradient-to-r from-text-primary via-text-primary to-brand-accent bg-clip-text text-transparent whitespace-nowrap">
-                  Acme Corp
+                  SG Forge
                 </span>
               )}
             </div>
@@ -958,7 +958,7 @@ export default function DashboardPage() {
                           <p className="text-[10px] truncate text-brand-accent font-semibold">{u.designation || 'Specialist'}</p>
                           <div className="mt-2 flex items-center justify-between text-[8px] text-text-secondary uppercase font-semibold">
                             <span>{u.eid}</span>
-                            <span>{u.vertical || 'Acme'}</span>
+                            <span>{u.vertical || 'SG Forge'}</span>
                           </div>
                         </div>
                       );

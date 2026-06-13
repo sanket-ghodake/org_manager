@@ -123,7 +123,7 @@ export default function ForceResetPage() {
         {step === 1 && (
           <div className="text-center py-4">
             <div className="inline-flex p-4 rounded-3xl bg-gradient-to-tr from-brand-accent to-success text-white font-black text-2xl tracking-wider mb-6 shadow-xl shadow-brand-accent/20">
-              ACME
+              SG Forge
             </div>
             
             <h1 className="text-3xl font-black bg-gradient-to-r from-white via-white to-brand-accent bg-clip-text text-transparent leading-tight">

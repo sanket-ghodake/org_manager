@@ -61,7 +61,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md p-8 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl shadow-2xl relative z-10 transition-all duration-300 hover:border-white/20">
         <div className="text-center mb-8">
           <div className="inline-flex p-3 rounded-xl bg-gradient-to-tr from-[#ff007f] to-[#2563eb] text-white font-black text-2xl tracking-wider mb-4 shadow-lg">
-            ACME
+            SG Forge
           </div>
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-white to-[#00ffcc] bg-clip-text text-transparent">
             Corporate Portal

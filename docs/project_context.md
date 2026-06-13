@@ -1,7 +1,7 @@
 # Project Context
 
 ## Vision
-The project is a high-performance, standalone, plug-and-play organizational workspace engine (Acme Corp Portal). Its vision is to replace legacy, static tabular directories with a fluid, infinite-canvas style workspace offering real-time zoomable visualization, seamless user onboarding, and a sandboxed ecosystem for custom corporate micro-apps.
+The project is a high-performance, standalone, plug-and-play organizational workspace engine (SG Forge Portal). Its vision is to replace legacy, static tabular directories with a fluid, infinite-canvas style workspace offering real-time zoomable visualization, seamless user onboarding, and a sandboxed ecosystem for custom corporate micro-apps.
 
 ## Business Goal
 - Deliver a responsive semantic workspace (Org Canvas) with Macro, Meso, and Micro states for visual organization mapping.

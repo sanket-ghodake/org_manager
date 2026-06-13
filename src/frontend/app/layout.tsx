@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Acme Corp — Admin Portal",
-  description: "Enterprise administration dashboard for Acme Corporation",
+  title: "SG Forge — Admin Portal",
+  description: "Enterprise administration dashboard for SG Forge",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

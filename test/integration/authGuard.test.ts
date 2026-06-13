@@ -42,7 +42,7 @@ describe("Middleware Authentication Guard Pipeline", () => {
     const expectedUser = {
       id: "abc-123",
       eid: "E0001",
-      email: "test@acmecorp.com",
+      email: "test@sgforge.com",
       name: "Test User",
       role: "user",
       isPasswordChanged: false, // Password reset required
@@ -78,7 +78,7 @@ describe("Middleware Authentication Guard Pipeline", () => {
     const expectedUser = {
       id: "abc-123",
       eid: "E0001",
-      email: "test@acmecorp.com",
+      email: "test@sgforge.com",
       name: "Test User",
       role: "user",
       isPasswordChanged: true, // Password already changed

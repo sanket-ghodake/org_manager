@@ -1281,7 +1281,7 @@ export default function AdminPanel({
                               </td>
                               <td className="px-4 py-3 text-text-secondary font-mono text-[11px]">{u.email}</td>
                               <td className="px-4 py-3 text-text-secondary">{u.designation || 'Specialist'}</td>
-                              <td className="px-4 py-3 text-text-secondary">{u.vertical || 'Acme HQ'}</td>
+                              <td className="px-4 py-3 text-text-secondary">{u.vertical || 'SG Forge HQ'}</td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-1.5">
                                   <span className={`h-2 w-2 rounded-full ${u.is_password_changed ? 'bg-success shadow shadow-success' : 'bg-warning shadow shadow-warning'}`} />
@@ -1700,7 +1700,7 @@ export default function AdminPanel({
                 {/* Tree Root */}
                 <div className="p-4 bg-brand-muted/20 border border-brand-accent/20 rounded-2xl w-fit flex items-center gap-2 shadow-sm">
                   <span className="text-sm">🏢</span>
-                  <span className="text-xs font-black text-brand-accent uppercase tracking-wider">Acme Corporate HQ Root</span>
+                  <span className="text-xs font-black text-brand-accent uppercase tracking-wider">SG Forge Corporate HQ Root</span>
                 </div>
 
                 {renderTreeNodes(null)}

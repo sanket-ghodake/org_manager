@@ -1,51 +1,51 @@
 EID,Name,Email,Role,Designation,Vertical,Subsidiary,Manager EID
-E1001,"Arthur Pendragon",arthur@acmecorp.com,super_admin,"VP of Engineering","Engineering","Acme Corp Ltd",
-E1002,"Guinevere Vance",guinevere@acmecorp.com,admin,"Product Director","Product Management","Acme Corp Ltd",
-E1003,"Lancelot DuLac",lancelot@acmecorp.com,admin,"Operations Director","Sales & Operations","Initech LLC",
-E0004,"Karen Johnson",karen.johnson@acmecorp.com,user,"Product Manager","Product Management","Hooli Inc",E1003
-E0005,"Karen Garcia",karen.garcia@acmecorp.com,user,"Operations Director","Marketing & Growth","Hooli Inc",
-E0006,"Robert Moore",robert.moore@acmecorp.com,user,"Product Manager","Product Management","Initech LLC",E1003
-E0007,"James Williams",james.williams@acmecorp.com,user,"Operations Director","Marketing & Growth","Initech LLC",
-E0008,"Barbara Martin",barbara.martin@acmecorp.com,user,"Product Manager","Product Management","Acme Corp Ltd",E1001
-E0009,"Patricia Brown",patricia.brown@acmecorp.com,user,"Product Manager","Product Management","Hooli Inc",E1001
-E0010,"Joseph Johnson",joseph.johnson@acmecorp.com,user,"HR Lead","Human Resources","Initech LLC",E1001
-E0011,"Michael Hernandez",michael.hernandez@acmecorp.com,user,"Operations Director","Marketing & Growth","Initech LLC",
-E0012,"Michael Moore",michael.moore@acmecorp.com,user,"Senior Backend Engineer","Engineering","Initech LLC",E1002
-E0013,"Charles Rodriguez",charles.rodriguez@acmecorp.com,user,"Lead Sales Manager","Sales & Operations","Acme Corp Ltd",E1003
-E0014,"Susan Jackson",susan.jackson@acmecorp.com,user,"Engineering Manager","Engineering","Hooli Inc",E1002
-E0015,"John Wilson",john.wilson@acmecorp.com,user,"Product Manager","Product Management","Acme Corp Ltd",E1003
-E0016,"James Davis",james.davis@acmecorp.com,user,"HR Lead","Human Resources","Initech LLC",E1001
-E0017,"Jennifer Miller",jennifer.miller@acmecorp.com,user,"Engineering Manager","Engineering","Hooli Inc",E1003
-E0018,"Barbara Davis",barbara.davis@acmecorp.com,user,"Lead Sales Manager","Sales & Operations","Initech LLC",E1003
-E0019,"Linda Moore",linda.moore@acmecorp.com,user,"Senior Frontend Engineer","Engineering","Hooli Inc",E1001
-E0020,"Patricia Moore",patricia.moore@acmecorp.com,user,"Lead Sales Manager","Sales & Operations","Initech LLC",E1003
-E0021,"Sarah Moore",sarah.moore@acmecorp.com,user,"Operations Director","Marketing & Growth","Hooli Inc",
-E0022,"Charles Jackson",charles.jackson@acmecorp.com,user,"Product Manager","Product Management","Hooli Inc",E1002
-E0023,"Joseph Hernandez",joseph.hernandez@acmecorp.com,user,"HR Lead","Human Resources","Acme Corp Ltd",E1001
-E0024,"David Johnson",david.johnson@acmecorp.com,user,"Senior Backend Engineer","Engineering","Acme Corp Ltd",E1002
-E0025,"Linda Lopez",linda.lopez@acmecorp.com,user,"Lead Sales Manager","Marketing & Growth","Hooli Inc",E1002
-E0026,"Sarah Williams",sarah.williams@acmecorp.com,user,"HR Lead","Human Resources","Initech LLC",E1002
-E0027,"Barbara Brown",barbara.brown@acmecorp.com,user,"Lead Sales Manager","Sales & Operations","Acme Corp Ltd",E1003
-E0028,"Karen Lopez",karen.lopez@acmecorp.com,user,"Operations Director","Sales & Operations","Initech LLC",
-E0029,"James Martin",james.martin@acmecorp.com,user,"Engineering Manager","Engineering","Initech LLC",E1001
-E0030,"Joseph Anderson",joseph.anderson@acmecorp.com,user,"Senior Frontend Engineer","Engineering","Acme Corp Ltd",E1002
-E0031,"Linda Williams",linda.williams@acmecorp.com,user,"HR Lead","Human Resources","Acme Corp Ltd",E1001
-E0032,"Mary Davis",mary.davis@acmecorp.com,user,"Operations Director","Marketing & Growth","Hooli Inc",
-E0033,"James Garcia",james.garcia@acmecorp.com,user,"HR Lead","Human Resources","Hooli Inc",E1003
-E0034,"Jennifer Brown",jennifer.brown@acmecorp.com,user,"Lead Sales Manager","Sales & Operations","Initech LLC",E1002
-E0035,"Karen Anderson",karen.anderson@acmecorp.com,user,"Senior Frontend Engineer","Engineering","Acme Corp Ltd",E1001
-E0036,"John Williams",john.williams@acmecorp.com,user,"Engineering Manager","Engineering","Acme Corp Ltd",E1001
-E0037,"John Taylor",john.taylor@acmecorp.com,user,"HR Lead","Human Resources","Initech LLC",E1001
-E0038,"Barbara Martinez",barbara.martinez@acmecorp.com,user,"Lead Sales Manager","Sales & Operations","Initech LLC",E1002
-E0039,"John Garcia",john.garcia@acmecorp.com,user,"Lead Software Architect","Engineering","Hooli Inc",E1003
-E0040,"Elizabeth Anderson",elizabeth.anderson@acmecorp.com,user,"Operations Director","Sales & Operations","Hooli Inc",
-E0041,"Michael Miller",michael.miller@acmecorp.com,user,"HR Lead","Human Resources","Hooli Inc",E1003
-E0042,"Charles Smith",charles.smith@acmecorp.com,user,"Lead Sales Manager","Marketing & Growth","Hooli Inc",E1001
-E0043,"Linda Rodriguez",linda.rodriguez@acmecorp.com,user,"Lead Sales Manager","Marketing & Growth","Hooli Inc",E1003
-E0044,"Sarah Smith",sarah.smith@acmecorp.com,user,"Operations Director","Marketing & Growth","Initech LLC",
-E0045,"Barbara Martin",barbara.martin@acmecorp.com,user,"Senior Backend Engineer","Engineering","Initech LLC",E1002
-E0046,"Joseph Martin",joseph.martin@acmecorp.com,user,"Operations Director","Marketing & Growth","Acme Corp Ltd",
-E0047,"Jessica Jones",jessica.jones@acmecorp.com,user,"Senior Backend Engineer","Engineering","Initech LLC",E1001
-E0048,"Patricia Davis",patricia.davis@acmecorp.com,user,"Operations Director","Sales & Operations","Acme Corp Ltd",
-E0049,"Susan Gonzalez",susan.gonzalez@acmecorp.com,user,"Product Manager","Product Management","Acme Corp Ltd",E1001
-E0050,"Mary Lopez",mary.lopez@acmecorp.com,user,"Lead Sales Manager","Marketing & Growth","Initech LLC",E1002
+E1001,"Arthur Pendragon",arthur@sgforge.com,super_admin,"VP of Engineering","Engineering","SG Forge Ltd",
+E1002,"Guinevere Vance",guinevere@sgforge.com,admin,"Product Director","Product Management","SG Forge Ltd",
+E1003,"Lancelot DuLac",lancelot@sgforge.com,admin,"Operations Director","Sales & Operations","Initech LLC",
+E0004,"Jessica Anderson",jessica.anderson@sgforge.com,user,"Lead Sales Manager","Sales & Operations","SG Forge Ltd",E1001
+E0005,"Joseph Rodriguez",joseph.rodriguez@sgforge.com,user,"Lead Sales Manager","Sales & Operations","Hooli Inc",E1001
+E0006,"Barbara Davis",barbara.davis@sgforge.com,user,"Engineering Manager","Engineering","Initech LLC",E1001
+E0007,"Richard Davis",richard.davis@sgforge.com,user,"Lead Sales Manager","Sales & Operations","Hooli Inc",E1002
+E0008,"John Hernandez",john.hernandez@sgforge.com,user,"Product Manager","Product Management","Initech LLC",E1003
+E0009,"Michael Jones",michael.jones@sgforge.com,user,"Senior Backend Engineer","Engineering","Hooli Inc",E1003
+E0010,"Elizabeth Taylor",elizabeth.taylor@sgforge.com,user,"Engineering Manager","Engineering","SG Forge Ltd",E1001
+E0011,"Jennifer Garcia",jennifer.garcia@sgforge.com,user,"Lead Software Architect","Engineering","SG Forge Ltd",E1001
+E0012,"Charles Martin",charles.martin@sgforge.com,user,"Lead Software Architect","Engineering","Initech LLC",E1003
+E0013,"Patricia Brown",patricia.brown@sgforge.com,user,"Product Manager","Product Management","SG Forge Ltd",E1002
+E0014,"Mary Miller",mary.miller@sgforge.com,user,"Operations Director","Sales & Operations","SG Forge Ltd",
+E0015,"Karen Taylor",karen.taylor@sgforge.com,user,"Lead Software Architect","Engineering","SG Forge Ltd",E1002
+E0016,"Sarah Moore",sarah.moore@sgforge.com,user,"Product Manager","Product Management","Hooli Inc",E1003
+E0017,"James Hernandez",james.hernandez@sgforge.com,user,"Lead Sales Manager","Sales & Operations","SG Forge Ltd",E1002
+E0018,"Elizabeth Johnson",elizabeth.johnson@sgforge.com,user,"HR Lead","Human Resources","Hooli Inc",E1001
+E0019,"James Lopez",james.lopez@sgforge.com,user,"Product Manager","Product Management","Initech LLC",E1002
+E0020,"James Thomas",james.thomas@sgforge.com,user,"Product Manager","Product Management","Initech LLC",E1002
+E0021,"Patricia Garcia",patricia.garcia@sgforge.com,user,"HR Lead","Human Resources","Initech LLC",E1002
+E0022,"John Hernandez",john.hernandez@sgforge.com,user,"Senior Backend Engineer","Engineering","Initech LLC",E1002
+E0023,"Michael Martinez",michael.martinez@sgforge.com,user,"Product Manager","Product Management","SG Forge Ltd",E1002
+E0024,"Joseph Moore",joseph.moore@sgforge.com,user,"Product Manager","Product Management","Hooli Inc",E1001
+E0025,"Sarah Smith",sarah.smith@sgforge.com,user,"Product Manager","Product Management","Initech LLC",E1002
+E0026,"Barbara Miller",barbara.miller@sgforge.com,user,"Operations Director","Marketing & Growth","Hooli Inc",
+E0027,"Thomas Rodriguez",thomas.rodriguez@sgforge.com,user,"Operations Director","Marketing & Growth","Initech LLC",
+E0028,"Susan Miller",susan.miller@sgforge.com,user,"Senior Backend Engineer","Engineering","Hooli Inc",E1001
+E0029,"Linda Williams",linda.williams@sgforge.com,user,"Operations Director","Marketing & Growth","Initech LLC",
+E0030,"John Taylor",john.taylor@sgforge.com,user,"Lead Software Architect","Engineering","SG Forge Ltd",E1002
+E0031,"David Martin",david.martin@sgforge.com,user,"Senior Frontend Engineer","Engineering","SG Forge Ltd",E1002
+E0032,"James Anderson",james.anderson@sgforge.com,user,"Product Manager","Product Management","SG Forge Ltd",E1003
+E0033,"Karen Martin",karen.martin@sgforge.com,user,"Senior Backend Engineer","Engineering","Hooli Inc",E1003
+E0034,"Elizabeth Miller",elizabeth.miller@sgforge.com,user,"HR Lead","Human Resources","Hooli Inc",E1002
+E0035,"Joseph Jackson",joseph.jackson@sgforge.com,user,"Senior Frontend Engineer","Engineering","Hooli Inc",E1001
+E0036,"Thomas Taylor",thomas.taylor@sgforge.com,user,"Product Manager","Product Management","Hooli Inc",E1002
+E0037,"James Rodriguez",james.rodriguez@sgforge.com,user,"Lead Software Architect","Engineering","Hooli Inc",E1002
+E0038,"John Johnson",john.johnson@sgforge.com,user,"Senior Backend Engineer","Engineering","Hooli Inc",E1002
+E0039,"John Jones",john.jones@sgforge.com,user,"Lead Sales Manager","Marketing & Growth","Initech LLC",E1002
+E0040,"Susan Brown",susan.brown@sgforge.com,user,"Product Manager","Product Management","Initech LLC",E1001
+E0041,"Linda Rodriguez",linda.rodriguez@sgforge.com,user,"HR Lead","Human Resources","Initech LLC",E1002
+E0042,"Barbara Smith",barbara.smith@sgforge.com,user,"Lead Sales Manager","Sales & Operations","Initech LLC",E1001
+E0043,"Barbara Hernandez",barbara.hernandez@sgforge.com,user,"Engineering Manager","Engineering","SG Forge Ltd",E1001
+E0044,"Karen Lopez",karen.lopez@sgforge.com,user,"HR Lead","Human Resources","Hooli Inc",E1003
+E0045,"William Brown",william.brown@sgforge.com,user,"Product Manager","Product Management","SG Forge Ltd",E1003
+E0046,"Susan Jones",susan.jones@sgforge.com,user,"HR Lead","Human Resources","Initech LLC",E1002
+E0047,"David Williams",david.williams@sgforge.com,user,"Operations Director","Marketing & Growth","Hooli Inc",
+E0048,"Richard Jackson",richard.jackson@sgforge.com,user,"Lead Sales Manager","Sales & Operations","Hooli Inc",E1001
+E0049,"Richard Martinez",richard.martinez@sgforge.com,user,"Operations Director","Marketing & Growth","Initech LLC",
+E0050,"Sarah Davis",sarah.davis@sgforge.com,user,"Product Manager","Product Management","Hooli Inc",E1003

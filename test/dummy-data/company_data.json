@@ -1,7 +1,7 @@
 {
   "subsidiaries": [
     {
-      "name": "Acme Corp Ltd"
+      "name": "SG Forge Ltd"
     },
     {
       "name": "Initech LLC"
@@ -60,27 +60,27 @@
     {
       "eid": "E1001",
       "name": "Arthur Pendragon",
-      "email": "arthur@acmecorp.com",
+      "email": "arthur@sgforge.com",
       "role": "super_admin",
       "designation": "VP of Engineering",
       "vertical": "Engineering",
-      "subsidiary": "Acme Corp Ltd",
+      "subsidiary": "SG Forge Ltd",
       "managerEid": null
     },
     {
       "eid": "E1002",
       "name": "Guinevere Vance",
-      "email": "guinevere@acmecorp.com",
+      "email": "guinevere@sgforge.com",
       "role": "admin",
       "designation": "Product Director",
       "vertical": "Product Management",
-      "subsidiary": "Acme Corp Ltd",
+      "subsidiary": "SG Forge Ltd",
       "managerEid": null
     },
     {
       "eid": "E1003",
       "name": "Lancelot DuLac",
-      "email": "lancelot@acmecorp.com",
+      "email": "lancelot@sgforge.com",
       "role": "admin",
       "designation": "Operations Director",
       "vertical": "Sales & Operations",
@@ -89,28 +89,48 @@
     },
     {
       "eid": "E0004",
-      "name": "Karen Johnson",
-      "email": "karen.johnson@acmecorp.com",
+      "name": "Jessica Anderson",
+      "email": "jessica.anderson@sgforge.com",
       "role": "user",
-      "designation": "Product Manager",
-      "vertical": "Product Management",
-      "subsidiary": "Hooli Inc",
-      "managerEid": "E1003"
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": "E1001"
     },
     {
       "eid": "E0005",
-      "name": "Karen Garcia",
-      "email": "karen.garcia@acmecorp.com",
+      "name": "Joseph Rodriguez",
+      "email": "joseph.rodriguez@sgforge.com",
       "role": "user",
-      "designation": "Operations Director",
-      "vertical": "Marketing & Growth",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
       "subsidiary": "Hooli Inc",
-      "managerEid": null
+      "managerEid": "E1001"
     },
     {
       "eid": "E0006",
-      "name": "Robert Moore",
-      "email": "robert.moore@acmecorp.com",
+      "name": "Barbara Davis",
+      "email": "barbara.davis@sgforge.com",
+      "role": "user",
+      "designation": "Engineering Manager",
+      "vertical": "Engineering",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0007",
+      "name": "Richard Davis",
+      "email": "richard.davis@sgforge.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0008",
+      "name": "John Hernandez",
+      "email": "john.hernandez@sgforge.com",
       "role": "user",
       "designation": "Product Manager",
       "vertical": "Product Management",
@@ -118,259 +138,179 @@
       "managerEid": "E1003"
     },
     {
-      "eid": "E0007",
-      "name": "James Williams",
-      "email": "james.williams@acmecorp.com",
-      "role": "user",
-      "designation": "Operations Director",
-      "vertical": "Marketing & Growth",
-      "subsidiary": "Initech LLC",
-      "managerEid": null
-    },
-    {
-      "eid": "E0008",
-      "name": "Barbara Martin",
-      "email": "barbara.martin@acmecorp.com",
-      "role": "user",
-      "designation": "Product Manager",
-      "vertical": "Product Management",
-      "subsidiary": "Acme Corp Ltd",
-      "managerEid": "E1001"
-    },
-    {
       "eid": "E0009",
-      "name": "Patricia Brown",
-      "email": "patricia.brown@acmecorp.com",
+      "name": "Michael Jones",
+      "email": "michael.jones@sgforge.com",
       "role": "user",
-      "designation": "Product Manager",
-      "vertical": "Product Management",
+      "designation": "Senior Backend Engineer",
+      "vertical": "Engineering",
       "subsidiary": "Hooli Inc",
-      "managerEid": "E1001"
+      "managerEid": "E1003"
     },
     {
       "eid": "E0010",
-      "name": "Joseph Johnson",
-      "email": "joseph.johnson@acmecorp.com",
+      "name": "Elizabeth Taylor",
+      "email": "elizabeth.taylor@sgforge.com",
       "role": "user",
-      "designation": "HR Lead",
-      "vertical": "Human Resources",
-      "subsidiary": "Initech LLC",
+      "designation": "Engineering Manager",
+      "vertical": "Engineering",
+      "subsidiary": "SG Forge Ltd",
       "managerEid": "E1001"
     },
     {
       "eid": "E0011",
-      "name": "Michael Hernandez",
-      "email": "michael.hernandez@acmecorp.com",
+      "name": "Jennifer Garcia",
+      "email": "jennifer.garcia@sgforge.com",
       "role": "user",
-      "designation": "Operations Director",
-      "vertical": "Marketing & Growth",
-      "subsidiary": "Initech LLC",
-      "managerEid": null
+      "designation": "Lead Software Architect",
+      "vertical": "Engineering",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": "E1001"
     },
     {
       "eid": "E0012",
-      "name": "Michael Moore",
-      "email": "michael.moore@acmecorp.com",
+      "name": "Charles Martin",
+      "email": "charles.martin@sgforge.com",
       "role": "user",
-      "designation": "Senior Backend Engineer",
+      "designation": "Lead Software Architect",
       "vertical": "Engineering",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0013",
+      "name": "Patricia Brown",
+      "email": "patricia.brown@sgforge.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0014",
+      "name": "Mary Miller",
+      "email": "mary.miller@sgforge.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Sales & Operations",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": null
+    },
+    {
+      "eid": "E0015",
+      "name": "Karen Taylor",
+      "email": "karen.taylor@sgforge.com",
+      "role": "user",
+      "designation": "Lead Software Architect",
+      "vertical": "Engineering",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0016",
+      "name": "Sarah Moore",
+      "email": "sarah.moore@sgforge.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0017",
+      "name": "James Hernandez",
+      "email": "james.hernandez@sgforge.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0018",
+      "name": "Elizabeth Johnson",
+      "email": "elizabeth.johnson@sgforge.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0019",
+      "name": "James Lopez",
+      "email": "james.lopez@sgforge.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
       "subsidiary": "Initech LLC",
       "managerEid": "E1002"
     },
     {
-      "eid": "E0013",
-      "name": "Charles Rodriguez",
-      "email": "charles.rodriguez@acmecorp.com",
-      "role": "user",
-      "designation": "Lead Sales Manager",
-      "vertical": "Sales & Operations",
-      "subsidiary": "Acme Corp Ltd",
-      "managerEid": "E1003"
-    },
-    {
-      "eid": "E0014",
-      "name": "Susan Jackson",
-      "email": "susan.jackson@acmecorp.com",
-      "role": "user",
-      "designation": "Engineering Manager",
-      "vertical": "Engineering",
-      "subsidiary": "Hooli Inc",
-      "managerEid": "E1002"
-    },
-    {
-      "eid": "E0015",
-      "name": "John Wilson",
-      "email": "john.wilson@acmecorp.com",
+      "eid": "E0020",
+      "name": "James Thomas",
+      "email": "james.thomas@sgforge.com",
       "role": "user",
       "designation": "Product Manager",
       "vertical": "Product Management",
-      "subsidiary": "Acme Corp Ltd",
-      "managerEid": "E1003"
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1002"
     },
     {
-      "eid": "E0016",
-      "name": "James Davis",
-      "email": "james.davis@acmecorp.com",
+      "eid": "E0021",
+      "name": "Patricia Garcia",
+      "email": "patricia.garcia@sgforge.com",
       "role": "user",
       "designation": "HR Lead",
       "vertical": "Human Resources",
       "subsidiary": "Initech LLC",
-      "managerEid": "E1001"
-    },
-    {
-      "eid": "E0017",
-      "name": "Jennifer Miller",
-      "email": "jennifer.miller@acmecorp.com",
-      "role": "user",
-      "designation": "Engineering Manager",
-      "vertical": "Engineering",
-      "subsidiary": "Hooli Inc",
-      "managerEid": "E1003"
-    },
-    {
-      "eid": "E0018",
-      "name": "Barbara Davis",
-      "email": "barbara.davis@acmecorp.com",
-      "role": "user",
-      "designation": "Lead Sales Manager",
-      "vertical": "Sales & Operations",
-      "subsidiary": "Initech LLC",
-      "managerEid": "E1003"
-    },
-    {
-      "eid": "E0019",
-      "name": "Linda Moore",
-      "email": "linda.moore@acmecorp.com",
-      "role": "user",
-      "designation": "Senior Frontend Engineer",
-      "vertical": "Engineering",
-      "subsidiary": "Hooli Inc",
-      "managerEid": "E1001"
-    },
-    {
-      "eid": "E0020",
-      "name": "Patricia Moore",
-      "email": "patricia.moore@acmecorp.com",
-      "role": "user",
-      "designation": "Lead Sales Manager",
-      "vertical": "Sales & Operations",
-      "subsidiary": "Initech LLC",
-      "managerEid": "E1003"
-    },
-    {
-      "eid": "E0021",
-      "name": "Sarah Moore",
-      "email": "sarah.moore@acmecorp.com",
-      "role": "user",
-      "designation": "Operations Director",
-      "vertical": "Marketing & Growth",
-      "subsidiary": "Hooli Inc",
-      "managerEid": null
+      "managerEid": "E1002"
     },
     {
       "eid": "E0022",
-      "name": "Charles Jackson",
-      "email": "charles.jackson@acmecorp.com",
+      "name": "John Hernandez",
+      "email": "john.hernandez@sgforge.com",
       "role": "user",
-      "designation": "Product Manager",
-      "vertical": "Product Management",
-      "subsidiary": "Hooli Inc",
+      "designation": "Senior Backend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "Initech LLC",
       "managerEid": "E1002"
     },
     {
       "eid": "E0023",
-      "name": "Joseph Hernandez",
-      "email": "joseph.hernandez@acmecorp.com",
+      "name": "Michael Martinez",
+      "email": "michael.martinez@sgforge.com",
       "role": "user",
-      "designation": "HR Lead",
-      "vertical": "Human Resources",
-      "subsidiary": "Acme Corp Ltd",
-      "managerEid": "E1001"
-    },
-    {
-      "eid": "E0024",
-      "name": "David Johnson",
-      "email": "david.johnson@acmecorp.com",
-      "role": "user",
-      "designation": "Senior Backend Engineer",
-      "vertical": "Engineering",
-      "subsidiary": "Acme Corp Ltd",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "SG Forge Ltd",
       "managerEid": "E1002"
     },
     {
-      "eid": "E0025",
-      "name": "Linda Lopez",
-      "email": "linda.lopez@acmecorp.com",
+      "eid": "E0024",
+      "name": "Joseph Moore",
+      "email": "joseph.moore@sgforge.com",
       "role": "user",
-      "designation": "Lead Sales Manager",
-      "vertical": "Marketing & Growth",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
       "subsidiary": "Hooli Inc",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0025",
+      "name": "Sarah Smith",
+      "email": "sarah.smith@sgforge.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Initech LLC",
       "managerEid": "E1002"
     },
     {
       "eid": "E0026",
-      "name": "Sarah Williams",
-      "email": "sarah.williams@acmecorp.com",
-      "role": "user",
-      "designation": "HR Lead",
-      "vertical": "Human Resources",
-      "subsidiary": "Initech LLC",
-      "managerEid": "E1002"
-    },
-    {
-      "eid": "E0027",
-      "name": "Barbara Brown",
-      "email": "barbara.brown@acmecorp.com",
-      "role": "user",
-      "designation": "Lead Sales Manager",
-      "vertical": "Sales & Operations",
-      "subsidiary": "Acme Corp Ltd",
-      "managerEid": "E1003"
-    },
-    {
-      "eid": "E0028",
-      "name": "Karen Lopez",
-      "email": "karen.lopez@acmecorp.com",
-      "role": "user",
-      "designation": "Operations Director",
-      "vertical": "Sales & Operations",
-      "subsidiary": "Initech LLC",
-      "managerEid": null
-    },
-    {
-      "eid": "E0029",
-      "name": "James Martin",
-      "email": "james.martin@acmecorp.com",
-      "role": "user",
-      "designation": "Engineering Manager",
-      "vertical": "Engineering",
-      "subsidiary": "Initech LLC",
-      "managerEid": "E1001"
-    },
-    {
-      "eid": "E0030",
-      "name": "Joseph Anderson",
-      "email": "joseph.anderson@acmecorp.com",
-      "role": "user",
-      "designation": "Senior Frontend Engineer",
-      "vertical": "Engineering",
-      "subsidiary": "Acme Corp Ltd",
-      "managerEid": "E1002"
-    },
-    {
-      "eid": "E0031",
-      "name": "Linda Williams",
-      "email": "linda.williams@acmecorp.com",
-      "role": "user",
-      "designation": "HR Lead",
-      "vertical": "Human Resources",
-      "subsidiary": "Acme Corp Ltd",
-      "managerEid": "E1001"
-    },
-    {
-      "eid": "E0032",
-      "name": "Mary Davis",
-      "email": "mary.davis@acmecorp.com",
+      "name": "Barbara Miller",
+      "email": "barbara.miller@sgforge.com",
       "role": "user",
       "designation": "Operations Director",
       "vertical": "Marketing & Growth",
@@ -378,89 +318,179 @@
       "managerEid": null
     },
     {
-      "eid": "E0033",
-      "name": "James Garcia",
-      "email": "james.garcia@acmecorp.com",
+      "eid": "E0027",
+      "name": "Thomas Rodriguez",
+      "email": "thomas.rodriguez@sgforge.com",
       "role": "user",
-      "designation": "HR Lead",
-      "vertical": "Human Resources",
+      "designation": "Operations Director",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Initech LLC",
+      "managerEid": null
+    },
+    {
+      "eid": "E0028",
+      "name": "Susan Miller",
+      "email": "susan.miller@sgforge.com",
+      "role": "user",
+      "designation": "Senior Backend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0029",
+      "name": "Linda Williams",
+      "email": "linda.williams@sgforge.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Initech LLC",
+      "managerEid": null
+    },
+    {
+      "eid": "E0030",
+      "name": "John Taylor",
+      "email": "john.taylor@sgforge.com",
+      "role": "user",
+      "designation": "Lead Software Architect",
+      "vertical": "Engineering",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0031",
+      "name": "David Martin",
+      "email": "david.martin@sgforge.com",
+      "role": "user",
+      "designation": "Senior Frontend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0032",
+      "name": "James Anderson",
+      "email": "james.anderson@sgforge.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0033",
+      "name": "Karen Martin",
+      "email": "karen.martin@sgforge.com",
+      "role": "user",
+      "designation": "Senior Backend Engineer",
+      "vertical": "Engineering",
       "subsidiary": "Hooli Inc",
       "managerEid": "E1003"
     },
     {
       "eid": "E0034",
-      "name": "Jennifer Brown",
-      "email": "jennifer.brown@acmecorp.com",
+      "name": "Elizabeth Miller",
+      "email": "elizabeth.miller@sgforge.com",
       "role": "user",
-      "designation": "Lead Sales Manager",
-      "vertical": "Sales & Operations",
-      "subsidiary": "Initech LLC",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Hooli Inc",
       "managerEid": "E1002"
     },
     {
       "eid": "E0035",
-      "name": "Karen Anderson",
-      "email": "karen.anderson@acmecorp.com",
+      "name": "Joseph Jackson",
+      "email": "joseph.jackson@sgforge.com",
       "role": "user",
       "designation": "Senior Frontend Engineer",
       "vertical": "Engineering",
-      "subsidiary": "Acme Corp Ltd",
+      "subsidiary": "Hooli Inc",
       "managerEid": "E1001"
     },
     {
       "eid": "E0036",
-      "name": "John Williams",
-      "email": "john.williams@acmecorp.com",
+      "name": "Thomas Taylor",
+      "email": "thomas.taylor@sgforge.com",
       "role": "user",
-      "designation": "Engineering Manager",
-      "vertical": "Engineering",
-      "subsidiary": "Acme Corp Ltd",
-      "managerEid": "E1001"
-    },
-    {
-      "eid": "E0037",
-      "name": "John Taylor",
-      "email": "john.taylor@acmecorp.com",
-      "role": "user",
-      "designation": "HR Lead",
-      "vertical": "Human Resources",
-      "subsidiary": "Initech LLC",
-      "managerEid": "E1001"
-    },
-    {
-      "eid": "E0038",
-      "name": "Barbara Martinez",
-      "email": "barbara.martinez@acmecorp.com",
-      "role": "user",
-      "designation": "Lead Sales Manager",
-      "vertical": "Sales & Operations",
-      "subsidiary": "Initech LLC",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Hooli Inc",
       "managerEid": "E1002"
     },
     {
-      "eid": "E0039",
-      "name": "John Garcia",
-      "email": "john.garcia@acmecorp.com",
+      "eid": "E0037",
+      "name": "James Rodriguez",
+      "email": "james.rodriguez@sgforge.com",
       "role": "user",
       "designation": "Lead Software Architect",
       "vertical": "Engineering",
       "subsidiary": "Hooli Inc",
-      "managerEid": "E1003"
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0038",
+      "name": "John Johnson",
+      "email": "john.johnson@sgforge.com",
+      "role": "user",
+      "designation": "Senior Backend Engineer",
+      "vertical": "Engineering",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0039",
+      "name": "John Jones",
+      "email": "john.jones@sgforge.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1002"
     },
     {
       "eid": "E0040",
-      "name": "Elizabeth Anderson",
-      "email": "elizabeth.anderson@acmecorp.com",
+      "name": "Susan Brown",
+      "email": "susan.brown@sgforge.com",
       "role": "user",
-      "designation": "Operations Director",
-      "vertical": "Sales & Operations",
-      "subsidiary": "Hooli Inc",
-      "managerEid": null
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1001"
     },
     {
       "eid": "E0041",
-      "name": "Michael Miller",
-      "email": "michael.miller@acmecorp.com",
+      "name": "Linda Rodriguez",
+      "email": "linda.rodriguez@sgforge.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0042",
+      "name": "Barbara Smith",
+      "email": "barbara.smith@sgforge.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0043",
+      "name": "Barbara Hernandez",
+      "email": "barbara.hernandez@sgforge.com",
+      "role": "user",
+      "designation": "Engineering Manager",
+      "vertical": "Engineering",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": "E1001"
+    },
+    {
+      "eid": "E0044",
+      "name": "Karen Lopez",
+      "email": "karen.lopez@sgforge.com",
       "role": "user",
       "designation": "HR Lead",
       "vertical": "Human Resources",
@@ -468,94 +498,64 @@
       "managerEid": "E1003"
     },
     {
-      "eid": "E0042",
-      "name": "Charles Smith",
-      "email": "charles.smith@acmecorp.com",
-      "role": "user",
-      "designation": "Lead Sales Manager",
-      "vertical": "Marketing & Growth",
-      "subsidiary": "Hooli Inc",
-      "managerEid": "E1001"
-    },
-    {
-      "eid": "E0043",
-      "name": "Linda Rodriguez",
-      "email": "linda.rodriguez@acmecorp.com",
-      "role": "user",
-      "designation": "Lead Sales Manager",
-      "vertical": "Marketing & Growth",
-      "subsidiary": "Hooli Inc",
-      "managerEid": "E1003"
-    },
-    {
-      "eid": "E0044",
-      "name": "Sarah Smith",
-      "email": "sarah.smith@acmecorp.com",
-      "role": "user",
-      "designation": "Operations Director",
-      "vertical": "Marketing & Growth",
-      "subsidiary": "Initech LLC",
-      "managerEid": null
-    },
-    {
       "eid": "E0045",
-      "name": "Barbara Martin",
-      "email": "barbara.martin@acmecorp.com",
-      "role": "user",
-      "designation": "Senior Backend Engineer",
-      "vertical": "Engineering",
-      "subsidiary": "Initech LLC",
-      "managerEid": "E1002"
-    },
-    {
-      "eid": "E0046",
-      "name": "Joseph Martin",
-      "email": "joseph.martin@acmecorp.com",
-      "role": "user",
-      "designation": "Operations Director",
-      "vertical": "Marketing & Growth",
-      "subsidiary": "Acme Corp Ltd",
-      "managerEid": null
-    },
-    {
-      "eid": "E0047",
-      "name": "Jessica Jones",
-      "email": "jessica.jones@acmecorp.com",
-      "role": "user",
-      "designation": "Senior Backend Engineer",
-      "vertical": "Engineering",
-      "subsidiary": "Initech LLC",
-      "managerEid": "E1001"
-    },
-    {
-      "eid": "E0048",
-      "name": "Patricia Davis",
-      "email": "patricia.davis@acmecorp.com",
-      "role": "user",
-      "designation": "Operations Director",
-      "vertical": "Sales & Operations",
-      "subsidiary": "Acme Corp Ltd",
-      "managerEid": null
-    },
-    {
-      "eid": "E0049",
-      "name": "Susan Gonzalez",
-      "email": "susan.gonzalez@acmecorp.com",
+      "name": "William Brown",
+      "email": "william.brown@sgforge.com",
       "role": "user",
       "designation": "Product Manager",
       "vertical": "Product Management",
-      "subsidiary": "Acme Corp Ltd",
+      "subsidiary": "SG Forge Ltd",
+      "managerEid": "E1003"
+    },
+    {
+      "eid": "E0046",
+      "name": "Susan Jones",
+      "email": "susan.jones@sgforge.com",
+      "role": "user",
+      "designation": "HR Lead",
+      "vertical": "Human Resources",
+      "subsidiary": "Initech LLC",
+      "managerEid": "E1002"
+    },
+    {
+      "eid": "E0047",
+      "name": "David Williams",
+      "email": "david.williams@sgforge.com",
+      "role": "user",
+      "designation": "Operations Director",
+      "vertical": "Marketing & Growth",
+      "subsidiary": "Hooli Inc",
+      "managerEid": null
+    },
+    {
+      "eid": "E0048",
+      "name": "Richard Jackson",
+      "email": "richard.jackson@sgforge.com",
+      "role": "user",
+      "designation": "Lead Sales Manager",
+      "vertical": "Sales & Operations",
+      "subsidiary": "Hooli Inc",
       "managerEid": "E1001"
     },
     {
-      "eid": "E0050",
-      "name": "Mary Lopez",
-      "email": "mary.lopez@acmecorp.com",
+      "eid": "E0049",
+      "name": "Richard Martinez",
+      "email": "richard.martinez@sgforge.com",
       "role": "user",
-      "designation": "Lead Sales Manager",
+      "designation": "Operations Director",
       "vertical": "Marketing & Growth",
       "subsidiary": "Initech LLC",
-      "managerEid": "E1002"
+      "managerEid": null
+    },
+    {
+      "eid": "E0050",
+      "name": "Sarah Davis",
+      "email": "sarah.davis@sgforge.com",
+      "role": "user",
+      "designation": "Product Manager",
+      "vertical": "Product Management",
+      "subsidiary": "Hooli Inc",
+      "managerEid": "E1003"
     }
   ]
 }

@@ -25,7 +25,7 @@ interface Employee {
 }
 
 const subsidiaries: Subsidiary[] = [
-  { name: "Acme Corp Ltd" },
+  { name: "SG Forge Ltd" },
   { name: "Initech LLC" },
   { name: "Hooli Inc" },
 ];
@@ -70,27 +70,27 @@ function generateCompanyMockData(count = 50): {
     {
       eid: "E1001",
       name: "Arthur Pendragon",
-      email: "arthur@acmecorp.com",
+      email: "arthur@sgforge.com",
       role: "super_admin",
       designation: "VP of Engineering",
       vertical: "Engineering",
-      subsidiary: "Acme Corp Ltd",
+      subsidiary: "SG Forge Ltd",
       managerEid: null,
     },
     {
       eid: "E1002",
       name: "Guinevere Vance",
-      email: "guinevere@acmecorp.com",
+      email: "guinevere@sgforge.com",
       role: "admin",
       designation: "Product Director",
       vertical: "Product Management",
-      subsidiary: "Acme Corp Ltd",
+      subsidiary: "SG Forge Ltd",
       managerEid: null,
     },
     {
       eid: "E1003",
       name: "Lancelot DuLac",
-      email: "lancelot@acmecorp.com",
+      email: "lancelot@sgforge.com",
       role: "admin",
       designation: "Operations Director",
       vertical: "Sales & Operations",
@@ -106,7 +106,7 @@ function generateCompanyMockData(count = 50): {
     const firstName = getRandomElement(firstNames);
     const lastName = getRandomElement(lastNames);
     const name = `${firstName} ${lastName}`;
-    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@acmecorp.com`;
+    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@sgforge.com`;
     const subsidiary = getRandomElement(subsidiaries).name;
     const vertical = getRandomElement(verticals).name;
     

@@ -90,7 +90,7 @@ export default function SettingsPanel({
   const [pwLoading, setPwLoading] = useState(false);
 
   // Platform branding state (admin)
-  const [platformTitle, setPlatformTitle] = useState('Acme Corp');
+  const [platformTitle, setPlatformTitle] = useState('SG Forge');
   const [titleSaveDebounce, setTitleSaveDebounce] = useState<NodeJS.Timeout | null>(null);
 
   // Module flags (admin)
@@ -503,7 +503,7 @@ export default function SettingsPanel({
                 <label className="text-[10px] font-black uppercase tracking-wider text-text-secondary block mb-1.5">Custom Corporate Identity Logo</label>
                 <div className="border-2 border-dashed border-border-accent rounded-xl p-8 text-center hover:border-brand-accent/40 transition-all cursor-pointer">
                   <p className="text-xs text-text-secondary font-bold">Drop SVG asset or click to upload</p>
-                  <p className="text-[10px] text-text-tertiary mt-1">Replaces the default AC logo at runtime</p>
+                  <p className="text-[10px] text-text-tertiary mt-1">Replaces the default SG logo at runtime</p>
                 </div>
               </div>
             </div>

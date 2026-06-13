@@ -1,6 +1,6 @@
-# Acme Corp Portal - System Guide and User Manual
+# SG Forge Portal - System Guide and User Manual
 
-This document details the features, components, and developer guides for the high-performance Acme Corp Organization Portal.
+This document details the features, components, and developer guides for the high-performance SG Forge Organization Portal.
 
 ---
 
@@ -53,7 +53,7 @@ Allows administrators to perform batch employee provisioning and maintain busine
 2. **CSV Syntax Specification**:
    ```csv
    EID,Name,Email,Role,Designation,Vertical,ManagerEID
-   E0011,Jack Ryan,jack@acmecorp.com,user,Senior Engineer,Engineering,E0005
+   E0011,Jack Ryan,jack@sgforge.com,user,Senior Engineer,Engineering,E0005
    ```
 3. **Validation Drawer**:
    - **Raw String editor (Left Panel)**: Shows the raw text data uploaded.
