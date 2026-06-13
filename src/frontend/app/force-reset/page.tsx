@@ -14,24 +14,25 @@ export default function ForceResetPage() {
   const [isCelebrated, setIsCelebrated] = useState(false);
   
   const router = useRouter();
-
   useEffect(() => {
-    const cookies = document.cookie.split(';');
-    const sessionCookie = cookies.find(c => c.trim().startsWith('session_token='));
-    if (sessionCookie) {
+    const fetchSession = async () => {
       try {
-        // Cookie is base64url encoded - restore standard base64
-        const b64url = sessionCookie.trim().substring('session_token='.length);
-        const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
-        const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
-        const parsed = JSON.parse(atob(padded));
+        const res = await fetch('/api/auth/session');
+        if (!res.ok) {
+          throw new Error('Unauthorized');
+        }
+        const data = await res.json();
+        const parsed = data.session;
+        if (!parsed) {
+          throw new Error('No session');
+        }
         setSession(parsed);
       } catch (err) {
         router.replace('/login');
       }
-    } else {
-      router.replace('/login');
-    }
+    };
+
+    fetchSession();
   }, [router]);
 
   // Real-time password strength evaluator

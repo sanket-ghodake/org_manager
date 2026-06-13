@@ -108,19 +108,19 @@ export default function DashboardPage() {
     document.documentElement.setAttribute('data-font', font);
     localStorage.setItem('font', font);
   }, [font]);
-
   useEffect(() => {
-    // Read session cookie
-    const cookies = document.cookie.split(';');
-    const sessionCookie = cookies.find(c => c.trim().startsWith('session_token='));
-    if (sessionCookie) {
+    const fetchSession = async () => {
       try {
-        // Cookie is base64url encoded (no +, /, = chars) - restore standard base64
-        const b64url = sessionCookie.trim().substring('session_token='.length);
-        const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
-        const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
-        const parsed = JSON.parse(atob(padded));
-        
+        const res = await fetch('/api/auth/session');
+        if (!res.ok) {
+          throw new Error('Unauthorized');
+        }
+        const data = await res.json();
+        const parsed = data.session;
+        if (!parsed) {
+          throw new Error('No session');
+        }
+
         // Redirect standard users to the User launchpad
         if (parsed.role === 'user') {
           router.replace('/user');
@@ -136,13 +136,12 @@ export default function DashboardPage() {
           router.replace('/force-reset');
         }
       } catch (err) {
-        // Clear corrupt cookie and redirect to login
-        document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
         router.replace('/login');
       }
-    } else {
-      router.replace('/login');
-    }
+    };
+
+    fetchSession();
   }, [router]);
 
   // Load Data
@@ -770,8 +769,8 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => {
-                    document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                  onClick={async () => {
+                    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
                     router.push('/login');
                   }}
                   className="p-1.5 hover:bg-background-portal rounded-lg text-warning hover:scale-105 transition-all flex-shrink-0"
@@ -1162,8 +1161,8 @@ export default function DashboardPage() {
                       💻 Go to SQL Studio
                     </button>
                     <button
-                      onClick={() => {
-                        document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                      onClick={async () => {
+                        await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
                         router.push('/login');
                       }}
                       className="p-3 bg-background-portal border border-border-accent hover:border-warning rounded-xl text-left text-xs font-bold text-warning transition-all"

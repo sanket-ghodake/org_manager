@@ -12,7 +12,7 @@ export default function LoginPage() {
 
   // Clear any stale or expired session cookie when landing on login page
   useEffect(() => {
-    document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {

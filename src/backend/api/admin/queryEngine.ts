@@ -3,8 +3,8 @@ import { db } from '../../../database/connection';
 import { sql } from 'drizzle-orm';
 
 export async function executeAdminQuery(sqlInputStr: string, adminRole: string) {
-  // Hard execution block for read-only administration profiles
-  if (adminRole === 'read_only_admin') {
+  // Hard execution block for read-only administration profiles and standard users
+  if (adminRole === 'read_only_admin' || adminRole === 'user') {
     const destructiveKeywords = ['drop', 'delete', 'truncate', 'update', 'insert', 'alter'];
     const isDestructive = destructiveKeywords.some(keyword => 
       sqlInputStr.toLowerCase().includes(keyword)

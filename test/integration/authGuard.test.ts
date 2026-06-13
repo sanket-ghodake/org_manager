@@ -1,6 +1,7 @@
 import { expect, test, describe, spyOn, beforeAll, afterAll } from "bun:test";
 import { middleware } from "../../src/backend/middleware/authGuard";
 import { NextResponse } from "next/server";
+import { encryptSession } from "../../src/backend/auth/sessionManager";
 
 describe("Middleware Authentication Guard Pipeline", () => {
   let originalFetch: typeof fetch;
@@ -46,7 +47,7 @@ describe("Middleware Authentication Guard Pipeline", () => {
       role: "user",
       isPasswordChanged: false, // Password reset required
     };
-    const base64Value = Buffer.from(JSON.stringify(expectedUser)).toString("base64");
+    const jwtValue = await encryptSession(expectedUser);
 
     const mockRequest = {
       url: "http://localhost:3000/dashboard",
@@ -58,7 +59,7 @@ describe("Middleware Authentication Guard Pipeline", () => {
       },
       cookies: {
         get: (name: string) => {
-          if (name === "session_token") return { value: base64Value };
+          if (name === "session_token") return { value: jwtValue };
           return null;
         },
       },
@@ -82,7 +83,7 @@ describe("Middleware Authentication Guard Pipeline", () => {
       role: "user",
       isPasswordChanged: true, // Password already changed
     };
-    const base64Value = Buffer.from(JSON.stringify(expectedUser)).toString("base64");
+    const jwtValue = await encryptSession(expectedUser);
 
     const mockRequest = {
       url: "http://localhost:3000/dashboard",
@@ -94,7 +95,7 @@ describe("Middleware Authentication Guard Pipeline", () => {
       },
       cookies: {
         get: (name: string) => {
-          if (name === "session_token") return { value: base64Value };
+          if (name === "session_token") return { value: jwtValue };
           return null;
         },
       },
@@ -106,3 +107,4 @@ describe("Middleware Authentication Guard Pipeline", () => {
     expect(response.status).toBe(200);
   });
 });
+

@@ -62,8 +62,12 @@ export async function POST(request: Request) {
     const manifest = await request.json();
     
     const id = manifest.id || manifest.slug;
-    if (!id) {
-      return NextResponse.json({ error: 'Manifest must contain a unique ID or slug' }, { status: 400 });
+    if (!id || typeof id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid app ID or slug format. Only alphanumeric characters, dashes, and underscores are allowed.' }, { status: 400 });
+    }
+
+    if (manifest.slug && (typeof manifest.slug !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(manifest.slug))) {
+      return NextResponse.json({ error: 'Manifest slug must be alphanumeric containing only letters, numbers, dashes, or underscores' }, { status: 400 });
     }
 
     // Validate using core validator

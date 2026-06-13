@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { db } from '../../database/connection';
 import { sql } from 'drizzle-orm';
-import { logger } from './logger';
 
 export interface AppManifest {
   id?: string;
@@ -40,8 +39,16 @@ export interface ManifestValidationResult {
 export function validateManifest(manifest: AppManifest, folderName: string): ManifestValidationResult {
   const errors: string[] = [];
 
-  if (!manifest.slug || typeof manifest.slug !== 'string' || manifest.slug.trim() === '') {
-    errors.push('Missing unique app slug identifier ("slug" property is required and must be a non-empty string)');
+  if (!manifest.slug || typeof manifest.slug !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(manifest.slug)) {
+    errors.push('Invalid unique app slug identifier ("slug" property is required and must be alphanumeric containing only letters, numbers, dashes, or underscores)');
+  }
+
+  if (!folderName || typeof folderName !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(folderName)) {
+    errors.push('Invalid app folder name (must be alphanumeric containing only letters, numbers, dashes, or underscores)');
+  }
+
+  if (manifest.id && (typeof manifest.id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(manifest.id))) {
+    errors.push('Invalid app ID ("id" must be alphanumeric containing only letters, numbers, dashes, or underscores)');
   }
 
   if (!manifest.routingMode || typeof manifest.routingMode !== 'string' || manifest.routingMode.trim() === '') {
@@ -149,28 +156,19 @@ export async function parseAndRegisterManifests(): Promise<AppManifest[]> {
     const targetRules = manifest.targetRules || {};
 
     try {
-      const existingResult = await db.execute(sql`
-        SELECT id FROM forge_apps WHERE slug = ${slug}
+      const insertResult = await db.execute(sql`
+        INSERT INTO forge_apps (slug, name, entry_url, is_isolated_lifecycle, target_rules)
+        VALUES (${slug}, ${name}, ${entryUrl}, ${isIsolated}, ${JSON.stringify(targetRules)}::jsonb)
+        ON CONFLICT (slug) DO UPDATE SET
+          name = EXCLUDED.name,
+          entry_url = EXCLUDED.entry_url,
+          is_isolated_lifecycle = EXCLUDED.is_isolated_lifecycle,
+          target_rules = EXCLUDED.target_rules,
+          updated_at = NOW()
+        RETURNING id
       `);
-      const rows = existingResult.rows || existingResult;
-      let appId: string;
-
-      if (rows && rows.length > 0) {
-        appId = rows[0].id as string;
-        await db.execute(sql`
-          UPDATE forge_apps 
-          SET name = ${name}, entry_url = ${entryUrl}, is_isolated_lifecycle = ${isIsolated}, target_rules = ${JSON.stringify(targetRules)}::jsonb, updated_at = NOW()
-          WHERE id = ${appId}
-        `);
-      } else {
-        const insertResult = await db.execute(sql`
-          INSERT INTO forge_apps (slug, name, entry_url, is_isolated_lifecycle, target_rules)
-          VALUES (${slug}, ${name}, ${entryUrl}, ${isIsolated}, ${JSON.stringify(targetRules)}::jsonb)
-          RETURNING id
-        `);
-        const insertRows = insertResult.rows || insertResult;
-        appId = insertRows[0].id as string;
-      }
+      const insertRows = insertResult.rows || insertResult;
+      const appId = insertRows[0].id as string;
 
       // Provision isolated schema namespace if required
       if (isIsolated && manifest.database?.schemaName) {
@@ -178,16 +176,12 @@ export async function parseAndRegisterManifests(): Promise<AppManifest[]> {
         if (/^[a-zA-Z0-9_]+$/.test(schemaName)) {
           await db.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`));
           
-          const storageResult = await db.execute(sql`
-            SELECT id FROM forge_app_storage WHERE app_id = ${appId} OR custom_schema_namespace = ${schemaName}
+          await db.execute(sql`
+            INSERT INTO forge_app_storage (app_id, custom_schema_namespace, allow_base_read_access)
+            VALUES (${appId}, ${schemaName}, false)
+            ON CONFLICT (custom_schema_namespace) DO UPDATE SET
+              app_id = EXCLUDED.app_id
           `);
-          const storageRows = storageResult.rows || storageResult;
-          if (!storageRows || storageRows.length === 0) {
-            await db.execute(sql`
-              INSERT INTO forge_app_storage (app_id, custom_schema_namespace, allow_base_read_access)
-              VALUES (${appId}, ${schemaName}, false)
-            `);
-          }
         }
       }
 

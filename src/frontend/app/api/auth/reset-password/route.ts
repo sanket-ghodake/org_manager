@@ -3,7 +3,7 @@ import { db } from '../../../../../database/connection';
 import { users } from '../../../../../database/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
-import { getSession } from '../../../../../backend/auth/sessionManager';
+import { getSession, encryptSession } from '../../../../../backend/auth/sessionManager';
 import { logEvent } from '../../../../../backend/utils/logger';
 
 export async function POST(request: Request) {
@@ -42,19 +42,19 @@ export async function POST(request: Request) {
       isPasswordChanged: true,
     };
 
-    // Use base64url encoding (no +, /, or = chars) so cookie is always URL/cookie-safe
-    const base64Session = Buffer.from(JSON.stringify(updatedSession)).toString('base64')
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    // Encrypt/sign the updated session using JWT
+    const jwtSession = await encryptSession(updatedSession);
 
     // Log the successful password reset event
     await logEvent(session.id, 'Password Changed', 'INFO', { email: session.email }, ipAddress);
 
     const response = NextResponse.json({ success: true, user: updatedSession });
-    response.cookies.set('session_token', base64Session, {
+    response.cookies.set('session_token', jwtSession, {
       path: '/',
       maxAge: 3600,
-      sameSite: 'strict',
-      httpOnly: false,
+      sameSite: 'lax',
+      httpOnly: true,
+      secure: true,
     });
 
     return response;
@@ -63,3 +63,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal server error during password reset' }, { status: 500 });
   }
 }
+

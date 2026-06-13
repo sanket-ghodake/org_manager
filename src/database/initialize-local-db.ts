@@ -79,32 +79,10 @@ async function main() {
     );
   `);
 
-  // Create pruning function and trigger for 100,000 rolling log buffer
-  console.log('Configuring rolling system log buffer (100,000 cap trigger)...');
-  await db.execute(sql`
-    CREATE OR REPLACE FUNCTION prune_system_logs_buffer()
-    RETURNS TRIGGER AS $$
-    BEGIN
-      IF (SELECT COUNT(*) FROM system_logs) > 100000 THEN
-        DELETE FROM system_logs
-        WHERE id IN (
-          SELECT id FROM system_logs 
-          ORDER BY timestamp ASC 
-          LIMIT (SELECT COUNT(*) FROM system_logs) - 100000
-        );
-      END IF;
-      RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
-  `);
-
-  await db.execute(sql`
-    DROP TRIGGER IF EXISTS trigger_prune_system_logs ON system_logs;
-    CREATE TRIGGER trigger_prune_system_logs
-    AFTER INSERT ON system_logs
-    FOR EACH STATEMENT
-    EXECUTE FUNCTION prune_system_logs_buffer();
-  `);
+  // Drop obsolete rolling system log buffer trigger
+  console.log('Dropping obsolete rolling system log buffer trigger...');
+  await db.execute(sql`DROP TRIGGER IF EXISTS trigger_prune_system_logs ON system_logs;`);
+  await db.execute(sql`DROP FUNCTION IF EXISTS prune_system_logs_buffer;`);
 
   console.log('Seeding initial system structures...');
 

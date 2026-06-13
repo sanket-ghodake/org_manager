@@ -1,9 +1,9 @@
 // src/backend/middleware/authGuard.ts
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+
 import { getSession } from '../auth/sessionManager';
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: any, event?: any) {
   const path = request.nextUrl.pathname;
 
   // 1. Bypass authentication checks for login routes
@@ -26,12 +26,13 @@ export async function middleware(request: NextRequest) {
     // Allow access ONLY to force-reset pages/APIs and logs
     const isAllowedResetPath = path === '/force-reset' || 
                                path === '/api/auth/reset-password' || 
-                               path === '/api/logs';
+                               path === '/api/logs' ||
+                               path === '/api/auth/session';
 
     if (!isAllowedResetPath) {
       // Dispatch alert warning log
       const logUrl = new URL('/api/logs', request.url);
-      fetch(logUrl, {
+      const logPromise = fetch(logUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,6 +46,10 @@ export async function middleware(request: NextRequest) {
       }).catch((err) => {
         console.error('Failed to dispatch middleware log:', err);
       });
+
+      if (event && typeof event.waitUntil === 'function') {
+        event.waitUntil(logPromise);
+      }
 
       if (path.startsWith('/api/')) {
         return NextResponse.json({ error: 'Forced password reset required' }, { status: 403 });

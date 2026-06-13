@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextRequest, NextFetchEvent } from 'next/server';
 import { middleware as authMiddleware } from '../backend/middleware/authGuard';
 
-export async function middleware(request: NextRequest) {
-  return authMiddleware(request);
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
+  return authMiddleware(request, event);
 }
 
 export const config = {

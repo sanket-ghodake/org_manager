@@ -34,7 +34,7 @@ export default function AppContainerPage() {
 
     const iframe = document.querySelector('iframe');
     if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'THEME_CHANGE', theme: newTheme }, '*');
+      iframe.contentWindow.postMessage({ type: 'THEME_CHANGE', theme: newTheme }, window.location.origin);
     }
   };
 
@@ -44,19 +44,19 @@ export default function AppContainerPage() {
       setLoading(true);
       
       // Load session
-      const cookies = document.cookie.split(';');
-      const sessionCookie = cookies.find(c => c.trim().startsWith('session_token='));
       let currentUser = null;
-      if (sessionCookie) {
-        try {
-          const val = sessionCookie.split('=')[1];
-          currentUser = JSON.parse(atob(val));
-          setSession(currentUser);
-        } catch (err) {
-          router.push('/login');
-          return;
+      try {
+        const res = await fetch('/api/auth/session');
+        if (!res.ok) {
+          throw new Error('Unauthorized');
         }
-      } else {
+        const data = await res.json();
+        currentUser = data.session;
+        if (!currentUser) {
+          throw new Error('No session');
+        }
+        setSession(currentUser);
+      } catch (err) {
         router.push('/login');
         return;
       }
@@ -117,8 +117,8 @@ export default function AppContainerPage() {
     return data;
   };
 
-  const handleLogout = () => {
-    document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     router.push('/login');
   };
 
@@ -139,8 +139,8 @@ export default function AppContainerPage() {
           role: session.role,
         }
       };
-      iframe.contentWindow?.postMessage(tokenPayload, '*');
-      iframe.contentWindow?.postMessage({ type: 'THEME_CHANGE', theme }, '*');
+      iframe.contentWindow?.postMessage(tokenPayload, window.location.origin);
+      iframe.contentWindow?.postMessage({ type: 'THEME_CHANGE', theme }, window.location.origin);
     }
   };
 

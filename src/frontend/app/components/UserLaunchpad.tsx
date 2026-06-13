@@ -250,8 +250,10 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
         u.designation.toLowerCase().includes(searchQuery.toLowerCase())
       );
 
-  const handleLogout = () => {
-    document.cookie = 'session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {}
     router.push('/login');
   };
 

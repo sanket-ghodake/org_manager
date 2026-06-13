@@ -4,6 +4,7 @@ import { users } from '../../../../../database/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { logEvent } from '../../../../../backend/utils/logger';
+import { encryptSession } from '../../../../../backend/auth/sessionManager';
 
 export async function POST(request: Request) {
   let email = '';
@@ -47,19 +48,19 @@ export async function POST(request: Request) {
       isPasswordChanged: user.isPasswordChanged,
     };
 
-    // Use base64url encoding (no +, /, or = chars) so cookie is always URL/cookie-safe
-    const base64Session = Buffer.from(JSON.stringify(sessionPayload)).toString('base64')
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    // Encrypt/sign the session using JWT
+    const jwtSession = await encryptSession(sessionPayload);
     
     // Log successful login event
     await logEvent(user.id, 'User Login', 'INFO', { email: user.email, role: user.role }, ipAddress);
 
     const response = NextResponse.json({ success: true, user: sessionPayload });
-    response.cookies.set('session_token', base64Session, {
+    response.cookies.set('session_token', jwtSession, {
       path: '/',
       maxAge: 3600,
-      sameSite: 'strict',
-      httpOnly: false,
+      sameSite: 'lax',
+      httpOnly: true,
+      secure: true,
     });
 
     return response;
@@ -69,3 +70,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal server error during authentication' }, { status: 500 });
   }
 }
+

@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { getSession } from "../../src/backend/auth/sessionManager";
+import { getSession, encryptSession } from "../../src/backend/auth/sessionManager";
 
 describe("Stateless Session Manager", () => {
   test("Returns null if session_token cookie is missing", async () => {
@@ -39,18 +39,20 @@ describe("Stateless Session Manager", () => {
       role: "user",
       isPasswordChanged: true,
     };
-    const base64Value = Buffer.from(JSON.stringify(expectedUser)).toString("base64");
+    const jwtValue = await encryptSession(expectedUser);
 
     const mockRequest = {
       cookies: {
         get: (name: string) => {
-          if (name === "session_token") return { value: base64Value };
+          if (name === "session_token") return { value: jwtValue };
           return null;
         }
       }
     } as any;
 
     const session = await getSession(mockRequest);
-    expect(session).toEqual(expectedUser);
+    expect(session).toBeDefined();
+    expect(session).toMatchObject(expectedUser);
   });
 });
+

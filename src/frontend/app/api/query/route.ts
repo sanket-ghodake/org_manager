@@ -20,7 +20,24 @@ export async function POST(request: Request) {
     if (!queryText) {
       return NextResponse.json({ error: 'Query cannot be empty' }, { status: 400 });
     }
+  } catch (err: any) {
+    return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
+  }
 
+  // Enforce role gating to block standard users from non-read-only queries
+  if (session.role !== 'super_admin' && session.role !== 'admin' && session.role !== 'read_only_admin') {
+    const queryLower = queryText.toLowerCase().trim();
+    const isSelect = queryLower.startsWith('select');
+    const destructiveKeywords = ['insert', 'update', 'delete', 'drop', 'truncate', 'alter', 'create', 'grant'];
+    const isDestructive = destructiveKeywords.some(keyword => queryLower.includes(keyword));
+
+    if (!isSelect || isDestructive) {
+      await logEvent(session.id, 'SQL Query Forbidden Attempt', 'WARN', { role: session.role, query: queryText }, ipAddress);
+      return NextResponse.json({ error: 'Forbidden: Access denied' }, { status: 403 });
+    }
+  }
+
+  try {
     // Execute the query using our query sandbox
     const result = await executeAdminQuery(queryText, session.role);
     

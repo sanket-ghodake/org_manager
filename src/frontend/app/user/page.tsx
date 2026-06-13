@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { fetchUserDashboardData } from '../../../backend/api/user/portal';
 import UserLaunchpad from '../components/UserLaunchpad';
+import { decryptSession } from '../../../backend/auth/sessionManager';
 
 export default async function UserDashboardPage() {
   const cookieStore = await cookies();
@@ -13,10 +14,7 @@ export default async function UserDashboardPage() {
 
   let session: any = null;
   try {
-    const b64url = sessionCookie.value;
-    const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
-    session = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8'));
+    session = await decryptSession(sessionCookie.value);
   } catch (error) {
     redirect('/login');
   }
