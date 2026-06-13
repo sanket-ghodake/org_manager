@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { db } from '../../database/connection';
 import { sql } from 'drizzle-orm';
 
@@ -13,6 +14,11 @@ export interface AppManifest {
   entryPoint?: string;
   entryUrl?: string;
   routingMode?: string;
+  clientId?: string;
+  clientSecret?: string;
+  redirectUri?: string;
+  requiredBasePermissions?: string[];
+  scopes?: string[];
   database?: {
     requiresIsolatedSchema?: boolean;
     schemaName?: string;
@@ -155,14 +161,38 @@ export async function parseAndRegisterManifests(): Promise<AppManifest[]> {
     const isIsolated = manifest.database?.requiresIsolatedSchema ?? false;
     const targetRules = manifest.targetRules || {};
 
+    let clientId = manifest.clientId;
+    let clientSecret = manifest.clientSecret;
+    const redirectUri = manifest.redirectUri || entryUrl;
+    const scopes = manifest.requiredBasePermissions || manifest.scopes || [];
+
     try {
+      // Resolve existing client_id and client_secret if not supplied in manifest
+      if (!clientId || !clientSecret) {
+        const existingResult = await db.execute(sql`
+          SELECT client_id, client_secret FROM forge_apps WHERE slug = ${slug}
+        `);
+        const existingRows = existingResult.rows || existingResult;
+        if (existingRows && existingRows.length > 0 && existingRows[0].client_id) {
+          clientId = existingRows[0].client_id as string;
+          clientSecret = existingRows[0].client_secret as string;
+        } else {
+          clientId = 'client_' + Math.random().toString(36).substring(2, 15);
+          clientSecret = 'secret_' + crypto.randomUUID().replace(/-/g, '');
+        }
+      }
+
       const insertResult = await db.execute(sql`
-        INSERT INTO forge_apps (slug, name, entry_url, is_isolated_lifecycle, target_rules)
-        VALUES (${slug}, ${name}, ${entryUrl}, ${isIsolated}, ${JSON.stringify(targetRules)}::jsonb)
+        INSERT INTO forge_apps (slug, name, entry_url, is_isolated_lifecycle, client_id, client_secret, redirect_uri, scopes, target_rules)
+        VALUES (${slug}, ${name}, ${entryUrl}, ${isIsolated}, ${clientId}, ${clientSecret}, ${redirectUri}, ${JSON.stringify(scopes)}::jsonb, ${JSON.stringify(targetRules)}::jsonb)
         ON CONFLICT (slug) DO UPDATE SET
           name = EXCLUDED.name,
           entry_url = EXCLUDED.entry_url,
           is_isolated_lifecycle = EXCLUDED.is_isolated_lifecycle,
+          client_id = EXCLUDED.client_id,
+          client_secret = EXCLUDED.client_secret,
+          redirect_uri = EXCLUDED.redirect_uri,
+          scopes = EXCLUDED.scopes,
           target_rules = EXCLUDED.target_rules,
           updated_at = NOW()
         RETURNING id

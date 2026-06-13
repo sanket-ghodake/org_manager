@@ -19,6 +19,7 @@ export default function AppContainerPage() {
 
   const [iframeOffline, setIframeOffline] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(false);
+  const [authCode, setAuthCode] = useState<string | null>(null);
 
   // Load initial theme on mount
   useEffect(() => {
@@ -79,6 +80,17 @@ export default function AppContainerPage() {
             if (config.routingMode === 'iframe' || config.entryPoint?.startsWith('http')) {
               setIframeLoading(true);
               try {
+                // Generate secure handshake authorization code
+                const handshakeRes = await fetch('/api/apps/handshake', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ slug: config.slug })
+                });
+                if (handshakeRes.ok) {
+                  const handshakeData = await handshakeRes.json();
+                  setAuthCode(handshakeData.code);
+                }
+
                 const checkRes = await fetch(`/forge-apps/${config.slug}`, { method: 'GET' });
                 if (!checkRes.ok || checkRes.status === 504) {
                   setIframeOffline(true);
@@ -127,11 +139,12 @@ export default function AppContainerPage() {
     if (iframe && session) {
       const tokenPayload = {
         type: 'FORGE_AUTH_TOKEN',
-        token: btoa(JSON.stringify({
+        token: authCode || btoa(JSON.stringify({
           userId: session.id,
           role: session.role,
           timestamp: Date.now()
         })),
+        code: authCode || null,
         user: {
           id: session.id,
           name: session.name,
@@ -311,7 +324,7 @@ export default function AppContainerPage() {
               ) : (
                 <div className="relative w-full h-[600px] border border-border-accent rounded-xl overflow-hidden bg-black/5">
                   <iframe
-                    src={`/forge-apps/${appConfig.slug}`}
+                    src={`/forge-apps/${appConfig.slug}?code=${authCode || ''}`}
                     className="w-full h-full border-none"
                     sandbox="allow-scripts allow-forms"
                     onLoad={handleIframeLoad}

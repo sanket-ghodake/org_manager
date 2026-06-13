@@ -5,6 +5,12 @@ async function main() {
   console.log('Initializing local database schema...');
 
   // Drop existing tables to ensure clean state
+  await db.execute(sql`DROP TABLE IF EXISTS forge_access_tokens CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS forge_auth_codes CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS user_roles CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS role_permissions CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS permissions CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS roles CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS forge_app_storage CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS forge_apps CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS system_logs CASCADE;`);
@@ -63,6 +69,10 @@ async function main() {
       name VARCHAR(100) NOT NULL,
       entry_url VARCHAR(255) NOT NULL,
       is_isolated_lifecycle BOOLEAN DEFAULT true NOT NULL,
+      client_id VARCHAR(255) UNIQUE,
+      client_secret VARCHAR(255),
+      redirect_uri VARCHAR(255),
+      scopes JSONB DEFAULT '[]'::jsonb NOT NULL,
       target_rules JSONB DEFAULT '{}'::jsonb NOT NULL,
       created_at TIMESTAMP DEFAULT NOW() NOT NULL,
       updated_at TIMESTAMP DEFAULT NOW() NOT NULL
@@ -76,6 +86,70 @@ async function main() {
       app_id UUID REFERENCES forge_apps(id) NOT NULL,
       custom_schema_namespace VARCHAR(63) UNIQUE NOT NULL,
       allow_base_read_access BOOLEAN DEFAULT false NOT NULL
+    );
+  `);
+
+  // Create roles table
+  await db.execute(sql`
+    CREATE TABLE roles (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name VARCHAR(100) UNIQUE NOT NULL,
+      parent_role_id UUID REFERENCES roles(id),
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Create permissions table
+  await db.execute(sql`
+    CREATE TABLE permissions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      action VARCHAR(100) UNIQUE NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Create role_permissions table
+  await db.execute(sql`
+    CREATE TABLE role_permissions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      role_id UUID REFERENCES roles(id) ON DELETE CASCADE NOT NULL,
+      permission_id UUID REFERENCES permissions(id) ON DELETE CASCADE NOT NULL
+    );
+  `);
+
+  // Create user_roles table
+  await db.execute(sql`
+    CREATE TABLE user_roles (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      role_id UUID REFERENCES roles(id) ON DELETE CASCADE NOT NULL
+    );
+  `);
+
+  // Create forge_auth_codes table
+  await db.execute(sql`
+    CREATE TABLE forge_auth_codes (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      code VARCHAR(255) UNIQUE NOT NULL,
+      app_id UUID REFERENCES forge_apps(id) ON DELETE CASCADE NOT NULL,
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      used BOOLEAN DEFAULT false NOT NULL,
+      scope JSONB DEFAULT '[]'::jsonb NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Create forge_access_tokens table
+  await db.execute(sql`
+    CREATE TABLE forge_access_tokens (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      access_token VARCHAR(255) UNIQUE NOT NULL,
+      app_id UUID REFERENCES forge_apps(id) ON DELETE CASCADE NOT NULL,
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      scope JSONB DEFAULT '[]'::jsonb NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
     );
   `);
 
@@ -197,6 +271,67 @@ async function main() {
     INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
     VALUES (${finId}, 'E0010', 'Fiona Gallagher', 'fiona@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000004', ${cfoId});
   `);
+
+  console.log('Seeding roles & permissions hierarchy...');
+  
+  // Seed Roles
+  const rolesSeed = [
+    { id: '30000000-0000-0000-0000-000000000001', name: 'super_admin', parentRoleId: null },
+    { id: '30000000-0000-0000-0000-000000000002', name: 'admin', parentRoleId: '30000000-0000-0000-0000-000000000001' },
+    { id: '30000000-0000-0000-0000-000000000003', name: 'read_only_admin', parentRoleId: '30000000-0000-0000-0000-000000000002' },
+    { id: '30000000-0000-0000-0000-000000000004', name: 'user', parentRoleId: '30000000-0000-0000-0000-000000000003' },
+  ];
+
+  for (const r of rolesSeed) {
+    await db.execute(sql`
+      INSERT INTO roles (id, name, parent_role_id)
+      VALUES (${r.id}, ${r.name}, ${r.parentRoleId});
+    `);
+  }
+
+  // Seed Permissions
+  const permissionsSeed = [
+    { id: '40000000-0000-0000-0000-000000000001', action: 'user.profile.read' },
+    { id: '40000000-0000-0000-0000-000000000002', action: 'user.manager.read' },
+    { id: '40000000-0000-0000-0000-000000000003', action: 'audit.log.write' },
+  ];
+
+  for (const p of permissionsSeed) {
+    await db.execute(sql`
+      INSERT INTO permissions (id, action)
+      VALUES (${p.id}, ${p.action});
+    `);
+  }
+
+  // Seed Role Permissions (user gets base access, admin gets audit access)
+  await db.execute(sql`
+    INSERT INTO role_permissions (role_id, permission_id)
+    VALUES 
+      ('30000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000001'),
+      ('30000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000002'),
+      ('30000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000003');
+  `);
+
+  // Map users to roles in user_roles
+  const dbUsers = [
+    { id: ceoId, role: 'super_admin' },
+    { id: vpEngId, role: 'admin' },
+    { id: vpMktId, role: 'admin' },
+    { id: cfoId, role: 'read_only_admin' },
+    { id: engMgrId, role: 'user' },
+    { id: srEngId, role: 'user' },
+    { id: swEngId, role: 'user' },
+    { id: swEngId2, role: 'user' },
+    { id: mktSpecId, role: 'user' },
+    { id: finId, role: 'user' },
+  ];
+  for (const u of dbUsers) {
+    const roleId = rolesSeed.find(r => r.name === u.role)!.id;
+    await db.execute(sql`
+      INSERT INTO user_roles (user_id, role_id)
+      VALUES (${u.id}, ${roleId});
+    `);
+  }
 
   console.log('Local database initialization completed successfully!');
   process.exit(0);

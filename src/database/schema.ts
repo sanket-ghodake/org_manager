@@ -46,6 +46,12 @@ export const forgeApps = pgTable('forge_apps', {
   entryUrl: varchar('entry_url', { length: 255 }).notNull(), // Intranet target IP or internal routing path
   isIsolatedLifecycle: boolean('is_isolated_lifecycle').default(true).notNull(),
   
+  // App Manifest v2 Fields
+  clientId: varchar('client_id', { length: 255 }).unique(),
+  clientSecret: varchar('client_secret', { length: 255 }),
+  redirectUri: varchar('redirect_uri', { length: 255 }),
+  scopes: jsonb('scopes').default([]).notNull(), // List of base/requested permissions (e.g. ['user.profile.read'])
+
   // Conditional Allocation Matrix Rule
   // Example Value: { "designations": ["uuid-1"], "verticals": ["uuid-2"], "minJobLevel": 2 }
   targetRules: jsonb('target_rules').default({}).notNull(),
@@ -61,4 +67,53 @@ export const forgeAppStorage = pgTable('forge_app_storage', {
   customSchemaNamespace: varchar('custom_schema_namespace', { length: 63 }).unique().notNull(), // Isolated database namespace
   allowBaseReadAccess: boolean('allow_base_read_access').default(false).notNull(),
 });
+
+// Permission Engine (ACL / Hierarchical RBAC)
+export const roles = pgTable('roles', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 100 }).unique().notNull(), // 'super_admin' | 'admin' | 'read_only_admin' | 'user'
+  parentRoleId: uuid('parent_role_id').references((): any => roles.id), // Self reference for hierarchical RBAC delegation
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const permissions = pgTable('permissions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  action: varchar('action', { length: 100 }).unique().notNull(), // e.g., 'user.profile.read', 'audit.log.write'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const rolePermissions = pgTable('role_permissions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  roleId: uuid('role_id').references(() => roles.id, { onDelete: 'cascade' }).notNull(),
+  permissionId: uuid('permission_id').references(() => permissions.id, { onDelete: 'cascade' }).notNull(),
+});
+
+export const userRoles = pgTable('user_roles', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  roleId: uuid('role_id').references(() => roles.id, { onDelete: 'cascade' }).notNull(),
+});
+
+// Handshake & Auth Handshake exchange flows
+export const forgeAuthCodes = pgTable('forge_auth_codes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  code: varchar('code', { length: 255 }).unique().notNull(),
+  appId: uuid('app_id').references(() => forgeApps.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  used: boolean('used').default(false).notNull(),
+  scope: jsonb('scope').default([]).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const forgeAccessTokens = pgTable('forge_access_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  accessToken: varchar('access_token', { length: 255 }).unique().notNull(),
+  appId: uuid('app_id').references(() => forgeApps.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  scope: jsonb('scope').default([]).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 
