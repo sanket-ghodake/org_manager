@@ -1,4 +1,8 @@
 #!/bin/bash
+# Move to the project root directory regardless of where the script is executed
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR/.."
+
 set -e
 
 echo "=== Initializing Local Portable Development Environment ==="

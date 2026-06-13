@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acme Corp // DevCenter Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #090d16;
+      --bg-card: rgba(17, 25, 40, 0.65);
+      --bg-card-hover: rgba(23, 33, 51, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-color-glow: rgba(124, 58, 237, 0.4);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #7c3aed;
+      --primary-hover: #6d28d9;
+      --primary-glow: rgba(124, 58, 237, 0.25);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.2);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.2);
+      --error: #ef4444;
+      --error-glow: rgba(239, 68, 68, 0.2);
+      --accent: #2563eb;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Auth Screen styling */
+    .auth-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      width: 100vw;
+      background: radial-gradient(circle at center, #1e1b4b 0%, var(--bg-main) 70%);
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 100;
+      transition: opacity 0.3s ease;
+    }
+
+    .auth-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 50px rgba(124, 58, 237, 0.15);
+      text-align: center;
+    }
+
+    .auth-logo {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a78bfa 0%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .auth-subtitle {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 30px;
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+      gap: 6px;
+    }
+
+    .input-group label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .input-field {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, filter 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .auth-error {
+      color: var(--error);
+      font-size: 0.85rem;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* Main Dashboard Layout */
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+      background: rgba(10, 15, 26, 0.95);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      z-index: 10;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .sidebar-logo {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a78bfa 0%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sidebar-badge {
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      color: #a78bfa;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-grow: 1;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-main);
+    }
+
+    .nav-item.active {
+      background: rgba(124, 58, 237, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(124, 58, 237, 0.2);
+    }
+
+    .nav-item svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .sidebar-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .user-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .user-role {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--error);
+    }
+
+    .logout-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    /* Main Area Styling */
+    .main-area {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: radial-gradient(circle at top right, #0f172a 0%, var(--bg-main) 60%);
+    }
+
+    .header-bar {
+      height: 70px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      background: rgba(9, 13, 22, 0.4);
+      backdrop-filter: blur(8px);
+    }
+
+    .page-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .system-status {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .status-indicator.pulse {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    /* View Container Styling */
+    .view-container {
+      flex-grow: 1;
+      padding: 40px;
+      overflow-y: auto;
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .view-container.active {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Dashboard Widgets grid */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .widget-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .widget-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-color-glow);
+      box-shadow: 0 8px 20px rgba(124, 58, 237, 0.05);
+    }
+
+    .widget-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .widget-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .widget-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Charts/Tables mockup in Dashboard */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+
+    .data-table th {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 14px 20px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .data-table td {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Test Runner View Styling */
+    .test-actions {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .test-console-wrapper {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      min-height: 400px;
+      background: #05070c;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: inset 0 4px 20px rgba(0, 0, 0, 0.8);
+    }
+
+    .console-header {
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+    }
+
+    .console-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .console-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .console-dot.red { background: #ef4444; }
+    .console-dot.yellow { background: #f59e0b; }
+    .console-dot.green { background: #10b981; }
+
+    .console-body {
+      flex-grow: 1;
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #929bb0;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    /* DB Explorer View Styling */
+    .db-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+      flex-grow: 1;
+      min-height: 500px;
+      height: 0; /* needed for nested scrolling flexboxes */
+    }
+
+    .db-sidebar {
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .db-sidebar-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .table-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .table-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: background 0.2s, color 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .table-item:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-main);
+    }
+
+    .table-item.active {
+      background: rgba(124, 58, 237, 0.1);
+      color: #c084fc;
+      border: 1px solid rgba(124, 58, 237, 0.15);
+    }
+
+    .table-item-count {
+      font-size: 0.7rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 6px;
+      border-radius: 10px;
+      color: var(--text-muted);
+    }
+
+    .table-details {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-color);
+      font-size: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .table-details-header {
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .column-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .column-item {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 4px;
+    }
+
+    .column-type {
+      color: #818cf8;
+      font-size: 0.7rem;
+    }
+
+    .db-main {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .query-editor-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .editor-wrapper {
+      position: relative;
+    }
+
+    .query-textarea {
+      width: 100%;
+      height: 150px;
+      background: #070a13;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      outline: none;
+      resize: vertical;
+      transition: border-color 0.2s;
+    }
+
+    .query-textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .query-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .editor-templates {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .editor-templates option {
+      background: var(--bg-main);
+      color: var(--text-main);
+    }
+
+    .query-results-wrapper {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .query-error-box {
+      background: var(--error-glow);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      color: #fca5a5;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      display: none;
+      line-height: 1.5;
+    }
+
+    /* Logs View Styling */
+    .logs-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px 20px;
+      align-items: center;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      flex-grow: 1;
+      min-width: 250px;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 16px 10px 40px;
+      color: var(--text-main);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      fill: var(--text-muted);
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .select-dropdown {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .logs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .log-row-container {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .log-row-container:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .log-header {
+      background: rgba(17, 25, 40, 0.4);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .log-meta-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .log-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .log-badge.info { background: var(--success-glow); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .log-badge.warn { background: var(--warning-glow); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .log-badge.error { background: var(--error-glow); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.3); }
+    .log-badge.critical { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+    .log-timestamp {
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+    }
+
+    .log-action {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .log-meta-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .log-user {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .log-chevron {
+      width: 16px;
+      height: 16px;
+      fill: var(--text-muted);
+      transition: transform 0.2s;
+    }
+
+    .log-row-container.expanded .log-chevron {
+      transform: rotate(180deg);
+    }
+
+    .log-details {
+      display: none;
+      background: rgba(0, 0, 0, 0.25);
+      border-top: 1px solid var(--border-color);
+      padding: 16px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .log-row-container.expanded .log-details {
+      display: block;
+    }
+
+    .json-key { color: #a78bfa; }
+    .json-string { color: #34d399; }
+    .json-number { color: #f43f5e; }
+    .json-boolean { color: #3b82f6; }
+    .json-null { color: #6b7280; }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      fill: rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Auth Overlay -->
+  <div class="auth-container" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-logo">Acme DevCenter</div>
+      <div class="auth-subtitle">Development Admin Environment Console</div>
+      <form class="auth-form" id="loginForm" onsubmit="handleLogin(event)">
+        <div class="input-group">
+          <label for="password">Enter Authentication Key</label>
+          <input type="password" id="password" class="input-field" placeholder="••••••••" required autofocus>
+        </div>
+        <button type="submit" class="btn">
+          Authenticate
+          <svg style="width: 16px; height: 16px; fill: white;" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+        </button>
+        <div class="auth-error" id="loginError">Authentication Failed: Incorrect key provided.</div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Dashboard App -->
+  <div class="dashboard-layout" id="dashboardApp" style="display: none;">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-logo">Acme DevCenter</span>
+        <span class="sidebar-badge">Local-Dev</span>
+      </div>
+
+      <ul class="nav-list">
+        <li class="nav-item active" onclick="switchTab('overview', this)">
+          <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          Overview
+        </li>
+        <li class="nav-item" onclick="switchTab('tests', this)">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7V7h10v2zm0 8H7v-2h10v2z"/></svg>
+          Test Runner
+        </li>
+        <li class="nav-item" onclick="switchTab('db', this)">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 4.02 2 6.5v11c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5v-11C22 4.02 17.52 2 12 2zm0 18c-4.41 0-8-1.57-8-3.5V15c1.65 1.25 4.67 2 8 2s6.35-.75 8-2v1.5c0 1.93-3.59 3.5-8 3.5zm0-5c-4.41 0-8-1.57-8-3.5V10c1.65 1.25 4.67 2 8 2s6.35-.75 8-2v1.5c0 1.93-3.59 3.5-8 3.5zm0-5c-4.41 0-8-1.57-8-3.5s3.59-3.5 8-3.5 8 1.57 8 3.5-3.59 3.5-8 3.5z"/></svg>
+          DB Explorer
+        </li>
+        <li class="nav-item" onclick="switchTab('logs', this)">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+          Telemetry Logs
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <span class="user-name">Developer Mode</span>
+          <span class="user-role">Superuser</span>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()" title="Lock Console">
+          <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-area">
+      <!-- Header -->
+      <header class="header-bar">
+        <h1 class="page-title" id="pageTitle">Overview</h1>
+        <div class="system-status">
+          <div class="status-pill">
+            <span class="status-indicator pulse"></span>
+            <span>Local DB Connected</span>
+          </div>
+          <div class="status-pill">
+            <span>Runtime: Bun v1.2.0</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- VIEW: Overview -->
+      <div id="view-overview" class="view-container active">
+        <div class="dashboard-grid">
+          
+          <div class="widget-card">
+            <span class="widget-title">Database Size & Tables</span>
+            <div class="widget-value" id="stats-tables-count">-</div>
+            <p class="widget-desc">Total structural tables active in public schema.</p>
+          </div>
+
+          <div class="widget-card">
+            <span class="widget-title">System Audits Logged</span>
+            <div class="widget-value" id="stats-logs-count">-</div>
+            <p class="widget-desc">Total rows indexed inside the rotating system logs ring-buffer.</p>
+          </div>
+
+          <div class="widget-card">
+            <span class="widget-title">Test Results Status</span>
+            <div class="widget-value" id="stats-test-results">Not Run</div>
+            <p class="widget-desc" id="stats-test-desc">Run integration/unit test pipeline to update metrics.</p>
+          </div>
+
+        </div>
+
+        <div>
+          <h2 class="section-title">Organizational Schema Overview <span>System Tables Registry</span></h2>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Table Name</th>
+                  <th>Key Columns</th>
+                  <th>Row Count Estimation</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="overview-tables-body">
+                <!-- Dynamically loaded -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: Tests -->
+      <div id="view-tests" class="view-container">
+        <div class="test-actions">
+          <button class="btn" id="runTestsBtn" onclick="runTests()">
+            <svg style="width: 16px; height: 16px; fill: white;" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            Execute Test Pipeline
+          </button>
+          <div class="status-pill" id="tests-summary-pill" style="display: none;">
+            <span id="tests-passed-count" style="color: var(--success); font-weight: 600;">0 Passed</span>
+            <span style="color: var(--text-muted)">/</span>
+            <span id="tests-failed-count" style="color: var(--error); font-weight: 600;">0 Failed</span>
+          </div>
+        </div>
+
+        <div class="test-console-wrapper">
+          <div class="console-header">
+            <div class="console-dots">
+              <span class="console-dot red"></span>
+              <span class="console-dot yellow"></span>
+              <span class="console-dot green"></span>
+            </div>
+            <div>bun test --cwd .</div>
+            <div id="test-run-time">-</div>
+          </div>
+          <div class="console-body" id="consoleOutput">Waiting to trigger local testing runtime...</div>
+        </div>
+      </div>
+
+      <!-- VIEW: DB Explorer -->
+      <div id="view-db" class="view-container">
+        <div class="db-layout">
+          
+          <!-- Database Sidebar -->
+          <div class="db-sidebar">
+            <div class="db-sidebar-title">Database Tables</div>
+            <ul class="table-list" id="db-table-list">
+              <!-- Dynamically populated -->
+            </ul>
+
+            <div class="table-details" id="db-table-details" style="display: none;">
+              <div class="table-details-header">Schema details for '<span id="detail-table-name"></span>'</div>
+              <div class="column-list" id="db-column-list">
+                <!-- Columns -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Query Engine Main -->
+          <div class="db-main">
+            <div class="query-editor-card">
+              <div class="query-actions">
+                <span style="font-weight: 600; font-size: 0.9rem;">SQL Query Editor</span>
+                <select class="editor-templates" onchange="applyQueryTemplate(this.value)">
+                  <option value="">Choose Query Template...</option>
+                  <option value="SELECT * FROM users LIMIT 20;">View Core Users</option>
+                  <option value="SELECT * FROM structural_metadata ORDER BY type, sort_order;">View Organization Structure</option>
+                  <option value="SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT 50;">View Recent Telemetry Logs</option>
+                  <option value="SELECT * FROM forge_apps LIMIT 20;">View Registered Apps Matrix</option>
+                  <option value="SELECT type, count(*) FROM structural_metadata GROUP BY type;">Metadata Counts</option>
+                </select>
+              </div>
+              <div class="editor-wrapper">
+                <textarea id="queryText" class="query-textarea" placeholder="SELECT * FROM users LIMIT 10;"></textarea>
+              </div>
+              <div class="query-actions">
+                <button class="btn" id="runQueryBtn" onclick="runQuery()">
+                  <svg style="width: 16px; height: 16px; fill: white;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+                  Execute SQL Statement
+                </button>
+              </div>
+            </div>
+
+            <div class="query-results-wrapper">
+              <div class="section-title">Query Output Results <span id="query-result-stats"></span></div>
+              
+              <div class="query-error-box" id="queryError"></div>
+
+              <div class="table-container" id="queryResultContainer" style="overflow-x: auto; max-height: 400px; display: none;">
+                <table class="data-table" id="queryResultTable">
+                  <thead id="queryResultHead"></thead>
+                  <tbody id="queryResultBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- VIEW: Logs -->
+      <div id="view-logs" class="view-container">
+        
+        <div class="logs-filter-bar">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" class="search-input" id="logsSearch" placeholder="Search by action keyword or payload contents..." oninput="debounceLogsFilter()">
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Severity</span>
+            <select class="select-dropdown" id="severityFilter" onchange="fetchLogs()">
+              <option value="ALL">All Levels</option>
+              <option value="INFO">INFO</option>
+              <option value="WARN">WARN</option>
+              <option value="ERROR">ERROR</option>
+              <option value="CRITICAL">CRITICAL</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Auto-Poll</span>
+            <select class="select-dropdown" id="logsAutoPoll" onchange="toggleAutoPoll(this.value)">
+              <option value="off">Disabled</option>
+              <option value="2000">Every 2s</option>
+              <option value="5000">Every 5s</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="logs-list" id="logsContainer">
+          <!-- Logs rows dynamically loaded -->
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <script>
+    let activeTabId = 'overview';
+    let pollInterval = null;
+    let tablesData = [];
+
+    // Helper for beautiful syntax highlighting of JSON
+    function syntaxHighlightJson(json) {
+      if (typeof json !== 'string') {
+        json = JSON.stringify(json, undefined, 2);
+      }
+      json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, function (match) {
+        let cls = 'json-number';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'json-key';
+          } else {
+            cls = 'json-string';
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'json-boolean';
+        } else if (/null/.test(match)) {
+          cls = 'json-null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      });
+    }
+
+    // Debounce function for searches
+    let searchTimeout = null;
+    function debounceLogsFilter() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        fetchLogs();
+      }, 300);
+    }
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/status');
+        if (res.status === 200) {
+          const data = await res.json();
+          document.getElementById('authScreen').style.opacity = '0';
+          setTimeout(() => {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('dashboardApp').style.display = 'grid';
+          }, 300);
+          
+          // Trigger initial loading
+          loadOverviewData();
+          fetchTablesList();
+          fetchLogs();
+        } else {
+          document.getElementById('authScreen').style.display = 'flex';
+          document.getElementById('dashboardApp').style.display = 'none';
+        }
+      } catch (e) {
+        console.error('Failed to verify connection to dev dashboard server:', e);
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('loginError');
+      errorDiv.style.display = 'none';
+      
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        
+        if (res.status === 200) {
+          document.getElementById('password').value = '';
+          checkAuth();
+        } else {
+          errorDiv.style.display = 'block';
+        }
+      } catch (err) {
+        errorDiv.textContent = 'Server communications failed. Is dashboard server running?';
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    async function handleLogout() {
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+        toggleAutoPoll('off');
+        document.getElementById('logsAutoPoll').value = 'off';
+        document.getElementById('authScreen').style.display = 'flex';
+        document.getElementById('authScreen').style.opacity = '1';
+        document.getElementById('dashboardApp').style.display = 'none';
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function switchTab(tabId, el) {
+      activeTabId = tabId;
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      el.classList.add('active');
+
+      document.querySelectorAll('.view-container').forEach(view => view.classList.remove('active'));
+      document.getElementById('view-' + tabId).classList.add('active');
+
+      // Update Header Title
+      const titleMap = {
+        overview: 'Overview',
+        tests: 'Test Suite Runner',
+        db: 'DB Explorer & Query Console',
+        logs: 'System Logs Telemetry'
+      };
+      document.getElementById('pageTitle').textContent = titleMap[tabId] || 'DevCenter';
+      
+      if (tabId === 'overview') {
+        loadOverviewData();
+      }
+    }
+
+    async function loadOverviewData() {
+      try {
+        const res = await fetch('/api/status');
+        if (res.status === 401) {
+          checkAuth();
+          return;
+        }
+        const data = await res.json();
+        
+        // Populate stats
+        document.getElementById('stats-tables-count').textContent = data.tableCount || 0;
+        document.getElementById('stats-logs-count').textContent = data.logsCount || 0;
+        
+        if (data.lastTestRun) {
+          const passes = data.lastTestRun.passed;
+          const fails = data.lastTestRun.failed;
+          document.getElementById('stats-test-results').innerHTML = `<span style="color: var(--success);">${passes} Passed</span> / <span style="color: var(--error);">${fails} Failed</span>`;
+          document.getElementById('stats-test-desc').textContent = `Last run at ${new Date(data.lastTestRun.timestamp).toLocaleTimeString()}`;
+        } else {
+          document.getElementById('stats-test-results').textContent = 'Not Run';
+          document.getElementById('stats-test-desc').textContent = 'Run integration/unit test pipeline to update metrics.';
+        }
+
+        // Overview Tables Render
+        const tbody = document.getElementById('overview-tables-body');
+        tbody.innerHTML = '';
+        
+        if (data.tables && data.tables.length > 0) {
+          data.tables.forEach(table => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td style="font-weight: 600; font-family: 'JetBrains Mono', monospace; color: #a78bfa;">${table.name}</td>
+              <td style="font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">${table.keyColumns.join(', ')}</td>
+              <td style="font-weight: 500;">${table.rows} rows</td>
+              <td>
+                <button class="btn" style="padding: 6px 12px; font-size: 0.75rem;" onclick="exploreTable('${table.name}')">Explore Schema</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No database tables indexed</td></tr>`;
+        }
+
+      } catch (err) {
+        console.error('Failed to load overview statistics', err);
+      }
+    }
+
+    async function runTests() {
+      const btn = document.getElementById('runTestsBtn');
+      const consoleEl = document.getElementById('consoleOutput');
+      const timeEl = document.getElementById('test-run-time');
+      const pill = document.getElementById('tests-summary-pill');
+      
+      btn.disabled = true;
+      btn.innerHTML = `<span style="animation: spin 1s linear infinite; display: inline-block; margin-right: 8px;">⏳</span>Running pipeline...`;
+      consoleEl.textContent = 'Triggering local Bun testing suite run. Please stand by...\n\n';
+      pill.style.display = 'none';
+
+      const startTime = Date.now();
+      
+      try {
+        const res = await fetch('/api/run-tests', { method: 'POST' });
+        const data = await res.json();
+        
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+        timeEl.textContent = `Completed in ${duration}s`;
+        
+        consoleEl.textContent = data.rawOutput || 'No output returned.';
+        
+        document.getElementById('tests-passed-count').textContent = `${data.passed} Passed`;
+        document.getElementById('tests-failed-count').textContent = `${data.failed} Failed`;
+        pill.style.display = 'flex';
+        
+        // Refresh overview metrics in background
+        loadOverviewData();
+      } catch (err) {
+        consoleEl.textContent += `Fatal Communication Loop Interrupted: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg style="width: 16px; height: 16px; fill: white; margin-right: 8px;" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Execute Test Pipeline`;
+      }
+    }
+
+    async function fetchTablesList() {
+      try {
+        const res = await fetch('/api/tables');
+        const data = await res.json();
+        tablesData = data.tables || [];
+        
+        const listEl = document.getElementById('db-table-list');
+        listEl.innerHTML = '';
+        
+        tablesData.forEach(tbl => {
+          const li = document.createElement('li');
+          li.className = 'table-item';
+          li.onclick = () => selectExplorerTable(tbl.name);
+          li.id = 'table-item-' + tbl.name;
+          li.innerHTML = `
+            <span>${tbl.name}</span>
+            <span class="table-item-count">${tbl.rows}</span>
+          `;
+          listEl.appendChild(li);
+        });
+      } catch (err) {
+        console.error('Failed to fetch tables list', err);
+      }
+    }
+
+    async function selectExplorerTable(tableName) {
+      document.querySelectorAll('.table-item').forEach(item => item.classList.remove('active'));
+      const activeEl = document.getElementById('table-item-' + tableName);
+      if (activeEl) activeEl.classList.add('active');
+
+      const tbl = tablesData.find(t => t.name === tableName);
+      if (!tbl) return;
+
+      document.getElementById('db-table-details').style.display = 'flex';
+      document.getElementById('detail-table-name').textContent = tbl.name;
+      
+      const colList = document.getElementById('db-column-list');
+      colList.innerHTML = '';
+      tbl.columns.forEach(col => {
+        const item = document.createElement('div');
+        item.className = 'column-item';
+        item.innerHTML = `
+          <span>${col.name}</span>
+          <span class="column-type">${col.type}</span>
+        `;
+        colList.appendChild(item);
+      });
+
+      // Update Query Editor with a templates SQL query
+      document.getElementById('queryText').value = `SELECT * FROM ${tableName} LIMIT 20;`;
+    }
+
+    function exploreTable(tableName) {
+      switchTab('db', document.querySelectorAll('.nav-item')[2]);
+      selectExplorerTable(tableName);
+    }
+
+    function applyQueryTemplate(sql) {
+      if (sql) {
+        document.getElementById('queryText').value = sql;
+      }
+    }
+
+    async function runQuery() {
+      const queryText = document.getElementById('queryText').value;
+      const btn = document.getElementById('runQueryBtn');
+      const errBox = document.getElementById('queryError');
+      const resContainer = document.getElementById('queryResultContainer');
+      const resStats = document.getElementById('query-result-stats');
+      const head = document.getElementById('queryResultHead');
+      const body = document.getElementById('queryResultBody');
+      
+      if (!queryText.trim()) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Executing...';
+      errBox.style.display = 'none';
+      resContainer.style.display = 'none';
+      resStats.textContent = '';
+      
+      try {
+        const res = await fetch('/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: queryText })
+        });
+        
+        const data = await res.json();
+        
+        if (res.status !== 200) {
+          errBox.textContent = data.error || 'Unknown query execution error';
+          errBox.style.display = 'block';
+          return;
+        }
+
+        resStats.textContent = `(${data.rowCount} rows fetched)`;
+        
+        if (data.rowCount === 0 || !data.rows || data.rows.length === 0) {
+          head.innerHTML = '';
+          body.innerHTML = `<tr><td style="color: var(--text-muted); text-align: center;">Query successfully executed. Empty output result.</td></tr>`;
+          resContainer.style.display = 'block';
+          return;
+        }
+
+        // Render table
+        const sampleRow = data.rows[0];
+        const fields = Object.keys(sampleRow);
+        
+        head.innerHTML = '<tr>' + fields.map(f => `<th>${f}</th>`).join('') + '</tr>';
+        
+        body.innerHTML = '';
+        data.rows.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = fields.map(field => {
+            const val = row[field];
+            if (val === null) return `<td style="color: var(--text-muted);">NULL</td>`;
+            if (typeof val === 'object') return `<td style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">${JSON.stringify(val)}</td>`;
+            return `<td>${val}</td>`;
+          }).join('');
+          body.appendChild(tr);
+        });
+
+        resContainer.style.display = 'block';
+        
+        // Refresh table list & counts in case write operations occurred
+        fetchTablesList();
+      } catch (err) {
+        errBox.textContent = `Server connection lost: ${err.message}`;
+        errBox.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg style="width: 16px; height: 16px; fill: white; margin-right: 8px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>Execute SQL Statement`;
+      }
+    }
+
+    async function fetchLogs() {
+      const search = document.getElementById('logsSearch').value;
+      const severity = document.getElementById('severityFilter').value;
+      const logsContainer = document.getElementById('logsContainer');
+      
+      try {
+        const url = new URL('/api/logs', window.location.origin);
+        if (search) url.searchParams.append('search', search);
+        if (severity !== 'ALL') url.searchParams.append('severity', severity);
+
+        const res = await fetch(url.toString());
+        if (res.status === 401) {
+          checkAuth();
+          return;
+        }
+        const data = await res.json();
+        
+        logsContainer.innerHTML = '';
+        const logs = data.logs || [];
+        
+        if (logs.length === 0) {
+          logsContainer.innerHTML = `
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24"><path d="M13 13h-2V7h2v6zm0 4h-2v-2h2v2zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+              <span>No telemetry logs matching criteria were recorded</span>
+            </div>
+          `;
+          return;
+        }
+
+        logs.forEach(log => {
+          const row = document.createElement('div');
+          row.className = 'log-row-container';
+          
+          const formattedTime = new Date(log.timestamp).toLocaleTimeString();
+          const formattedDate = new Date(log.timestamp).toLocaleDateString();
+          
+          row.innerHTML = `
+            <div class="log-header" onclick="this.parentElement.classList.toggle('expanded')">
+              <div class="log-meta-left">
+                <span class="log-badge ${log.severity.toLowerCase()}">${log.severity}</span>
+                <span class="log-timestamp" title="${log.timestamp}">${formattedDate} ${formattedTime}</span>
+                <span class="log-action">${log.action}</span>
+              </div>
+              <div class="log-meta-right">
+                <span>User: <span class="log-user">${log.user_name || log.userId || 'System'}</span></span>
+                <span>IP: <span>${log.ipAddress || '127.0.0.1'}</span></span>
+                <svg class="log-chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+              </div>
+            </div>
+            <div class="log-details">
+              <pre>${syntaxHighlightJson(log.payload)}</pre>
+            </div>
+          `;
+          
+          logsContainer.appendChild(row);
+        });
+
+      } catch (err) {
+        console.error('Failed to load logs', err);
+      }
+    }
+
+    function toggleAutoPoll(val) {
+      clearInterval(pollInterval);
+      if (val !== 'off') {
+        const ms = parseInt(val, 10);
+        pollInterval = setInterval(() => {
+          if (activeTabId === 'logs') {
+            fetchLogs();
+          } else if (activeTabId === 'overview') {
+            loadOverviewData();
+          }
+        }, ms);
+      }
+    }
+
+    // Spin animation class injected
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Initial load
+    checkAuth();
+  </script>
+</body>
+</html>
