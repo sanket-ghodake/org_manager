@@ -55,6 +55,12 @@ export const forgeApps = pgTable('forge_apps', {
   // Conditional Allocation Matrix Rule
   // Example Value: { "designations": ["uuid-1"], "verticals": ["uuid-2"], "minJobLevel": 2 }
   targetRules: jsonb('target_rules').default({}).notNull(),
+
+  // Sprint B Lifecycle & Health Monitoring
+  isEnabled: boolean('is_enabled').default(true).notNull(),
+  status: varchar('status', { length: 30 }).default('active').notNull(), // 'active' | 'offline' | 'degraded'
+  lastSeen: timestamp('last_seen'),
+  healthCheckUrl: varchar('health_check_url', { length: 255 }),
   
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -114,6 +120,39 @@ export const forgeAccessTokens = pgTable('forge_access_tokens', {
   expiresAt: timestamp('expires_at').notNull(),
   scope: jsonb('scope').default([]).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Identity Foundation Tables (Departments, Teams, Groups)
+export const departments = pgTable('departments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  parentId: uuid('parent_id'), // hierarchical link to self
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const teams = pgTable('teams', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  departmentId: uuid('department_id').references(() => departments.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const groups = pgTable('groups', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const userTeams = pgTable('user_teams', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+});
+
+export const userGroups = pgTable('user_groups', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  groupId: uuid('group_id').references(() => groups.id, { onDelete: 'cascade' }).notNull(),
 });
 
 

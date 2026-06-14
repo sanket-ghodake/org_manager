@@ -32,8 +32,8 @@ interface AdminPanelProps {
   handleAddMetadata: (e: React.FormEvent) => void;
   handleMetadataReorder: (id: string, dir: 'up' | 'down') => void;
   handleMetadataDelete: (id: string) => void;
-  sub?: 'dashboard' | 'users' | 'metadata' | 'access' | 'database' | 'logs';
-  onSubChange?: (v: 'dashboard' | 'users' | 'metadata' | 'access' | 'database' | 'logs') => void;
+  sub?: 'dashboard' | 'users' | 'metadata' | 'access' | 'database' | 'logs' | 'apps';
+  onSubChange?: (v: 'dashboard' | 'users' | 'metadata' | 'access' | 'database' | 'logs' | 'apps') => void;
   hideSidebar?: boolean;
 }
 
@@ -69,7 +69,7 @@ export default function AdminPanel({
   hideSidebar = false,
 }: AdminPanelProps) {
   // ─── NAV NAVIGATION STATE ───
-  const [subInternal, setSubInternal] = useState<'dashboard' | 'users' | 'metadata' | 'access' | 'database' | 'logs'>('dashboard');
+  const [subInternal, setSubInternal] = useState<'dashboard' | 'users' | 'metadata' | 'access' | 'database' | 'logs' | 'apps'>('dashboard');
   const sub = propSub || subInternal;
   const setSub = (newSub: any) => {
     setSubInternal(newSub);
@@ -164,6 +164,100 @@ export default function AdminPanel({
   // ─── LOG STREAMING STATES ───
   const [logSearch, setLogSearch] = useState('');
   const [logSeverityFilter, setLogSeverityFilter] = useState('');
+
+  // ─── APP REGISTRY LIFECYCLE STATES ───
+  const [appsList, setAppsList] = useState<any[]>([]);
+  const [isAppsLoading, setIsAppsLoading] = useState(false);
+  const [revealedSecrets, setRevealedSecrets] = useState<Record<string, boolean>>({});
+
+  const fetchApps = async () => {
+    setIsAppsLoading(true);
+    try {
+      const res = await fetch('/api/admin/apps');
+      if (res.ok) {
+        const data = await res.json();
+        setAppsList(data.apps || []);
+      } else {
+        showToast('Failed to fetch apps list', 'error');
+      }
+    } catch (err) {
+      showToast('Network error fetching apps', 'error');
+    } finally {
+      setIsAppsLoading(false);
+    }
+  };
+
+  const toggleAppEnable = async (appId: string, isCurrentlyEnabled: boolean) => {
+    try {
+      const res = await fetch('/api/admin/apps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle',
+          appId,
+          isEnabled: !isCurrentlyEnabled,
+        }),
+      });
+      if (res.ok) {
+        showToast(!isCurrentlyEnabled ? 'Application enabled' : 'Application disabled', 'success');
+        fetchApps();
+      } else {
+        showToast('Failed to update application state', 'error');
+      }
+    } catch (err) {
+      showToast('Network error toggling app', 'error');
+    }
+  };
+
+  const removeApp = async (appId: string) => {
+    if (!confirm('Are you sure you want to remove this application and drop its custom schema? This cannot be undone.')) return;
+    try {
+      const res = await fetch('/api/admin/apps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'remove',
+          appId,
+        }),
+      });
+      if (res.ok) {
+        showToast('Application successfully removed from registry', 'success');
+        fetchApps();
+      } else {
+        showToast('Failed to remove application', 'error');
+      }
+    } catch (err) {
+      showToast('Network error removing app', 'error');
+    }
+  };
+
+  const scanApps = async () => {
+    setIsAppsLoading(true);
+    try {
+      const res = await fetch('/api/admin/apps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'scan' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast(`Scan complete. Synced ${data.count} applications.`, 'success');
+        fetchApps();
+      } else {
+        showToast('Failed to run application scanning pipeline', 'error');
+      }
+    } catch (err) {
+      showToast('Network error scanning apps', 'error');
+    } finally {
+      setIsAppsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (sub === 'apps') {
+      fetchApps();
+    }
+  }, [sub]);
 
   // ─── UTILS & PERSISTENT ACCESS MATRIX INGESTION ───
   const adminUsers = useMemo(() => {
@@ -1001,6 +1095,7 @@ export default function AdminPanel({
                 { id: 'access', label: 'Access Control', icon: '🔐' },
                 { id: 'database', label: 'DB Terminal', icon: '🗄️' },
                 { id: 'logs', label: 'Audit Logs', icon: '📜' },
+                { id: 'apps', label: 'App Registry', icon: '🔌' },
               ].map(item => (
                 <button
                   key={item.id}
@@ -2199,6 +2294,171 @@ export default function AdminPanel({
                     </div>
                   </div>
                 </FocusScope>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── 7. MODULE: APP REGISTRY LIFECYCLE ── */}
+        {sub === 'apps' && (
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-border-accent pb-4">
+              <div>
+                <h1 className="text-xl font-black tracking-tight text-text-primary">Application Registry & Lifecycle</h1>
+                <p className="text-[11px] text-text-secondary mt-0.5">Install, configure, check health telemetry, and toggle access states for modular extensions.</p>
+              </div>
+              <button
+                onClick={scanApps}
+                disabled={isAppsLoading}
+                className="px-4.5 py-2.5 bg-brand-accent hover:bg-brand-hover text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow flex items-center gap-2 disabled:opacity-50"
+              >
+                🔄 Scan & Re-sync Apps
+              </button>
+            </div>
+
+            {isAppsLoading && appsList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-xs text-text-secondary">Loading registered applications...</p>
+              </div>
+            ) : (
+              <div className="bg-surface-card border border-border-accent rounded-3xl shadow-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border-accent bg-surface-card/10 text-text-tertiary font-bold uppercase tracking-wider">
+                        <th className="p-4">Application Details</th>
+                        <th className="p-4">Entry / Schema</th>
+                        <th className="p-4">OAuth Credentials</th>
+                        <th className="p-4">Health Status</th>
+                        <th className="p-4 text-right">Lifecycle Controls</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-accent/40">
+                      {appsList.map(app => {
+                        const isSecretRevealed = revealedSecrets[app.id] || false;
+                        
+                        let statusColor = 'bg-rose-500/15 text-rose-400 border-rose-500/30';
+                        let statusText = 'Offline';
+                        if (app.status === 'active') {
+                          statusColor = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+                          statusText = 'Active';
+                        } else if (app.status === 'degraded') {
+                          statusColor = 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+                          statusText = 'Degraded';
+                        }
+
+                        const lastSeenStr = app.lastSeen
+                          ? new Date(app.lastSeen).toLocaleTimeString()
+                          : 'Never';
+
+                        return (
+                          <tr key={app.id} className="hover:bg-surface-card/20 transition-colors">
+                            {/* App Details */}
+                            <td className="p-4 max-w-sm">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-accent to-pink-500 flex items-center justify-center text-white text-base font-extrabold shadow-inner">
+                                  {app.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="font-bold text-text-primary text-sm flex items-center gap-2">
+                                    {app.name}
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-background-portal text-text-secondary font-mono border border-border-accent">
+                                      v{app.scopes && app.scopes.length > 0 ? '1.0.0' : '1.0'}
+                                    </span>
+                                  </h4>
+                                  <p className="text-[10px] text-text-secondary truncate mt-0.5">{app.slug}</p>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Entry Point / Isolated Schema namespace */}
+                            <td className="p-4 font-mono text-[11px] text-text-secondary">
+                              <div className="space-y-1">
+                                <div className="truncate max-w-xs">{app.entryUrl}</div>
+                                {app.isIsolatedLifecycle ? (
+                                  <span className="inline-block px-1.5 py-0.5 rounded bg-brand-accent/10 border border-brand-accent/25 text-brand-accent text-[9px] font-bold">
+                                    Isolated Schema
+                                  </span>
+                                ) : (
+                                  <span className="inline-block px-1.5 py-0.5 rounded bg-background-portal border border-border-accent text-text-tertiary text-[9px]">
+                                    Shared Namespace
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Credentials */}
+                            <td className="p-4 font-mono text-[10px]">
+                              <div className="space-y-1">
+                                <div><span className="text-text-tertiary">ID: </span><span className="text-text-secondary">{app.clientId || 'N/A'}</span></div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-text-tertiary">Secret: </span>
+                                  <span className="text-text-secondary mr-1">
+                                    {isSecretRevealed ? app.clientSecret : '••••••••••••••••'}
+                                  </span>
+                                  <button
+                                    onClick={() => setRevealedSecrets(prev => ({ ...prev, [app.id]: !isSecretRevealed }))}
+                                    className="text-[10px] text-brand-accent hover:underline focus:outline-none font-bold"
+                                  >
+                                    {isSecretRevealed ? 'Hide' : 'Reveal'}
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Health Status & Telemetry */}
+                            <td className="p-4">
+                              <div className="flex flex-col gap-1">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase w-fit ${statusColor}`}>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+                                  {statusText}
+                                </span>
+                                <span className="text-[10px] text-text-tertiary">
+                                  Last Checked: {lastSeenStr}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Enable/Disable & Actions */}
+                            <td className="p-4 text-right">
+                              <div className="flex items-center justify-end gap-3">
+                                {/* Toggle enable */}
+                                <label className="relative inline-flex items-center cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={app.isEnabled}
+                                    onChange={() => toggleAppEnable(app.id, app.isEnabled)}
+                                    className="sr-only peer"
+                                  />
+                                  <div className="w-9 h-5 bg-background-portal border border-border-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-secondary peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-success peer-checked:border-success"></div>
+                                  <span className="ml-2 text-[10px] font-bold text-text-secondary hidden sm:inline">
+                                    {app.isEnabled ? 'Enabled' : 'Disabled'}
+                                  </span>
+                                </label>
+
+                                <button
+                                  onClick={() => removeApp(app.id)}
+                                  className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/35 rounded-xl font-bold transition-all text-[11px]"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      
+                      {appsList.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-text-secondary italic">
+                            No applications currently registered. Click Scan to discover apps.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

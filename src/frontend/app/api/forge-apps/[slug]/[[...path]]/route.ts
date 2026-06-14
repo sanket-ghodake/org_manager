@@ -13,9 +13,13 @@ async function handleProxy(
 
   // Retrieve app entryUrl from DB
   const appResult = await db.execute(sql`
-    SELECT entry_url FROM forge_apps WHERE slug = ${slug}
+    SELECT entry_url, is_enabled FROM forge_apps WHERE slug = ${slug}
   `);
   const rows = appResult.rows || appResult;
+
+  if (rows && rows.length > 0 && !rows[0].is_enabled) {
+    return new NextResponse('Application is disabled by system administrator', { status: 403 });
+  }
   if (!rows || rows.length === 0) {
     return new NextResponse('Application not found', { status: 404 });
   }

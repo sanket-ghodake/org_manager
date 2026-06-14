@@ -5,6 +5,11 @@ async function main() {
   console.log('Initializing local database schema...');
 
   // Drop existing tables to ensure clean state
+  await db.execute(sql`DROP TABLE IF EXISTS user_groups CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS user_teams CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS groups CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS teams CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS departments CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS forge_access_tokens CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS forge_auth_codes CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS user_roles CASCADE;`);
@@ -74,6 +79,10 @@ async function main() {
       redirect_uri VARCHAR(255),
       scopes JSONB DEFAULT '[]'::jsonb NOT NULL,
       target_rules JSONB DEFAULT '{}'::jsonb NOT NULL,
+      is_enabled BOOLEAN DEFAULT true NOT NULL,
+      status VARCHAR(30) DEFAULT 'active' NOT NULL,
+      last_seen TIMESTAMP,
+      health_check_url VARCHAR(255),
       created_at TIMESTAMP DEFAULT NOW() NOT NULL,
       updated_at TIMESTAMP DEFAULT NOW() NOT NULL
     );
@@ -294,6 +303,10 @@ async function main() {
     { id: '40000000-0000-0000-0000-000000000001', action: 'user.profile.read' },
     { id: '40000000-0000-0000-0000-000000000002', action: 'user.manager.read' },
     { id: '40000000-0000-0000-0000-000000000003', action: 'audit.log.write' },
+    { id: '40000000-0000-0000-0000-000000000004', action: 'expense.create' },
+    { id: '40000000-0000-0000-0000-000000000005', action: 'expense.read' },
+    { id: '40000000-0000-0000-0000-000000000006', action: 'expense.approve' },
+    { id: '40000000-0000-0000-0000-000000000007', action: 'expense.delete' },
   ];
 
   for (const p of permissionsSeed) {
@@ -309,7 +322,13 @@ async function main() {
     VALUES 
       ('30000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000001'),
       ('30000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000002'),
-      ('30000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000003');
+      ('30000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000003'),
+      -- User role gets expense create/read
+      ('30000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000004'),
+      ('30000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000005'),
+      -- Admin role gets expense approve/delete
+      ('30000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000006'),
+      ('30000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000007');
   `);
 
   // Map users to roles in user_roles
@@ -332,6 +351,46 @@ async function main() {
       VALUES (${u.id}, ${roleId});
     `);
   }
+
+  // Create Sprint B identity foundation tables
+  console.log('Seeding Sprint B Identity tables...');
+  await db.execute(sql`
+    CREATE TABLE departments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name VARCHAR(255) NOT NULL,
+      parent_id UUID REFERENCES departments(id),
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+  await db.execute(sql`
+    CREATE TABLE teams (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name VARCHAR(255) NOT NULL,
+      department_id UUID REFERENCES departments(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+  await db.execute(sql`
+    CREATE TABLE groups (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+  await db.execute(sql`
+    CREATE TABLE user_teams (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      team_id UUID REFERENCES teams(id) ON DELETE CASCADE NOT NULL
+    );
+  `);
+  await db.execute(sql`
+    CREATE TABLE user_groups (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      group_id UUID REFERENCES groups(id) ON DELETE CASCADE NOT NULL
+    );
+  `);
 
   console.log('Local database initialization completed successfully!');
   process.exit(0);

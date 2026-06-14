@@ -14,9 +14,13 @@ async function handleProxy(
 
   // Retrieve app entryUrl from DB
   let appResult = await db.execute(sql`
-    SELECT entry_url FROM forge_apps WHERE slug = ${slug}
+    SELECT entry_url, is_enabled FROM forge_apps WHERE slug = ${slug}
   `);
   let rows = appResult.rows || appResult;
+
+  if (rows && rows.length > 0 && !rows[0].is_enabled) {
+    return new NextResponse('Application is disabled by system administrator', { status: 403 });
+  }
 
   if (!rows || rows.length === 0) {
     // Fallback: If not found by slug directly (e.g. requested using the manifest ID),

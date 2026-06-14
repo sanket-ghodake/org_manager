@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Fetch app details from DB
     const appResult = await db.execute(sql`
-      SELECT id, scopes FROM forge_apps WHERE slug = ${slug}
+      SELECT id, scopes FROM forge_apps WHERE slug = ${slug} AND is_enabled = true
     `);
     const appRows = appResult.rows || appResult;
     if (!appRows || appRows.length === 0) {

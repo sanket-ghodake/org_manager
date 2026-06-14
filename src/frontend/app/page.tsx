@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const [theme, setTheme] = useState('default');
   const [font, setFont] = useState('default');
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
-  const [activeTab, setActiveTab] = useState<'canvas' | 'dashboard' | 'users' | 'metadata' | 'access' | 'database' | 'logs' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'canvas' | 'dashboard' | 'users' | 'metadata' | 'access' | 'database' | 'logs' | 'settings' | 'apps'>('dashboard');
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showDebugDock, setShowDebugDock] = useState(false);
@@ -682,6 +682,7 @@ export default function DashboardPage() {
               { id: 'access', label: 'Access Control', icon: '🔐' },
               { id: 'database', label: 'DB Terminal', icon: '🗄️' },
               { id: 'logs', label: 'Audit Logs', icon: '📜' },
+              { id: 'apps', label: 'App Registry', icon: '🔌' },
               { id: 'settings', label: 'Settings', icon: '⚙️' },
             ].map(item => {
               if (item.subItems) {
@@ -1032,7 +1033,7 @@ export default function DashboardPage() {
         )}
 
         {/* Tab 2: Premium Admin Command Center Modules */}
-        {['dashboard', 'users', 'metadata', 'access', 'database', 'logs'].includes(activeTab) && (simulatedRole === 'super_admin' || simulatedRole === 'admin' || simulatedRole === 'read_only_admin') && (
+        {['dashboard', 'users', 'metadata', 'access', 'database', 'logs', 'apps'].includes(activeTab) && (simulatedRole === 'super_admin' || simulatedRole === 'admin' || simulatedRole === 'read_only_admin') && (
           <AdminPanel
             session={session}
             users={users}
