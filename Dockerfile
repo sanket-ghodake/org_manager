@@ -35,6 +35,6 @@ RUN cd src/frontend && bun run build
 RUN chmod +x scripts/docker-entrypoint.sh
 
 # Expose all portal and app ports
-EXPOSE 3001 3002 8085 8086 8087
+EXPOSE 3001 3002 3003 8085 8086 8087
 
 ENTRYPOINT ["scripts/docker-entrypoint.sh"]

@@ -6,8 +6,26 @@ import { getSession } from '@backend/auth/sessionManager';
 export async function middleware(request: any, event?: any) {
   const path = request.nextUrl.pathname;
 
-  // 1. Bypass authentication checks for login routes
-  if (path === '/login' || path === '/api/auth/login' || path === '/api/branding') {
+  // 1. Check if the request is for the developer portal
+  if (path.startsWith('/developer')) {
+    const isFromProxy = request.headers.get('x-from-developer-proxy') === 'true';
+    if (!isFromProxy) {
+      // Redirect direct requests on port 3001 to port 3003
+      return NextResponse.redirect(new URL('http://localhost:3003/'));
+    }
+    return NextResponse.next();
+  }
+
+  // 2. Bypass authentication checks for login routes, assets, and app registration APIs
+  if (
+    path === '/login' ||
+    path === '/api/auth/login' ||
+    path === '/api/branding' ||
+    path === '/favicon.ico' ||
+    path.startsWith('/_next/') ||
+    path === '/api/apps' ||
+    (path === '/api/admin/metadata' && request.method === 'GET')
+  ) {
     return NextResponse.next();
   }
 

@@ -25,6 +25,9 @@ else
   echo "[Notice] Go is not installed on system; skipping Go reference app auto-run. Code is stored under src/apps/reference-go."
 fi
 
+echo "Booting up Developer Console Proxy on port 3003..."
+bun run scripts/developer-proxy.ts &
+
 echo "Booting up Local Development Portal Stack..."
 bun run --cwd src/frontend dev -- --hostname 0.0.0.0 --port 3001
 

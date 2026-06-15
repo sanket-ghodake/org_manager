@@ -3,7 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: sgforge-db
+    container_name: sgforge-db-sanket
     environment:
       POSTGRES_USER: lifeos
       POSTGRES_PASSWORD: change_me_db_password
@@ -22,7 +22,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sgforge-app
+    container_name: sgforge-app-sanket-v3
     depends_on:
       db:
         condition: service_healthy
@@ -36,6 +36,7 @@ services:
     ports:
       - "3001:3001"
       - "3002:3002"
+      - "3003:3003"
       - "8085:8085"
       - "8086:8086"
       - "8087:8087"

@@ -1544,6 +1544,15 @@ export default function AdminPanel({
                   {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
                 </button>
               ))}
+
+              <a
+                href="http://localhost:3003/developer"
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-3 transition-all text-sidebar-text hover:bg-sidebar-hover hover:text-text-primary"
+                title="Developer Portal"
+              >
+                <span className="text-sm">🛠️</span>
+                {!sidebarCollapsed && <span className="truncate">DevCenter Portal</span>}
+              </a>
             </nav>
           </div>
 

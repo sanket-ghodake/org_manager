@@ -742,12 +742,20 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
         <div className="p-3 border-t border-border-accent bg-surface-card/10 space-y-2.5">
           {/* Admin switcher (Visible to admin roles) */}
           {isAdmin && sidebarOpen && (
-            <button
-              onClick={() => router.push('/')}
-              className="w-full py-2 bg-brand-muted hover:bg-brand-accent/20 border border-brand-accent/30 rounded-xl text-[10px] font-black text-brand-accent uppercase tracking-widest transition-all"
-            >
-              ⚙️ Admin Portal
-            </button>
+            <div className="flex flex-col gap-1.5">
+              <button
+                onClick={() => router.push('/')}
+                className="w-full py-2 bg-brand-muted hover:bg-brand-accent/20 border border-brand-accent/30 rounded-xl text-[10px] font-black text-brand-accent uppercase tracking-widest transition-all"
+              >
+                ⚙️ Admin Portal
+              </button>
+              <button
+                onClick={() => window.location.href = 'http://localhost:3003/developer'}
+                className="w-full py-2 bg-surface-elevated hover:bg-surface-card border border-border-accent rounded-xl text-[10px] font-black text-text-secondary hover:text-text-primary uppercase tracking-widest transition-all"
+              >
+                🛠️ DevCenter Portal
+              </button>
+            </div>
           )}
 
           {/* Quick theme cycle icon for collapsed view */}

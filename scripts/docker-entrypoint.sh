@@ -36,11 +36,15 @@ cd src/apps/reference-go
 go run main.go &
 cd /app
 
-# 5. Start Next.js Frontend Portal (port 3001)
+# 5. Start Next.js Developer Portal Proxy (port 3003)
+echo "Starting Developer Portal Proxy on port 3003..."
+bun run scripts/developer-proxy.ts &
+
+# 6. Start Next.js Frontend Portal (port 3001)
 if [ "$NODE_ENV" = "development" ]; then
-  echo "Starting Next.js Frontend Portal in development mode (with hot reloading)..."
-  bun run --cwd src/frontend dev -p 3001
+  echo "Starting Next.js Frontend Portal on port 3001 in development mode (with hot reloading)..."
+  bun run --cwd src/frontend dev -- --hostname 0.0.0.0 --port 3001
 else
-  echo "Starting Next.js Frontend Portal in production mode..."
-  bun run --cwd src/frontend start -p 3001
+  echo "Starting Next.js Frontend Portal on port 3001 in production mode..."
+  bun run --cwd src/frontend start -- --hostname 0.0.0.0 --port 3001
 fi

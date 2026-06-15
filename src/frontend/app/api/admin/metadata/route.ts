@@ -7,11 +7,6 @@ import { logEvent } from '@backend/utils/logger';
 
 export async function GET(request: Request) {
   try {
-    const session = await getSession(request as any);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const metadata = await db
       .select()
       .from(structuralMetadata)

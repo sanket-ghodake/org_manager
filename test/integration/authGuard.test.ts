@@ -106,5 +106,86 @@ describe("Middleware Authentication Guard Pipeline", () => {
     // In Next.js middleware, a successful pass-through response will return a status 200 or an internal Next rewrite
     expect(response.status).toBe(200);
   });
+
+  test("Allows public access to /developer route without a session when request has proxy header", async () => {
+    const mockRequest = {
+      url: "http://localhost:3000/developer",
+      nextUrl: {
+        pathname: "/developer",
+      },
+      headers: {
+        get: (name: string) => {
+          if (name === "x-from-developer-proxy") return "true";
+          return "127.0.0.1";
+        },
+      },
+      cookies: {
+        get: (name: string) => null,
+      },
+    } as any;
+
+    const response = await middleware(mockRequest);
+    expect(response).toBeDefined();
+    expect(response.status).toBe(200);
+  });
+
+  test("Redirects direct /developer access to port 3003", async () => {
+    const mockRequest = {
+      url: "http://localhost:3001/developer",
+      nextUrl: {
+        pathname: "/developer",
+      },
+      headers: {
+        get: (name: string) => null,
+      },
+      cookies: {
+        get: (name: string) => null,
+      },
+    } as any;
+
+    const response = await middleware(mockRequest);
+    expect(response).toBeDefined();
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost:3003/");
+  });
+
+  test("Allows public access to /api/apps without a session", async () => {
+    const mockRequest = {
+      url: "http://localhost:3000/api/apps",
+      nextUrl: {
+        pathname: "/api/apps",
+      },
+      headers: {
+        get: (name: string) => "127.0.0.1",
+      },
+      cookies: {
+        get: (name: string) => null,
+      },
+    } as any;
+
+    const response = await middleware(mockRequest);
+    expect(response).toBeDefined();
+    expect(response.status).toBe(200);
+  });
+
+  test("Allows public access to GET /api/admin/metadata without a session", async () => {
+    const mockRequest = {
+      url: "http://localhost:3000/api/admin/metadata",
+      nextUrl: {
+        pathname: "/api/admin/metadata",
+      },
+      method: "GET",
+      headers: {
+        get: (name: string) => "127.0.0.1",
+      },
+      cookies: {
+        get: (name: string) => null,
+      },
+    } as any;
+
+    const response = await middleware(mockRequest);
+    expect(response).toBeDefined();
+    expect(response.status).toBe(200);
+  });
 });
 
