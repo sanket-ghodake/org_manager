@@ -24,10 +24,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
   }
 
-  // Enforce role gating: only super_admin can run raw queries
-  if (session.role !== 'super_admin') {
+  // Enforce role gating: only administrative roles can run raw queries
+  const allowedRoles = ['super_admin', 'admin', 'read_only_admin'];
+  if (!allowedRoles.includes(session.role)) {
     await logEvent(session.id, 'SQL Query Forbidden Attempt', 'WARN', { role: session.role, query: queryText }, ipAddress);
-    return NextResponse.json({ error: 'Forbidden: Access denied. Only super_admin can execute raw SQL queries.' }, { status: 403 });
+    return NextResponse.json({ error: 'Forbidden: Access denied. Only administrative roles can execute raw SQL queries.' }, { status: 403 });
   }
 
   try {

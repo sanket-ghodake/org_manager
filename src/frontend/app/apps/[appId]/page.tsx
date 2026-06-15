@@ -117,6 +117,29 @@ export default function AppContainerPage() {
 
   // Client-side query runner wrapper
   const runQuery = async (queryStr: string) => {
+    // Intercept read-only directory queries for standard user sessions
+    if (session?.role === 'user') {
+      const normalizedQuery = queryStr.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (normalizedQuery.includes('select * from users')) {
+        const res = await fetch('/api/directory');
+        if (!res.ok) {
+          throw new Error('Database query failed.');
+        }
+        const data = await res.json();
+        return { rows: data.users || [] };
+      }
+      if (normalizedQuery.includes('select * from structural_metadata')) {
+        const res = await fetch('/api/directory');
+        if (!res.ok) {
+          throw new Error('Database query failed.');
+        }
+        const data = await res.json();
+        return { rows: data.metadata || [] };
+      }
+      
+      throw new Error('Forbidden: Access denied. Only administrative roles can execute raw SQL queries.');
+    }
+
     const res = await fetch('/api/query', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
