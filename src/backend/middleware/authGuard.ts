@@ -30,25 +30,30 @@ export async function middleware(request: any, event?: any) {
                                path === '/api/auth/session';
 
     if (!isAllowedResetPath) {
-      // Dispatch alert warning log
-      const logUrl = new URL('/api/logs', request.url);
-      const logPromise = fetch(logUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cookie': request.headers.get('cookie') || '',
-        },
-        body: JSON.stringify({
-          action: 'Forced Password Reset Enforced',
-          severity: 'WARN',
-          payload: { email: session.email, interceptedPath: path },
-        }),
-      }).catch((err) => {
-        console.error('Failed to dispatch middleware log:', err);
-      });
+      const isPrefetch = request.headers.get('x-middleware-prefetch') === '1' ||
+                         request.headers.get('purpose') === 'prefetch';
 
-      if (event && typeof event.waitUntil === 'function') {
-        event.waitUntil(logPromise);
+      if (!isPrefetch) {
+        // Dispatch alert warning log
+        const logUrl = new URL('/api/logs', request.url);
+        const logPromise = fetch(logUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cookie': request.headers.get('cookie') || '',
+          },
+          body: JSON.stringify({
+            action: 'Forced Password Reset Enforced',
+            severity: 'WARN',
+            payload: { email: session.email, interceptedPath: path },
+          }),
+        }).catch((err) => {
+          console.error('Failed to dispatch middleware log:', err);
+        });
+
+        if (event && typeof event.waitUntil === 'function') {
+          event.waitUntil(logPromise);
+        }
       }
 
       if (path.startsWith('/api/')) {

@@ -208,6 +208,12 @@ export default function DashboardPage() {
     orgCanvasRef.current?.centerNode(userId);
   };
 
+  // Filter Employees in Omni-search
+  const filteredOmniUsers = users.filter(u => 
+    u.name.toLowerCase().includes(omniQuery.toLowerCase()) || 
+    u.eid.toLowerCase().includes(omniQuery.toLowerCase())
+  );
+
   // Define flat items array for command palette keyboard navigation
   const getOmniItems = () => {
     const items: any[] = [];
@@ -491,12 +497,6 @@ export default function DashboardPage() {
     
     return highlighted;
   };
-
-  // Filter Employees in Omni-search
-  const filteredOmniUsers = users.filter(u => 
-    u.name.toLowerCase().includes(omniQuery.toLowerCase()) || 
-    u.eid.toLowerCase().includes(omniQuery.toLowerCase())
-  );
 
   // Show a premium loading screen while session is being read from cookie
   if (isSessionLoading || !session) {

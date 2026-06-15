@@ -135,7 +135,7 @@ export default function ForceResetPage() {
             </p>
 
             <button
-              onClick={() => setStep(2)}
+              onClick={() => setStep(3)}
               className="mt-8 px-8 py-3.5 bg-brand-accent hover:bg-brand-accent/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-brand-accent/25 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
             >
               Begin Account Activation
