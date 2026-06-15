@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { executeAdminQuery } from '../../../../backend/api/admin/queryEngine';
-import { getSession } from '../../../../backend/auth/sessionManager';
-import { logEvent } from '../../../../backend/utils/logger';
+import { executeAdminQuery } from '@backend/api/admin/queryEngine';
+import { getSession } from '@backend/auth/sessionManager';
+import { logEvent } from '@backend/utils/logger';
 
 export async function POST(request: Request) {
   const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';

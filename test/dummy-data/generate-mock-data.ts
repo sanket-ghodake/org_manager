@@ -105,9 +105,9 @@ function generateMockCompany(count = 70): {
       name: "Aarav",
       email: "superadmin1@sgforge.com",
       role: "super_admin",
-      designation: "L12 CEO", // Keep designation CEO for E0001 to prevent other structural test failures if any
-      vertical: "Executive",
-      subsidiary,
+      designation: "",
+      vertical: "",
+      subsidiary: "",
       managerEid: null,
     },
     {
@@ -115,24 +115,24 @@ function generateMockCompany(count = 70): {
       name: "Ananya",
       email: "superadmin2@sgforge.com",
       role: "super_admin",
-      designation: "L12 CEO",
-      vertical: "Executive",
-      subsidiary,
+      designation: "",
+      vertical: "",
+      subsidiary: "",
       managerEid: null,
     }
   ];
 
   const admins: Employee[] = [
-    { eid: "E0002", name: "Vihaan", email: "it-admin@sgforge.com", role: "admin", designation: "L10 VP of Engineering", vertical: "Engineering", subsidiary, managerEid: null },
-    { eid: "E0012", name: "Ishaan", email: "hr-admin@sgforge.com", role: "admin", designation: "L8 Director of HR", vertical: "Human Resources", subsidiary, managerEid: null },
-    { eid: "E0013", name: "Krishna", email: "finance-admin@sgforge.com", role: "admin", designation: "L8 Director of Finance", vertical: "Finance", subsidiary, managerEid: null },
-    { eid: "E0014", name: "Arjun", email: "security-admin@sgforge.com", role: "admin", designation: "L8 Director of Engineering", vertical: "Engineering", subsidiary, managerEid: null },
-    { eid: "E0015", name: "Diya", email: "ops-admin@sgforge.com", role: "admin", designation: "L8 Director of Operations", vertical: "Sales & Operations", subsidiary, managerEid: null },
-    { eid: "E0016", name: "Priya", email: "support-admin@sgforge.com", role: "admin", designation: "L6 Operations Manager", vertical: "Sales & Operations", subsidiary, managerEid: null },
-    { eid: "E0017", name: "Riya", email: "audit-admin@sgforge.com", role: "read_only_admin", designation: "L6 HR Manager", vertical: "Human Resources", subsidiary, managerEid: null },
-    { eid: "E0018", name: "Aadhya", email: "dev-admin@sgforge.com", role: "admin", designation: "L6 Engineering Manager", vertical: "Engineering", subsidiary, managerEid: null },
-    { eid: "E0019", name: "Kavya", email: "provision-admin@sgforge.com", role: "admin", designation: "L6 Product Manager", vertical: "Product Management", subsidiary, managerEid: null },
-    { eid: "E0020", name: "Kabir", email: "billing-admin@sgforge.com", role: "admin", designation: "L6 Finance Manager", vertical: "Finance", subsidiary, managerEid: null }
+    { eid: "E0002", name: "Vihaan", email: "it-admin@sgforge.com", role: "admin", designation: "", vertical: "", subsidiary: "", managerEid: null },
+    { eid: "E0012", name: "Ishaan", email: "hr-admin@sgforge.com", role: "admin", designation: "", vertical: "", subsidiary: "", managerEid: null },
+    { eid: "E0013", name: "Krishna", email: "finance-admin@sgforge.com", role: "admin", designation: "", vertical: "", subsidiary: "", managerEid: null },
+    { eid: "E0014", name: "Arjun", email: "security-admin@sgforge.com", role: "admin", designation: "", vertical: "", subsidiary: "", managerEid: null },
+    { eid: "E0015", name: "Diya", email: "ops-admin@sgforge.com", role: "admin", designation: "", vertical: "", subsidiary: "", managerEid: null },
+    { eid: "E0016", name: "Priya", email: "support-admin@sgforge.com", role: "admin", designation: "", vertical: "", subsidiary: "", managerEid: null },
+    { eid: "E0017", name: "Riya", email: "audit-admin@sgforge.com", role: "read_only_admin", designation: "", vertical: "", subsidiary: "", managerEid: null },
+    { eid: "E0018", name: "Aadhya", email: "dev-admin@sgforge.com", role: "admin", designation: "", vertical: "", subsidiary: "", managerEid: null },
+    { eid: "E0019", name: "Kavya", email: "provision-admin@sgforge.com", role: "admin", designation: "", vertical: "", subsidiary: "", managerEid: null },
+    { eid: "E0020", name: "Kabir", email: "billing-admin@sgforge.com", role: "admin", designation: "", vertical: "", subsidiary: "", managerEid: null }
   ];
 
   employees.push(...superAdmins);

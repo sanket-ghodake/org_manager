@@ -136,6 +136,46 @@ export default function AppContainerPage() {
         const data = await res.json();
         return { rows: data.metadata || [] };
       }
+      if (normalizedQuery.includes('manager_id')) {
+        const res = await fetch('/api/directory');
+        if (!res.ok) {
+          throw new Error('Database query failed.');
+        }
+        const data = await res.json();
+        const users = data.users || [];
+        const metadata = data.metadata || [];
+
+        // Extract manager UUID from query string
+        const managerIdMatch = queryStr.match(/manager_id\s*=\s*['"]([^'"]+)['"]/i);
+        const managerId = managerIdMatch ? managerIdMatch[1] : session?.id;
+
+        // Filter users by manager_id
+        const directReports = users.filter((u: any) => u.manager_id === managerId);
+
+        // Perform LEFT JOIN dm and vm
+        const rows = directReports.map((u: any) => {
+          const designationMeta = metadata.find((m: any) => m.id === u.designation_id);
+          const verticalMeta = metadata.find((m: any) => m.id === u.vertical_id);
+          return {
+            eid: u.eid,
+            name: u.name,
+            email: u.email,
+            designation: designationMeta ? designationMeta.name : null,
+            vertical: verticalMeta ? verticalMeta.name : null,
+          };
+        });
+
+        // Apply ordering: ORDER BY u.name ASC
+        if (normalizedQuery.includes('order by')) {
+          rows.sort((a: any, b: any) => {
+            const nameA = (a.name || '').toLowerCase();
+            const nameB = (b.name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+        }
+
+        return { rows, rowCount: rows.length };
+      }
       
       throw new Error('Forbidden: Access denied. Only administrative roles can execute raw SQL queries.');
     }
@@ -183,7 +223,7 @@ export default function AppContainerPage() {
   const isIframe = appConfig?.routingMode === 'iframe' || appConfig?.entryPoint?.startsWith('http');
 
   // Dynamically import the app entrypoint only if it's a local react component.
-  const DynamicApp = (appConfig && !isIframe) ? dynamic<any>(() => import(`../../../../apps/${appId}/index.tsx`), {
+  const DynamicApp = (appConfig && !isIframe) ? dynamic<any>(() => import(`@apps/${appConfig.directoryName}/index.tsx`), {
     loading: () => (
       <div className="flex justify-center items-center py-24">
         <span className="w-8 h-8 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin"></span>

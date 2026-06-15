@@ -178,6 +178,66 @@ describe("Enterprise Hierarchy, Circular Loops, Entitlements & Marketplace Tests
     expect(thrownError!.message).toContain("Circular node reference loop detected");
   });
 
+  test("2b. Admin separation constraints trigger", async () => {
+    // 1. Try to set manager_id on a super_admin or admin
+    let thrownError: Error | null = null;
+    try {
+      await db.execute(sql`
+        INSERT INTO users (eid, name, email, role, password_hash, manager_id)
+        VALUES ('E_ADMIN_FAIL_1', 'Fail Admin 1', 'fail1@admin.com', 'admin', 'hash', ${userAId})
+      `);
+    } catch (e: any) {
+      thrownError = e;
+    }
+    expect(thrownError).toBeDefined();
+    expect(thrownError!.message).toContain("Admin separation violation");
+
+    // 2. Try to set designation_id on a super_admin or admin
+    thrownError = null;
+    try {
+      // Find designation ID
+      const desigRes = await db.execute(sql`SELECT id FROM structural_metadata WHERE type = 'job_level' LIMIT 1`);
+      const desigId = (desigRes.rows || desigRes)[0]?.id;
+      if (desigId) {
+        await db.execute(sql`
+          INSERT INTO users (eid, name, email, role, password_hash, designation_id)
+          VALUES ('E_ADMIN_FAIL_2', 'Fail Admin 2', 'fail2@admin.com', 'admin', 'hash', ${desigId})
+        `);
+      } else {
+        throw new Error("No designation found");
+      }
+    } catch (e: any) {
+      thrownError = e;
+    }
+    expect(thrownError).toBeDefined();
+    expect(thrownError!.message).toContain("Admin separation violation");
+
+    // 3. Try to make a standard user report to an admin
+    // Insert an admin with no manager/designation/vertical
+    const adminRes = await db.execute(sql`
+      INSERT INTO users (eid, name, email, role, password_hash)
+      VALUES ('E_ADMIN_OK', 'Ok Admin', 'ok@admin.com', 'admin', 'hash')
+      RETURNING id
+    `);
+    const newAdminId = (adminRes.rows || adminRes)[0].id;
+
+    thrownError = null;
+    try {
+      // Try to make a user report to this new admin
+      await db.execute(sql`
+        INSERT INTO users (eid, name, email, role, password_hash, manager_id)
+        VALUES ('E_USER_FAIL', 'Fail User', 'failuser@user.com', 'user', 'hash', ${newAdminId})
+      `);
+    } catch (e: any) {
+      thrownError = e;
+    }
+    expect(thrownError).toBeDefined();
+    expect(thrownError!.message).toContain("Admin separation violation");
+
+    // Clean up
+    await db.execute(sql`DELETE FROM users WHERE eid IN ('E_ADMIN_OK', 'E_ADMIN_FAIL_1', 'E_ADMIN_FAIL_2', 'E_USER_FAIL')`);
+  });
+
   test("3. Reporting relationship query (Recursive Line Management verification)", async () => {
     const sessionToken = await encryptSession({
       id: userAId,

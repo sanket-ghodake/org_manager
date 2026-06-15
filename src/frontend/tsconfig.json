@@ -21,7 +21,9 @@
     "paths": {
       "@/*": ["./*"],
       "@database/*": ["../database/*"],
-      "@backend/*": ["../backend/*"]
+      "@backend/*": ["../backend/*"],
+      "@apps/*": ["../apps/*"],
+      "@sdk/*": ["../sdk/*"]
     }
   },
   "include": [

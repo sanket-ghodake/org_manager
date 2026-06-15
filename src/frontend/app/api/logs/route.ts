@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { logEvent, LogSeverity } from '../../../../backend/utils/logger';
-import { getSession } from '../../../../backend/auth/sessionManager';
+import { logEvent, LogSeverity } from '@backend/utils/logger';
+import { getSession } from '@backend/auth/sessionManager';
 
 // In-memory store for rate limiting: IP address -> { count, resetTime }
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();

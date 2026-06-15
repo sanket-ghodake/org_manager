@@ -37,6 +37,8 @@ async function main() {
   await db.execute(sql`DROP FUNCTION IF EXISTS check_circular_manager;`);
   await db.execute(sql`DROP TRIGGER IF EXISTS trigger_prevent_circular_org_node ON org_nodes;`);
   await db.execute(sql`DROP FUNCTION IF EXISTS check_circular_org_node;`);
+  await db.execute(sql`DROP TRIGGER IF EXISTS trigger_enforce_admin_separation ON users;`);
+  await db.execute(sql`DROP FUNCTION IF EXISTS enforce_admin_separation;`);
 
   // Create structural_metadata table
   await db.execute(sql`
@@ -530,6 +532,42 @@ async function main() {
     CREATE TRIGGER trigger_prevent_circular_reporting
     BEFORE INSERT OR UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION check_circular_manager();
+  `);
+
+  console.log('Creating database admin separation triggers...');
+  await db.execute(sql`
+    CREATE OR REPLACE FUNCTION enforce_admin_separation()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        IF NEW.role IN ('super_admin', 'admin', 'read_only_admin') THEN
+            IF NEW.manager_id IS NOT NULL OR NEW.designation_id IS NOT NULL OR NEW.vertical_id IS NOT NULL THEN
+                RAISE EXCEPTION 'Admin separation violation: Administrative accounts cannot have a manager, designation, or vertical.';
+            END IF;
+            IF EXISTS (
+                SELECT 1 FROM users WHERE manager_id = NEW.id
+            ) THEN
+                RAISE EXCEPTION 'Admin separation violation: Administrative accounts cannot be managers of other users.';
+            END IF;
+        END IF;
+
+        IF NEW.manager_id IS NOT NULL THEN
+            IF EXISTS (
+                SELECT 1 FROM users 
+                WHERE id = NEW.manager_id AND role IN ('super_admin', 'admin', 'read_only_admin')
+            ) THEN
+                RAISE EXCEPTION 'Admin separation violation: Standard users cannot report to administrative accounts.';
+            END IF;
+        END IF;
+
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+
+  await db.execute(sql`
+    CREATE TRIGGER trigger_enforce_admin_separation
+    BEFORE INSERT OR UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION enforce_admin_separation();
   `);
 
   await db.execute(sql`
