@@ -537,6 +537,10 @@ export default function DashboardPage() {
     window.addEventListener('mouseup', onMouseUp);
   };
 
+  const companyMeta = metadata.find(m => m.type === 'company_name');
+  const brandingTitle = companyMeta?.name || 'SG Forge';
+  const brandingLogo = companyMeta?.extendedAttributes?.logo || '';
+
   return (
     <div className={`min-h-screen bg-background-portal text-text-primary transition-colors duration-200 flex overflow-hidden`}>
       
@@ -550,12 +554,19 @@ export default function DashboardPage() {
           {/* Logo / Brand identity */}
           <div className="p-4.5 border-b border-border-accent flex items-center justify-between overflow-hidden">
             <div className="flex items-center gap-3">
-              <span className="p-2 rounded-lg bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold text-sm tracking-wider shadow-lg shadow-brand-accent/20 flex-shrink-0">
-                SG
-              </span>
+              {brandingLogo ? (
+                <div 
+                  className="h-8 w-8 rounded-lg bg-surface-card p-1 border border-border-accent overflow-hidden flex-shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:text-brand-accent"
+                  dangerouslySetInnerHTML={{ __html: brandingLogo }} 
+                />
+              ) : (
+                <span className="p-2 rounded-lg bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold text-sm tracking-wider shadow-lg shadow-brand-accent/20 flex-shrink-0">
+                  {brandingTitle.substring(0, 2).toUpperCase()}
+                </span>
+              )}
               {!sidebarCollapsed && (
                 <span className="font-extrabold text-sm tracking-tight bg-gradient-to-r from-text-primary via-text-primary to-brand-accent bg-clip-text text-transparent whitespace-nowrap">
-                  SG Forge
+                  {brandingTitle}
                 </span>
               )}
             </div>

@@ -210,7 +210,7 @@ export async function fetchUserDashboardData(userId: string): Promise<UserSessio
 
   // 6. Fetch structural metadata
   const metaResult = await db.execute(sql`
-    SELECT id, type, name, parent_id as "parentId", sort_order as "sortOrder"
+    SELECT id, type, name, parent_id as "parentId", sort_order as "sortOrder", extended_attributes as "extendedAttributes"
     FROM structural_metadata
     ORDER BY sort_order ASC
   `);
@@ -255,6 +255,7 @@ export async function fetchUserDashboardData(userId: string): Promise<UserSessio
       name: am.name as string,
       parentId: (am.parentId as string) || null,
       sortOrder: Number(am.sortOrder),
+      extendedAttributes: am.extendedAttributes || {},
     })),
     apps,
   };

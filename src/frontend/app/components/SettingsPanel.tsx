@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 
 interface SettingsPanelProps {
   session: any;
@@ -90,8 +90,89 @@ export default function SettingsPanel({
   const [pwLoading, setPwLoading] = useState(false);
 
   // Platform branding state (admin)
-  const [platformTitle, setPlatformTitle] = useState('SG Forge');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const companyMeta = useMemo(() => metadata.find(m => m.type === 'company_name'), [metadata]);
+  const [platformTitle, setPlatformTitle] = useState(companyMeta?.name || 'SG Forge');
+  const [platformLogo, setPlatformLogo] = useState<string>(companyMeta?.extendedAttributes?.logo || '');
   const [titleSaveDebounce, setTitleSaveDebounce] = useState<NodeJS.Timeout | null>(null);
+
+  // Sync state with metadata updates
+  React.useEffect(() => {
+    if (companyMeta) {
+      setPlatformTitle(companyMeta.name);
+      setPlatformLogo(companyMeta.extendedAttributes?.logo || '');
+    }
+  }, [companyMeta]);
+
+  // Branding Logs State
+  const [brandingLogs, setBrandingLogs] = useState<{ summary: any[]; details: any[] } | null>(null);
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  const fetchBrandingLogs = async () => {
+    if (simulatedRole !== 'super_admin') return;
+    setLogsLoading(true);
+    try {
+      const res = await fetch('/api/admin/branding-logs');
+      if (res.ok) {
+        const data = await res.json();
+        setBrandingLogs(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch branding logs', err);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  const saveBranding = async (title: string, logo: string) => {
+    try {
+      const res = await fetch('/api/admin/metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: companyMeta?.id || 'a0000000-0000-0000-0000-000000000001',
+          name: title,
+          type: 'company_name',
+          extendedAttributes: {
+            ...companyMeta?.extendedAttributes,
+            logo,
+          }
+        })
+      });
+      if (res.ok) {
+        showToast('Branding updated successfully.', 'success');
+        if (loadWorkspaceData) {
+          await loadWorkspaceData();
+        }
+        fetchBrandingLogs();
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed to save branding.', 'error');
+      }
+    } catch {
+      showToast('Network error while saving branding.', 'error');
+    }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'image/svg+xml' && !file.name.endsWith('.svg')) {
+      showToast('Please upload an SVG file', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      if (!text.includes('<svg')) {
+        showToast('Invalid SVG content', 'error');
+        return;
+      }
+      setPlatformLogo(text);
+      await saveBranding(platformTitle, text);
+    };
+    reader.readAsText(file);
+  };
 
   // Module flags (admin)
   const [moduleFlags, setModuleFlags] = useState<Record<string, boolean>>({
@@ -102,6 +183,13 @@ export default function SettingsPanel({
 
   const isAdmin = simulatedRole === 'super_admin' || simulatedRole === 'admin';
   const isSuperAdmin = simulatedRole === 'super_admin';
+
+  // Load branding logs on mount/tab change
+  React.useEffect(() => {
+    if (tab === 'platform' && isSuperAdmin) {
+      fetchBrandingLogs();
+    }
+  }, [tab, isSuperAdmin]);
 
   const currentUser = useMemo(() => users.find(u => u.email === session?.email), [users, session]);
 
@@ -144,8 +232,8 @@ export default function SettingsPanel({
     setPlatformTitle(val);
     if (titleSaveDebounce) clearTimeout(titleSaveDebounce);
     setTitleSaveDebounce(setTimeout(() => {
-      showToast('Platform title updated (debounced save).', 'info');
-    }, 300));
+      saveBranding(val, platformLogo);
+    }, 500));
   };
 
   const fakeSessions = [
@@ -161,7 +249,7 @@ export default function SettingsPanel({
   ];
 
   const adminTabs = isAdmin ? [
-    { id: 'platform', label: 'Platform Branding', icon: '🏢' },
+    ...(isSuperAdmin ? [{ id: 'platform', label: 'Platform Branding', icon: '🏢' }] : []),
     { id: 'modules', label: 'App Modules', icon: '🔌' },
     { id: 'extensions', label: 'Extensions Manager', icon: '🛠️' },
     { id: 'sandbox', label: 'Sandbox Tools', icon: '🧪' },
@@ -485,7 +573,7 @@ export default function SettingsPanel({
 
         {/* ── PLATFORM BRANDING (Admin) ── */}
         {tab === 'platform' && isSuperAdmin && (
-          <div className="space-y-8 max-w-xl">
+          <div className="space-y-8 max-w-2xl">
             <div>
               <h1 className="text-lg font-black text-text-primary">Platform Customization</h1>
               <p className="text-xs text-text-secondary mt-0.5">Configure global metadata variables across the workspace</p>
@@ -496,14 +584,98 @@ export default function SettingsPanel({
                 <label className="text-[10px] font-black uppercase tracking-wider text-text-secondary block mb-1.5">Enterprise Core System Title</label>
                 <input type="text" value={platformTitle} onChange={e => handleTitleChange(e.target.value)}
                   className="w-full px-4 py-2.5 bg-input-bg border border-input-border rounded-xl text-xs text-text-primary font-bold focus:outline-none focus:border-brand-accent" />
-                <p className="text-[9px] text-text-tertiary mt-1 italic">Changes propagate instantly with 300ms debounced save</p>
+                <p className="text-[9px] text-text-tertiary mt-1 italic">Changes propagate instantly with 500ms debounced save</p>
               </div>
 
               <div>
                 <label className="text-[10px] font-black uppercase tracking-wider text-text-secondary block mb-1.5">Custom Corporate Identity Logo</label>
-                <div className="border-2 border-dashed border-border-accent rounded-xl p-8 text-center hover:border-brand-accent/40 transition-all cursor-pointer">
-                  <p className="text-xs text-text-secondary font-bold">Drop SVG asset or click to upload</p>
-                  <p className="text-[10px] text-text-tertiary mt-1">Replaces the default SG logo at runtime</p>
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-border-accent rounded-xl p-8 text-center hover:border-brand-accent/40 transition-all cursor-pointer flex flex-col items-center justify-center gap-2"
+                >
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleLogoUpload} 
+                    accept=".svg" 
+                    className="hidden" 
+                  />
+                  {platformLogo ? (
+                    <div className="w-16 h-16 flex items-center justify-center border border-border-accent p-2 rounded-lg bg-surface-card overflow-hidden [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:text-brand-accent" dangerouslySetInnerHTML={{ __html: platformLogo }} />
+                  ) : (
+                    <span className="text-2xl">🏢</span>
+                  )}
+                  <p className="text-xs text-text-secondary font-bold">
+                    {platformLogo ? 'Click to replace logo SVG' : 'Drop SVG asset or click to upload'}
+                  </p>
+                  <p className="text-[10px] text-text-tertiary">Replaces the default SG logo at runtime</p>
+                </div>
+              </div>
+
+              {/* Branding Changes Summary */}
+              <div className="space-y-3 pt-6 border-t border-border-accent">
+                <h3 className="text-xs font-black uppercase tracking-wider text-text-secondary">Branding Modifications Summary</h3>
+                <div className="rounded-xl border border-border-accent overflow-hidden bg-surface-card shadow-sm">
+                  <table className="w-full text-left">
+                    <thead className="bg-table-header">
+                      <tr>
+                        {['Administrator', 'Email', 'Change Count', 'Last Change Date'].map(h => (
+                          <th key={h} className="px-4 py-2 text-[9px] font-black uppercase tracking-wider text-text-secondary">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-accent text-xs">
+                      {brandingLogs?.summary && brandingLogs.summary.length > 0 ? (
+                        brandingLogs.summary.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-table-row-hover transition-colors">
+                            <td className="px-4 py-2.5 font-bold text-text-primary">{row.userName}</td>
+                            <td className="px-4 py-2.5 text-text-secondary font-mono text-[10px]">{row.userEmail}</td>
+                            <td className="px-4 py-2.5 font-bold text-brand-accent">{row.changeCount} times</td>
+                            <td className="px-4 py-2.5 text-text-secondary">{new Date(row.lastChangeDate).toLocaleString()}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-4 text-center text-text-tertiary italic">No branding logs found</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Detailed branding change logs */}
+              <div className="space-y-3 pt-6 border-t border-border-accent">
+                <h3 className="text-xs font-black uppercase tracking-wider text-text-secondary">Modification History</h3>
+                <div className="rounded-xl border border-border-accent overflow-hidden bg-surface-card shadow-sm max-h-[300px] overflow-y-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-table-header">
+                      <tr>
+                        {['Date', 'Administrator', 'IP Address', 'Details'].map(h => (
+                          <th key={h} className="px-4 py-2 text-[9px] font-black uppercase tracking-wider text-text-secondary">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-accent text-xs">
+                      {brandingLogs?.details && brandingLogs.details.length > 0 ? (
+                        brandingLogs.details.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-table-row-hover transition-colors">
+                            <td className="px-4 py-2 text-text-secondary">{new Date(row.timestamp).toLocaleString()}</td>
+                            <td className="px-4 py-2 font-bold text-text-primary">{row.userName}</td>
+                            <td className="px-4 py-2 font-mono text-[10px] text-text-secondary">{row.ipAddress}</td>
+                            <td className="px-4 py-2 text-[10px] text-text-secondary">
+                              {row.payload?.name ? `Title: "${row.payload.name}"` : ''} 
+                              {row.payload?.hasLogo ? ' (Logo updated)' : ''}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-4 text-center text-text-tertiary italic">No detailed logs found</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>

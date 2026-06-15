@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { logEvent } from '../../../../../backend/utils/logger';
-import { authenticateUser } from '../../../../../backend/services/authService';
+import { logEvent } from '@backend/utils/logger';
+import { authenticateUser } from '@backend/services/authService';
 
 export async function POST(request: Request) {
   let email = '';
@@ -22,7 +22,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    const { user: sessionPayload, token: jwtSession } = authResult;
+    const sessionPayload = authResult.user!;
+    const jwtSession = authResult.token!;
     
     // Log successful login event
     await logEvent(sessionPayload.id, 'User Login', 'INFO', { email: sessionPayload.email, role: sessionPayload.role }, ipAddress);

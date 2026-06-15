@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { db } from '../../../../../database/connection';
-import { structuralMetadata } from '../../../../../database/schema';
+import { db } from '@database/connection';
+import { structuralMetadata } from '@database/schema';
 import { eq } from 'drizzle-orm';
-import { getSession } from '../../../../../backend/auth/sessionManager';
-import { logEvent } from '../../../../../backend/utils/logger';
+import { getSession } from '@backend/auth/sessionManager';
+import { logEvent } from '@backend/utils/logger';
 
 export async function GET(request: Request) {
   try {
@@ -33,21 +33,45 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { id, parentId, sortOrder, name, type } = body;
+    const { id, parentId, sortOrder, name, type, extendedAttributes } = body;
+
+    // Check if modifying branding row
+    let isBrandingChange = false;
+    if (id) {
+      const existing = await db
+        .select()
+        .from(structuralMetadata)
+        .where(eq(structuralMetadata.id, id))
+        .limit(1);
+      if (existing.length > 0 && existing[0].type === 'company_name') {
+        isBrandingChange = true;
+      }
+    } else if (type === 'company_name') {
+      isBrandingChange = true;
+    }
+
+    if (isBrandingChange && session.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Only super admins can modify platform branding' }, { status: 403 });
+    }
 
     if (id) {
       // Update metadata row
       await db
         .update(structuralMetadata)
         .set({
-          parentId: parentId || null,
-          sortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
+          parentId: parentId !== undefined ? (parentId || null) : undefined,
+          sortOrder: typeof sortOrder === 'number' ? sortOrder : undefined,
           name: name ? name.trim() : undefined,
+          extendedAttributes: extendedAttributes !== undefined ? extendedAttributes : undefined,
           updatedAt: new Date(),
         })
         .where(eq(structuralMetadata.id, id));
 
-      await logEvent(session.id, 'Metadata Updated', 'INFO', { id, name }, ipAddress);
+      if (isBrandingChange) {
+        await logEvent(session.id, 'Platform Branding Updated', 'INFO', { id, name, hasLogo: !!extendedAttributes?.logo }, ipAddress);
+      } else {
+        await logEvent(session.id, 'Metadata Updated', 'INFO', { id, name }, ipAddress);
+      }
       return NextResponse.json({ success: true });
     } else {
       // Create new metadata row
@@ -62,10 +86,15 @@ export async function POST(request: Request) {
           name: name.trim(),
           parentId: parentId || null,
           sortOrder: typeof sortOrder === 'number' ? sortOrder : 0,
+          extendedAttributes: extendedAttributes || {},
         })
         .returning();
 
-      await logEvent(session.id, 'Metadata Created', 'INFO', { id: newMeta.id, name: newMeta.name }, ipAddress);
+      if (isBrandingChange) {
+        await logEvent(session.id, 'Platform Branding Updated', 'INFO', { id: newMeta.id, name: newMeta.name, hasLogo: !!extendedAttributes?.logo }, ipAddress);
+      } else {
+        await logEvent(session.id, 'Metadata Created', 'INFO', { id: newMeta.id, name: newMeta.name }, ipAddress);
+      }
       return NextResponse.json({ success: true, metadata: newMeta });
     }
   } catch (error: any) {
@@ -88,6 +117,17 @@ export async function DELETE(request: Request) {
 
     if (!id) {
       return NextResponse.json({ error: 'Missing ID param' }, { status: 400 });
+    }
+
+    // Check if trying to delete branding row
+    const existing = await db
+      .select()
+      .from(structuralMetadata)
+      .where(eq(structuralMetadata.id, id))
+      .limit(1);
+    
+    if (existing.length > 0 && existing[0].type === 'company_name') {
+      return NextResponse.json({ error: 'Cannot delete primary platform branding metadata' }, { status: 400 });
     }
 
     await db

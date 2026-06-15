@@ -7,7 +7,7 @@ export async function middleware(request: any, event?: any) {
   const path = request.nextUrl.pathname;
 
   // 1. Bypass authentication checks for login routes
-  if (path === '/login' || path === '/api/auth/login') {
+  if (path === '/login' || path === '/api/auth/login' || path === '/api/branding') {
     return NextResponse.next();
   }
 

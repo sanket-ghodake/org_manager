@@ -10,9 +10,15 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  // Clear any stale or expired session cookie when landing on login page
+  const [branding, setBranding] = useState({ name: 'SG Forge', logo: '' });
+
+  // Clear any stale or expired session cookie when landing on login page and fetch branding
   useEffect(() => {
     fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    fetch('/api/branding')
+      .then(res => res.json())
+      .then(data => setBranding(data))
+      .catch(() => {});
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -60,8 +66,14 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md p-8 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-xl shadow-2xl relative z-10 transition-all duration-300 hover:border-white/20">
         <div className="text-center mb-8">
-          <div className="inline-flex p-3 rounded-xl bg-gradient-to-tr from-[#ff007f] to-[#2563eb] text-white font-black text-2xl tracking-wider mb-4 shadow-lg">
-            SG Forge
+          <div className="inline-flex p-3 rounded-xl bg-gradient-to-tr from-[#ff007f] to-[#2563eb] text-white font-black text-2xl tracking-wider mb-4 shadow-lg items-center gap-2">
+            {branding.logo ? (
+              <div 
+                className="w-8 h-8 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:text-white overflow-hidden flex-shrink-0"
+                dangerouslySetInnerHTML={{ __html: branding.logo }} 
+              />
+            ) : null}
+            <span>{branding.name}</span>
           </div>
           <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-white to-[#00ffcc] bg-clip-text text-transparent">
             Corporate Portal

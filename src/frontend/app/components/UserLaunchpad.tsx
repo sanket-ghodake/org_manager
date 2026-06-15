@@ -91,6 +91,10 @@ interface UserLaunchpadProps {
 export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadProps) {
   const router = useRouter();
 
+  const companyMeta = initialData.allMetadata.find(m => m.type === 'company_name') as any;
+  const brandingTitle = companyMeta?.name || 'SG Forge';
+  const brandingLogo = companyMeta?.extendedAttributes?.logo || '';
+
   // Theme & Font state synced with documentElement
   const [theme, setTheme] = useState('default');
   const [font, setFont] = useState('default');
@@ -271,12 +275,19 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
         {/* Brand identity header */}
         <div className="p-5 border-b border-border-accent flex items-center justify-between overflow-hidden">
           <div className="flex items-center gap-3">
-            <span className="p-2.5 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-black text-sm tracking-wider shadow-lg shadow-brand-accent/25 flex-shrink-0">
-              SG
-            </span>
+            {brandingLogo ? (
+              <div 
+                className="h-9 w-9 rounded-xl bg-surface-card p-1.5 border border-border-accent overflow-hidden flex-shrink-0 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:text-brand-accent"
+                dangerouslySetInnerHTML={{ __html: brandingLogo }} 
+              />
+            ) : (
+              <span className="p-2.5 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-black text-sm tracking-wider shadow-lg shadow-brand-accent/25 flex-shrink-0">
+                {brandingTitle.substring(0, 2).toUpperCase()}
+              </span>
+            )}
             {sidebarOpen && (
               <span className="font-extrabold text-sm tracking-tight bg-gradient-to-r from-text-primary via-text-primary to-brand-accent bg-clip-text text-transparent whitespace-nowrap">
-                SG Forge Launchpad
+                {brandingTitle} Launchpad
               </span>
             )}
           </div>

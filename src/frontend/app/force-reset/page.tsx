@@ -14,6 +14,15 @@ export default function ForceResetPage() {
   const [isCelebrated, setIsCelebrated] = useState(false);
   
   const router = useRouter();
+  const [branding, setBranding] = useState({ name: 'SG Forge', logo: '' });
+
+  useEffect(() => {
+    fetch('/api/branding')
+      .then(res => res.json())
+      .then(data => setBranding(data))
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -122,8 +131,14 @@ export default function ForceResetPage() {
         {/* Step 1: Personalized Onboarding Welcome Card */}
         {step === 1 && (
           <div className="text-center py-4">
-            <div className="inline-flex p-4 rounded-3xl bg-gradient-to-tr from-brand-accent to-success text-white font-black text-2xl tracking-wider mb-6 shadow-xl shadow-brand-accent/20">
-              SG Forge
+            <div className="inline-flex p-4 rounded-3xl bg-gradient-to-tr from-brand-accent to-success text-white font-black text-2xl tracking-wider mb-6 shadow-xl shadow-brand-accent/20 items-center gap-2">
+              {branding.logo ? (
+                <div 
+                  className="w-8 h-8 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:text-white overflow-hidden flex-shrink-0"
+                  dangerouslySetInnerHTML={{ __html: branding.logo }} 
+                />
+              ) : null}
+              <span>{branding.name}</span>
             </div>
             
             <h1 className="text-3xl font-black bg-gradient-to-r from-white via-white to-brand-accent bg-clip-text text-transparent leading-tight">
