@@ -60,10 +60,12 @@ export async function GET(request: NextRequest) {
       let conditions = [];
       conditions.push(sql`r.requester_id = ${session.id}`);
       if (reportUserIds.length > 0) {
-        conditions.push(sql`r.requester_id = ANY(${reportUserIds})`);
+        const idsList = sql.join(reportUserIds.map(id => sql`${id}`), sql`, `);
+        conditions.push(sql`r.requester_id IN (${idsList})`);
       }
       if (adminAppIds.length > 0) {
-        conditions.push(sql`r.app_id = ANY(${adminAppIds})`);
+        const idsList = sql.join(adminAppIds.map(id => sql`${id}`), sql`, `);
+        conditions.push(sql`r.app_id IN (${idsList})`);
       }
       
       const orClause = sql.join(conditions, sql` OR `);

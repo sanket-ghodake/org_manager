@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import { getSession } from '@backend/auth/sessionManager';
+import { clearPermissionCache } from '@backend/auth/permissionEngine';
 
 // GET /api/v1/marketplace/entitlements
 export async function GET(request: NextRequest) {
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
         LEFT JOIN users u ON e.subject_id = u.id AND e.subject_type = 'user'
         LEFT JOIN org_nodes n ON e.subject_id = n.id AND e.subject_type = 'org_node'
         LEFT JOIN users gb ON e.granted_by = gb.id
+        WHERE e.status = 'active' AND (e.expires_at IS NULL OR e.expires_at > NOW())
         ORDER BY e.created_at DESC
       `;
     } else {
@@ -56,6 +58,7 @@ export async function GET(request: NextRequest) {
         LEFT JOIN org_nodes n ON e.subject_id = n.id AND e.subject_type = 'org_node'
         LEFT JOIN users gb ON e.granted_by = gb.id
         WHERE adm.user_id = ${session.id}
+          AND e.status = 'active' AND (e.expires_at IS NULL OR e.expires_at > NOW())
         ORDER BY e.created_at DESC
       `;
     }
@@ -101,9 +104,19 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
+    const reason = searchParams.get('reason') || 'Administrative revocation';
+
     await db.execute(sql`
-      DELETE FROM forge_app_entitlements WHERE id = ${entitlementId}
+      UPDATE forge_app_entitlements
+      SET 
+        status = 'revoked',
+        revoked_at = NOW(),
+        revoked_by = ${session.id},
+        revocation_reason = ${reason}
+      WHERE id = ${entitlementId}
     `);
+
+    clearPermissionCache();
 
     return NextResponse.json({
       success: true,

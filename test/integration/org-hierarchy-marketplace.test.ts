@@ -460,11 +460,14 @@ describe("Enterprise Hierarchy, Circular Loops, Entitlements & Marketplace Tests
     expect(revokeRes.status).toBe(200);
     expect(revokeBody.success).toBe(true);
 
-    // Verify entitlement has been removed from database
+    // Verify entitlement has been soft-revoked in database (never physically deleted)
     const dbCheck = await db.execute(sql`
-      SELECT COUNT(*)::int as count FROM forge_app_entitlements WHERE id = ${charlieEnt.id}
+      SELECT status, revoked_by, revocation_reason FROM forge_app_entitlements WHERE id = ${charlieEnt.id}
     `);
-    const count = (dbCheck.rows || dbCheck)[0].count;
-    expect(count).toBe(0);
+    const row = (dbCheck.rows || dbCheck)[0];
+    expect(row).toBeDefined();
+    expect(row.status).toBe('revoked');
+    expect(row.revoked_by).toBe(userAId);
+    expect(row.revocation_reason).toBeDefined();
   });
 });

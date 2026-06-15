@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import { getSession } from '@backend/auth/sessionManager';
+import { clearPermissionCache } from '@backend/auth/permissionEngine';
 
 export async function GET(request: NextRequest) {
   try {
@@ -86,6 +87,8 @@ export async function GET(request: NextRequest) {
       SELECT subject_type as "subjectType", subject_id as "subjectId", access_type as "accessType"
       FROM forge_app_entitlements
       WHERE app_id = ${resolvedAppId}
+        AND status = 'active'
+        AND (expires_at IS NULL OR expires_at > NOW())
     `);
     const entitlements = (entitlementsResult.rows || entitlementsResult) as any[];
 
@@ -153,12 +156,28 @@ export async function GET(request: NextRequest) {
       let hasAccess = isEligible;
       let entitlementSource = 'default_targeting';
 
-      if (matchingPolicies.some(p => p.accessType === 'deny')) {
-        hasAccess = false;
-        entitlementSource = 'explicit_deny';
-      } else if (matchingPolicies.some(p => p.accessType === 'grant')) {
-        hasAccess = true;
-        entitlementSource = 'explicit_grant';
+      // Precedence scores: lower is higher priority.
+      // Deny policies are grouped first so that Deny always overrides Grant globally.
+      const getPrecedenceScore = (p: any) => {
+        if (p.subjectType === 'user' && p.accessType === 'deny') return 2;
+        if (['org_node', 'project', 'group'].includes(p.subjectType) && p.accessType === 'deny') return 3;
+        if (p.subjectType === 'designation' && p.accessType === 'deny') return 4;
+        if (p.subjectType === 'user' && p.accessType === 'grant') return 5;
+        if (['org_node', 'project', 'group'].includes(p.subjectType) && p.accessType === 'grant') return 6;
+        if (p.subjectType === 'designation' && p.accessType === 'grant') return 7;
+        return 99;
+      };
+
+      if (matchingPolicies.length > 0) {
+        matchingPolicies.sort((a, b) => getPrecedenceScore(a) - getPrecedenceScore(b));
+        const primaryPolicy = matchingPolicies[0];
+        if (primaryPolicy.accessType === 'deny') {
+          hasAccess = false;
+          entitlementSource = 'explicit_deny';
+        } else if (primaryPolicy.accessType === 'grant') {
+          hasAccess = true;
+          entitlementSource = 'explicit_grant';
+        }
       }
 
       return {
@@ -245,27 +264,34 @@ export async function POST(request: NextRequest) {
     // 4. Update entitlements inside a transaction
     await db.transaction(async (tx) => {
       for (const uId of targetUserIds) {
-        // Clear any user-level entitlements first
+        // Soft-revoke any active user-level entitlements first
         await tx.execute(sql`
-          DELETE FROM forge_app_entitlements 
-          WHERE app_id = ${resolvedAppId} AND subject_type = 'user' AND subject_id = ${uId}
+          UPDATE forge_app_entitlements 
+          SET 
+            status = 'revoked',
+            revoked_at = NOW(),
+            revoked_by = ${session.id},
+            revocation_reason = 'Superseded by administrative update'
+          WHERE app_id = ${resolvedAppId} AND subject_type = 'user' AND subject_id = ${uId} AND status = 'active'
         `);
 
         if (action === 'grant') {
           // Add explicit grant
           await tx.execute(sql`
-            INSERT INTO forge_app_entitlements (app_id, subject_type, subject_id, access_type, granted_by)
-            VALUES (${resolvedAppId}, 'user', ${uId}, 'grant', ${session.id})
+            INSERT INTO forge_app_entitlements (app_id, subject_type, subject_id, access_type, granted_by, status)
+            VALUES (${resolvedAppId}, 'user', ${uId}, 'grant', ${session.id}, 'active')
           `);
         } else if (action === 'revoke') {
           // Add explicit deny
           await tx.execute(sql`
-            INSERT INTO forge_app_entitlements (app_id, subject_type, subject_id, access_type, granted_by)
-            VALUES (${resolvedAppId}, 'user', ${uId}, 'deny', ${session.id})
+            INSERT INTO forge_app_entitlements (app_id, subject_type, subject_id, access_type, granted_by, status)
+            VALUES (${resolvedAppId}, 'user', ${uId}, 'deny', ${session.id}, 'active')
           `);
         }
       }
     });
+
+    clearPermissionCache();
 
     return NextResponse.json({ success: true, affectedCount: targetUserIds.length });
   } catch (error: any) {

@@ -8,6 +8,7 @@ async function main() {
   console.log('Initializing local database schema...');
 
   // Drop existing tables to ensure clean state
+  await db.execute(sql`DROP TABLE IF EXISTS audit_events CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS forge_app_access_request_messages CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS forge_app_access_requests CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS forge_app_admins CASCADE;`);
@@ -471,6 +472,13 @@ async function main() {
       subject_id UUID NOT NULL,
       access_type VARCHAR(10) NOT NULL DEFAULT 'grant',
       granted_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      status VARCHAR(30) NOT NULL DEFAULT 'active',
+      starts_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      expires_at TIMESTAMP,
+      revoked_at TIMESTAMP,
+      revoked_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      revocation_reason TEXT,
+      is_break_glass BOOLEAN DEFAULT false NOT NULL,
       created_at TIMESTAMP DEFAULT NOW() NOT NULL
     );
   `);
@@ -513,6 +521,21 @@ async function main() {
       request_id UUID REFERENCES forge_app_access_requests(id) ON DELETE CASCADE NOT NULL,
       sender_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
       message TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE audit_events (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      event_type VARCHAR(100) NOT NULL,
+      actor_id UUID NOT NULL REFERENCES users(id),
+      target_id UUID NOT NULL,
+      before_state JSONB,
+      after_state JSONB,
+      ip_address VARCHAR(45),
+      user_agent TEXT,
+      signature VARCHAR(256) NOT NULL,
       created_at TIMESTAMP DEFAULT NOW() NOT NULL
     );
   `);

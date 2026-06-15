@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import { getSession } from '@backend/auth/sessionManager';
+import { clearPermissionCache } from '@backend/auth/permissionEngine';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
         r.id, 
         r.app_id as "appId", 
         r.requester_id as "requesterId", 
+        r.reason,
         u.manager_id as "managerId",
         r.scope, 
         r.target_entity_id as "targetEntityId", 
@@ -143,21 +145,62 @@ export async function POST(request: NextRequest) {
         const subjectId = scope === 'individual' ? accessRequest.requesterId : accessRequest.targetEntityId;
 
         if (subjectId) {
+          // Parse duration & break-glass from reason
+          let isBreakGlass = false;
+          let expiresAt: Date | null = null;
+          const reasonStr = accessRequest.reason || '';
+
+          if (reasonStr.includes('[BREAK-GLASS EMERGENCY]')) {
+            isBreakGlass = true;
+          }
+
+          const tempMatch = reasonStr.match(/\[TEMPORARY ACCESS:\s*([^\]]+)\]/);
+          if (tempMatch) {
+            const duration = tempMatch[1].trim(); // e.g., "8h", "24h", "7d", "30d"
+            const now = new Date();
+            if (duration === '8h') {
+              expiresAt = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+            } else if (duration === '24h') {
+              expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+            } else if (duration === '7d') {
+              expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+            } else if (duration === '30d') {
+              expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+            }
+          }
+
+          // Soft-revoke any active user-level deny policies to allow this approved grant to take effect
+          await tx.execute(sql`
+            UPDATE forge_app_entitlements
+            SET 
+              status = 'revoked',
+              revoked_at = NOW(),
+              revoked_by = ${session.id},
+              revocation_reason = 'Superseded by approved access request'
+            WHERE app_id = ${appId} 
+              AND subject_type = ${subjectType} 
+              AND subject_id = ${subjectId} 
+              AND access_type = 'deny' 
+              AND status = 'active'
+          `);
+
           // Verify to prevent duplicate active grants
           const checkEnt = await tx.execute(sql`
             SELECT 1 FROM forge_app_entitlements 
-            WHERE app_id = ${appId} AND subject_type = ${subjectType} AND subject_id = ${subjectId} AND access_type = 'grant'
+            WHERE app_id = ${appId} AND subject_type = ${subjectType} AND subject_id = ${subjectId} AND access_type = 'grant' AND status = 'active'
           `);
           const checkRows = checkEnt.rows || checkEnt;
           if (!checkRows || checkRows.length === 0) {
             await tx.execute(sql`
-              INSERT INTO forge_app_entitlements (app_id, subject_type, subject_id, access_type, granted_by)
-              VALUES (${appId}, ${subjectType}, ${subjectId}, 'grant', ${session.id})
+              INSERT INTO forge_app_entitlements (app_id, subject_type, subject_id, access_type, granted_by, status, starts_at, expires_at, is_break_glass)
+              VALUES (${appId}, ${subjectType}, ${subjectId}, 'grant', ${session.id}, 'active', NOW(), ${expiresAt}, ${isBreakGlass})
             `);
           }
         }
       }
     });
+
+    clearPermissionCache();
 
     return NextResponse.json({ success: true, nextStatus });
   } catch (error: any) {

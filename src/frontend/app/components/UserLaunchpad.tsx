@@ -163,6 +163,11 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
   const [requestError, setRequestError] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  // 2026 Enterprise Request Extensions (Simulated)
+  const [isTemporaryAccess, setIsTemporaryAccess] = useState(false);
+  const [temporaryDuration, setTemporaryDuration] = useState('24h');
+  const [isBreakGlassAccess, setIsBreakGlassAccess] = useState(false);
+
   // Ticket / Timeline Communication Modal states
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
   const [ticketMessages, setTicketMessages] = useState<any[]>([]);
@@ -341,13 +346,22 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
     setIsSubmittingRequest(true);
     setRequestError('');
 
+    // Append 2026 enterprise tags to the reason description
+    let finalReason = requestReason;
+    if (isBreakGlassAccess) {
+      finalReason = `[BREAK-GLASS EMERGENCY] ${finalReason}`;
+    }
+    if (isTemporaryAccess) {
+      finalReason = `[TEMPORARY ACCESS: ${temporaryDuration}] ${finalReason}`;
+    }
+
     try {
       const res = await fetch('/api/v1/marketplace/request-access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           appId: selectedRequestApp.id,
-          reason: requestReason,
+          reason: finalReason,
           scope: requestScope,
           targetEntityId: requestTargetEntityId || null,
         }),
@@ -360,6 +374,8 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
         setRequestReason('');
         setRequestScope('individual');
         setRequestTargetEntityId('');
+        setIsTemporaryAccess(false);
+        setIsBreakGlassAccess(false);
         fetchMarketplaceData();
       } else {
         setRequestError(data.error || 'Failed to submit request');
@@ -2099,6 +2115,44 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                 </div>
               </div>
 
+              {/* Simulated Real-Time Compliance & Risk Analyzer */}
+              {(() => {
+                const isHighRisk = selectedRequestApp.name.toLowerCase().includes('ledger') ||
+                  selectedRequestApp.name.toLowerCase().includes('finance') ||
+                  selectedRequestApp.name.toLowerCase().includes('provisioning') ||
+                  selectedRequestApp.name.toLowerCase().includes('admin');
+                
+                const isMediumRisk = selectedRequestApp.name.toLowerCase().includes('profile') ||
+                  selectedRequestApp.name.toLowerCase().includes('directory');
+
+                let riskScore = 45;
+                let riskLabel = 'Medium Risk';
+                let riskColor = 'text-warning border-warning/30 bg-warning/5';
+                
+                if (isHighRisk) {
+                  riskScore = 82;
+                  riskLabel = 'High Risk (Sox/Fin)';
+                  riskColor = 'text-danger border-danger/30 bg-danger/5 animate-pulse';
+                } else if (!isMediumRisk) {
+                  riskScore = 15;
+                  riskLabel = 'Low Risk';
+                  riskColor = 'text-success border-success/30 bg-success/5';
+                }
+
+                return (
+                  <div className={`p-3 border rounded-2xl flex items-center justify-between text-[11px] ${riskColor}`}>
+                    <div className="space-y-0.5">
+                      <span className="font-black uppercase tracking-wider block text-[9px]">2026 AI Risk Guard</span>
+                      <p className="text-text-secondary">App Class: <span className="font-bold text-text-primary">{riskLabel}</span></p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-black font-mono">{riskScore}/100</span>
+                      <p className="text-[9px] text-text-tertiary">Risk Score</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div>
                 <label className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Reason / Justification</label>
                 <textarea
@@ -2111,17 +2165,58 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                 />
               </div>
 
-              <div>
-                <label className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Entitlement Scope</label>
-                <select
-                  value={requestScope}
-                  onChange={(e) => setRequestScope(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-background-portal border border-input-border rounded-xl outline-none font-bold text-text-primary"
-                >
-                  <option value="individual">Individual (Just for me)</option>
-                  <option value="project">Project / Workspace</option>
-                  <option value="org_node">Department / Team Node</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Entitlement Scope</label>
+                  <select
+                    value={requestScope}
+                    onChange={(e) => setRequestScope(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-background-portal border border-input-border rounded-xl outline-none font-bold text-text-primary"
+                  >
+                    <option value="individual">Individual (Just for me)</option>
+                    <option value="project">Project / Workspace</option>
+                    <option value="org_node">Department / Team Node</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Access Duration</label>
+                  <select
+                    value={isTemporaryAccess ? temporaryDuration : 'permanent'}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === 'permanent') {
+                        setIsTemporaryAccess(false);
+                      } else {
+                        setIsTemporaryAccess(true);
+                        setTemporaryDuration(val);
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-background-portal border border-input-border rounded-xl outline-none font-bold text-text-primary"
+                  >
+                    <option value="permanent">Permanent Grant</option>
+                    <option value="8h">Temporary: 8 Hours</option>
+                    <option value="24h">Temporary: 24 Hours</option>
+                    <option value="7d">Temporary: 7 Days</option>
+                    <option value="30d">Temporary: 30 Days</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Break-glass Toggle Option */}
+              <div className="flex items-center justify-between p-3 bg-surface-elevated/30 border border-border-accent/40 rounded-2xl">
+                <div className="space-y-0.5 pr-2">
+                  <label className="text-[9px] font-black uppercase text-text-primary flex items-center gap-1.5">
+                    🚨 Emergency Break-Glass
+                  </label>
+                  <p className="text-[9px] text-text-secondary">Bypasses standard scheduling triggers. High priority incident logging active.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isBreakGlassAccess}
+                  onChange={(e) => setIsBreakGlassAccess(e.target.checked)}
+                  className="w-4 h-4 rounded text-brand-accent focus:ring-brand-accent bg-background-portal border-input-border cursor-pointer"
+                />
               </div>
 
               {requestScope !== 'individual' && (
@@ -2219,11 +2314,90 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                   </div>
                 </div>
 
+                {/* 2026 Enterprise Workflow Progress Checklist */}
+                <div className="bg-background-portal/50 border border-border-accent/40 rounded-2xl p-4 space-y-3">
+                  <span className="text-[9px] font-black uppercase text-brand-accent tracking-wider block">Approval Pipeline State</span>
+                  <div className="space-y-2.5 text-[10px]">
+                    {[
+                      { label: 'Submitted', isDone: true, isActive: false },
+                      { 
+                        label: 'Manager Review', 
+                        isDone: selectedTicket.status !== 'pending_manager', 
+                        isActive: selectedTicket.status === 'pending_manager' 
+                      },
+                      { 
+                        label: 'Security Verification', 
+                        isDone: ['pending_super_admin', 'approved'].includes(selectedTicket.status), 
+                        isActive: selectedTicket.status === 'pending_app_admin' 
+                      },
+                      { 
+                        label: 'App Admin Signoff', 
+                        isDone: ['pending_super_admin', 'approved'].includes(selectedTicket.status), 
+                        isActive: selectedTicket.status === 'pending_app_admin' 
+                      },
+                      { 
+                        label: 'Super Admin Signoff', 
+                        isDone: selectedTicket.status === 'approved', 
+                        isActive: selectedTicket.status === 'pending_super_admin' 
+                      },
+                      { 
+                        label: 'Auto-Provisioned', 
+                        isDone: selectedTicket.status === 'approved', 
+                        isActive: false,
+                        isError: selectedTicket.status === 'rejected'
+                      }
+                    ].map((step, idx) => {
+                      let dotColor = 'bg-text-tertiary/40';
+                      let textColor = 'text-text-tertiary';
+                      if (step.isDone) {
+                        dotColor = 'bg-success shadow-[0_0_8px_rgba(46,204,113,0.5)]';
+                        textColor = 'text-text-primary font-bold';
+                      } else if (step.isActive) {
+                        dotColor = 'bg-brand-accent animate-ping shadow-[0_0_8px_rgba(108,92,231,0.5)]';
+                        textColor = 'text-brand-accent font-black';
+                      } else if (step.isError) {
+                        dotColor = 'bg-danger shadow-[0_0_8px_rgba(235,77,75,0.5)]';
+                        textColor = 'text-danger font-bold';
+                      }
+
+                      return (
+                        <div key={idx} className="flex items-center gap-2.5">
+                          <div className="relative flex items-center justify-center">
+                            {step.isActive && <div className="absolute w-2 h-2 rounded-full bg-brand-accent/50 animate-ping"></div>}
+                            <div className={`w-2 h-2 rounded-full ${step.isActive ? 'bg-brand-accent' : dotColor}`}></div>
+                          </div>
+                          <span className={textColor}>{step.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="space-y-4 text-xs">
                   <div>
                     <span className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Requester</span>
                     <p className="font-bold text-text-primary">{selectedTicket.requesterName}</p>
                     <p className="text-[10px] text-text-secondary mt-0.5">ID: {selectedTicket.requesterId}</p>
+                  </div>
+
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Risk Profile</span>
+                    {(() => {
+                      const isHigh = selectedTicket.appName.toLowerCase().includes('ledger') ||
+                        selectedTicket.appName.toLowerCase().includes('finance') ||
+                        selectedTicket.appName.toLowerCase().includes('admin');
+                      
+                      const isMed = selectedTicket.appName.toLowerCase().includes('profile') ||
+                        selectedTicket.appName.toLowerCase().includes('directory');
+
+                      if (isHigh) {
+                        return <span className="px-2 py-0.5 rounded bg-danger/15 border border-danger/30 text-danger text-[9px] font-mono font-black uppercase">🚨 High Risk (Fin/SOX)</span>;
+                      } else if (isMed) {
+                        return <span className="px-2 py-0.5 rounded bg-warning/15 border border-warning/30 text-warning text-[9px] font-mono font-black uppercase">⚠️ Medium Risk</span>;
+                      } else {
+                        return <span className="px-2 py-0.5 rounded bg-success/15 border border-success/30 text-success text-[9px] font-mono font-black uppercase">✅ Low Risk</span>;
+                      }
+                    })()}
                   </div>
 
                   <div>

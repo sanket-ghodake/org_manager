@@ -212,6 +212,13 @@ export const forgeAppEntitlements = pgTable('forge_app_entitlements', {
   subjectId: uuid('subject_id').notNull(),
   accessType: varchar('access_type', { length: 10 }).default('grant').notNull(), // 'grant' | 'deny'
   grantedBy: uuid('granted_by').references(() => users.id, { onDelete: 'set null' }),
+  status: varchar('status', { length: 30 }).default('active').notNull(), // 'active' | 'revoked' | 'expired' | 'pending_provision'
+  startsAt: timestamp('starts_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at'),
+  revokedAt: timestamp('revoked_at'),
+  revokedBy: uuid('revoked_by').references(() => users.id, { onDelete: 'set null' }),
+  revocationReason: text('revocation_reason'),
+  isBreakGlass: boolean('is_break_glass').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -246,6 +253,19 @@ export const forgeAppAccessRequestMessages = pgTable('forge_app_access_request_m
   requestId: uuid('request_id').references(() => forgeAppAccessRequests.id, { onDelete: 'cascade' }).notNull(),
   senderId: uuid('sender_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   message: text('message').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const auditEvents = pgTable('audit_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  eventType: varchar('event_type', { length: 100 }).notNull(),
+  actorId: uuid('actor_id').references(() => users.id).notNull(),
+  targetId: uuid('target_id').notNull(),
+  beforeState: jsonb('before_state'),
+  afterState: jsonb('after_state'),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  signature: varchar('signature', { length: 256 }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
