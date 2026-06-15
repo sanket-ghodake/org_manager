@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../../../database/connection';
 import { sql } from 'drizzle-orm';
+import { getSession } from '../../../../../../backend/auth/sessionManager';
+import { validateAppAccess } from '../../../../../../backend/middleware/proxyGuard';
 
 async function handleProxy(
   request: NextRequest,
@@ -10,6 +12,18 @@ async function handleProxy(
   const params = await context.params;
   const slug = params?.slug as string;
   const subpath = params?.path as string[] | undefined;
+
+  // Validate authentication session
+  const session = await getSession(request);
+  if (!session) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
+  // Validate user access to the app target rules
+  const hasAccess = await validateAppAccess(session.id, session.role, slug);
+  if (!hasAccess) {
+    return new NextResponse('Forbidden: Access to this application is restricted', { status: 403 });
+  }
 
   // Retrieve app entryUrl from DB
   const appResult = await db.execute(sql`

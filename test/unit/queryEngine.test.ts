@@ -1,59 +1,63 @@
-import { expect, test, describe, mock, spyOn, afterAll } from "bun:test";
+import { expect, test, describe, spyOn, afterAll } from "bun:test";
 import { executeAdminQuery } from "../../src/backend/api/admin/queryEngine";
-import { db } from "../../src/database/connection";
+import { db, roDb } from "../../src/database/connection";
 
-// Mock the db.execute method
+// Mock both db.execute and roDb.execute methods
 const mockExecute = spyOn(db, "execute").mockImplementation(async (sqlObj: any) => {
+  return { rows: [{ result: "mocked" }], rowCount: 1 };
+});
+const mockRoExecute = spyOn(roDb, "execute").mockImplementation(async (sqlObj: any) => {
   return { rows: [{ result: "mocked" }], rowCount: 1 };
 });
 
 afterAll(() => {
   mockExecute.mockRestore();
+  mockRoExecute.mockRestore();
 });
 
 describe("Administrative Query Engine Sandbox", () => {
   test("Allows read-only admin to execute safe SELECT queries", async () => {
-    mockExecute.mockClear();
+    mockRoExecute.mockClear();
     const result = await executeAdminQuery("SELECT * FROM users;", "read_only_admin");
     expect(result).toBeDefined();
-    expect(mockExecute).toHaveBeenCalled();
+    expect(mockRoExecute).toHaveBeenCalled();
   });
 
   test("Blocks read-only admin from executing destructive queries (DROP)", async () => {
-    mockExecute.mockClear();
+    mockRoExecute.mockClear();
     expect(
       executeAdminQuery("DROP TABLE users;", "read_only_admin")
     ).rejects.toThrow("Privilege Violation: Read-only accounts cannot run destructive queries.");
-    expect(mockExecute).not.toHaveBeenCalled();
+    expect(mockRoExecute).not.toHaveBeenCalled();
   });
 
   test("Blocks read-only admin from executing destructive queries (DELETE)", async () => {
-    mockExecute.mockClear();
+    mockRoExecute.mockClear();
     expect(
       executeAdminQuery("DELETE FROM users WHERE id = 1;", "read_only_admin")
     ).rejects.toThrow("Privilege Violation: Read-only accounts cannot run destructive queries.");
-    expect(mockExecute).not.toHaveBeenCalled();
+    expect(mockRoExecute).not.toHaveBeenCalled();
   });
 
   test("Blocks read-only admin from executing destructive queries (ALTER)", async () => {
-    mockExecute.mockClear();
+    mockRoExecute.mockClear();
     expect(
       executeAdminQuery("ALTER TABLE users ADD COLUMN age INT;", "read_only_admin")
     ).rejects.toThrow("Privilege Violation: Read-only accounts cannot run destructive queries.");
-    expect(mockExecute).not.toHaveBeenCalled();
+    expect(mockRoExecute).not.toHaveBeenCalled();
   });
 
   test("Allows super_admin to execute destructive queries (DROP)", async () => {
-    mockExecute.mockClear();
+    mockRoExecute.mockClear();
     const result = await executeAdminQuery("DROP TABLE temp_logs;", "super_admin");
     expect(result).toBeDefined();
-    expect(mockExecute).toHaveBeenCalled();
+    expect(mockRoExecute).toHaveBeenCalled();
   });
 
   test("Allows super_admin to execute safe SELECT queries", async () => {
-    mockExecute.mockClear();
+    mockRoExecute.mockClear();
     const result = await executeAdminQuery("SELECT name FROM structural_metadata;", "super_admin");
     expect(result).toBeDefined();
-    expect(mockExecute).toHaveBeenCalled();
+    expect(mockRoExecute).toHaveBeenCalled();
   });
 });

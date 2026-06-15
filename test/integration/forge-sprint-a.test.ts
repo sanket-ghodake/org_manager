@@ -87,7 +87,7 @@ describe("SG Forge Sprint A Integration Tests", () => {
     // Fetch user and app info
     const devResult = await db.execute(sql`SELECT id, role FROM users WHERE eid = 'E0007'`);
     const dev = (devResult.rows || devResult)[0];
-    const appResult = await db.execute(sql`SELECT slug FROM forge_apps LIMIT 1`);
+    const appResult = await db.execute(sql`SELECT slug FROM forge_apps WHERE slug != 'nexus-provisioning' LIMIT 1`);
     const app = (appResult.rows || appResult)[0];
 
     // Encrypt real session cookie

@@ -24,17 +24,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
   }
 
-  // Enforce role gating to block standard users from non-read-only queries
-  if (session.role !== 'super_admin' && session.role !== 'admin' && session.role !== 'read_only_admin') {
-    const queryLower = queryText.toLowerCase().trim();
-    const isSelect = queryLower.startsWith('select');
-    const destructiveKeywords = ['insert', 'update', 'delete', 'drop', 'truncate', 'alter', 'create', 'grant'];
-    const isDestructive = destructiveKeywords.some(keyword => queryLower.includes(keyword));
-
-    if (!isSelect || isDestructive) {
-      await logEvent(session.id, 'SQL Query Forbidden Attempt', 'WARN', { role: session.role, query: queryText }, ipAddress);
-      return NextResponse.json({ error: 'Forbidden: Access denied' }, { status: 403 });
-    }
+  // Enforce role gating: only super_admin can run raw queries
+  if (session.role !== 'super_admin') {
+    await logEvent(session.id, 'SQL Query Forbidden Attempt', 'WARN', { role: session.role, query: queryText }, ipAddress);
+    return NextResponse.json({ error: 'Forbidden: Access denied. Only super_admin can execute raw SQL queries.' }, { status: 403 });
   }
 
   try {

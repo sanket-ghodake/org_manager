@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { logEvent, LogSeverity } from '../../../../backend/utils/logger';
 import { getSession } from '../../../../backend/auth/sessionManager';
 
+// In-memory store for rate limiting: IP address -> { count, resetTime }
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
 export async function POST(request: Request) {
   try {
     const session = await getSession(request as any);
@@ -10,7 +13,42 @@ export async function POST(request: Request) {
     // Get client IP address
     const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
 
-    const body = await request.json().catch(() => ({}));
+    // 1. Rate Limiting Check: Max 5 logs per minute per IP
+    const now = Date.now();
+    const rateData = rateLimitMap.get(ipAddress);
+    if (rateData) {
+      if (now < rateData.resetTime) {
+        if (rateData.count >= 5) {
+          return NextResponse.json({ error: 'Rate limit exceeded: Max 5 logs per minute' }, { status: 429 });
+        }
+        rateData.count++;
+      } else {
+        // Reset window
+        rateLimitMap.set(ipAddress, { count: 1, resetTime: now + 60000 });
+      }
+    } else {
+      rateLimitMap.set(ipAddress, { count: 1, resetTime: now + 60000 });
+    }
+
+    // 2. Size Cap: Max 10KB payload
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 10 * 1024) {
+      return NextResponse.json({ error: 'Payload too large (limit: 10KB)' }, { status: 413 });
+    }
+
+    const rawText = await request.text();
+    if (rawText.length > 10 * 1024) {
+      return NextResponse.json({ error: 'Payload too large (limit: 10KB)' }, { status: 413 });
+    }
+
+    // Parse the request body safely
+    let body: any;
+    try {
+      body = JSON.parse(rawText || '{}');
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
+    }
+
     const { action, severity = 'INFO', payload = {} } = body;
 
     if (!action) {

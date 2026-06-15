@@ -3,6 +3,7 @@ import { getSession } from '../../../../../backend/auth/sessionManager';
 import { db } from '../../../../../database/connection';
 import { sql } from 'drizzle-orm';
 import crypto from 'crypto';
+import { validateAppAccess } from '../../../../../backend/middleware/proxyGuard';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +16,12 @@ export async function POST(request: NextRequest) {
     const { slug } = body;
     if (!slug) {
       return NextResponse.json({ error: 'Missing app slug' }, { status: 400 });
+    }
+
+    // Validate user access to the app
+    const hasAccess = await validateAppAccess(session.id, session.role, slug);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden: Access to this application is restricted' }, { status: 403 });
     }
 
     // 1. Fetch app details from DB

@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { fetchUserDashboardData } from '../../../backend/api/user/portal';
+import { fetchUserDashboardData } from '../../../backend/services/userService';
 import UserLaunchpad from '../components/UserLaunchpad';
 import { decryptSession } from '../../../backend/auth/sessionManager';
 

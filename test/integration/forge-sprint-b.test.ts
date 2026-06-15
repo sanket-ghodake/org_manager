@@ -73,7 +73,7 @@ describe("SG Forge Sprint B Integration Tests", () => {
     });
 
     // Resolve first app slug
-    const appRes = await db.execute(sql`SELECT id, slug FROM forge_apps LIMIT 1`);
+    const appRes = await db.execute(sql`SELECT id, slug FROM forge_apps WHERE slug != 'nexus-provisioning' LIMIT 1`);
     if (appRes.rows && appRes.rows.length > 0) {
       testAppId = appRes.rows[0].id as string;
       testAppSlug = appRes.rows[0].slug as string;
@@ -154,7 +154,7 @@ describe("SG Forge Sprint B Integration Tests", () => {
     const handReq = mockRequest({
       method: "POST",
       url: "http://localhost/api/apps/handshake",
-      cookies: { session_token: devSessionToken },
+      cookies: { session_token: adminSessionToken },
       body: { slug: liveAppSlug }
     });
     const handRes = await handshakeHandler(handReq);

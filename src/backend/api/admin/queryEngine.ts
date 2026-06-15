@@ -1,5 +1,5 @@
 // src/backend/api/admin/queryEngine.ts
-import { db } from '../../../database/connection';
+import { roDb } from '../../../database/connection';
 import { sql } from 'drizzle-orm';
 
 export async function executeAdminQuery(sqlInputStr: string, adminRole: string) {
@@ -15,7 +15,8 @@ export async function executeAdminQuery(sqlInputStr: string, adminRole: string) 
     }
   }
 
-  // Run the sanitized query statement against the target database
-  const result = await db.execute(sql.raw(sqlInputStr));
+  // Run the query against the read-only database pool
+  const result = await roDb.execute(sql.raw(sqlInputStr));
   return result;
 }
+
