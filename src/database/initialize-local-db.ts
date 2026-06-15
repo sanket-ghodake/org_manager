@@ -1,5 +1,7 @@
 import { db } from './connection';
 import { sql } from 'drizzle-orm';
+import fs from 'fs';
+import path from 'path';
 
 async function main() {
   console.log('Initializing local database schema...');
@@ -167,119 +169,117 @@ async function main() {
   await db.execute(sql`DROP TRIGGER IF EXISTS trigger_prune_system_logs ON system_logs;`);
   await db.execute(sql`DROP FUNCTION IF EXISTS prune_system_logs_buffer;`);
 
-  console.log('Seeding initial system structures...');
+  console.log('Seeding initial system structures from company_data.json...');
+
+  // Read company_data.json
+  const dataPath = path.join(__dirname, '../../test/dummy-data/company_data.json');
+  if (!fs.existsSync(dataPath)) {
+    throw new Error(`Mock company data file not found at ${dataPath}. Please run generator script first.`);
+  }
+  const mockData = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
 
   // Seed default metadata
   await db.execute(sql`
     INSERT INTO structural_metadata (id, type, name, sort_order)
-    VALUES ('a0000000-0000-0000-0000-000000000001', 'company_name', 'SG Forge', 0);
+    VALUES ('a0000000-0000-0000-0000-000000000001', 'company_name', 'SG Forge', 0)
+    ON CONFLICT DO NOTHING;
   `);
 
-  // Seed Verticals
-  const verticals = [
-    { id: '10000000-0000-0000-0000-000000000001', name: 'Executive' },
-    { id: '10000000-0000-0000-0000-000000000002', name: 'Engineering' },
-    { id: '10000000-0000-0000-0000-000000000003', name: 'Marketing' },
-    { id: '10000000-0000-0000-0000-000000000004', name: 'Finance' },
-  ];
-  for (const v of verticals) {
+  // Stable Vertical IDs mapping to align with proxyGuard and integration tests
+  const verticalIds: Record<string, string> = {
+    "Executive": "10000000-0000-0000-0000-000000000001",
+    "Engineering": "10000000-0000-0000-0000-000000000002",
+    "Product Management": "10000000-0000-0000-0000-000000000003",
+    "Sales & Operations": "10000000-0000-0000-0000-000000000004",
+    "Human Resources": "10000000-0000-0000-0000-000000000005",
+    "Finance": "10000000-0000-0000-0000-000000000006"
+  };
+
+  // Stable Designation IDs mapping to align with allocation and security tests
+  const designationIds: Record<string, string> = {
+    "L12 CEO": "20000000-0000-0000-0000-000000000001",
+    "L10 VP of Engineering": "20000000-0000-0000-0000-000000000002",
+    "L10 VP of Product": "20000000-0000-0000-0000-000000000003",
+    "L10 VP of Operations": "20000000-0000-0000-0000-000000000004",
+    "L8 Director of Engineering": "20000000-0000-0000-0000-000000000008",
+    "L8 Director of Product": "20000000-0000-0000-0000-000000000009",
+    "L8 Director of Operations": "20000000-0000-0000-0000-000000000010",
+    "L8 Director of HR": "20000000-0000-0000-0000-000000000011",
+    "L8 Director of Finance": "20000000-0000-0000-0000-000000000012",
+    "L6 Engineering Manager": "20000000-0000-0000-0000-000000000005",
+    "L6 Product Manager": "20000000-0000-0000-0000-000000000013",
+    "L6 Operations Manager": "20000000-0000-0000-0000-000000000014",
+    "L6 Sales Manager": "20000000-0000-0000-0000-000000000015",
+    "L6 HR Manager": "20000000-0000-0000-0000-000000000016",
+    "L6 Finance Manager": "20000000-0000-0000-0000-000000000017",
+    "L5 Senior Software Engineer": "20000000-0000-0000-0000-000000000006",
+    "L5 Senior Product Specialist": "20000000-0000-0000-0000-000000000018",
+    "L5 Senior Sales Executive": "20000000-0000-0000-0000-000000000019",
+    "L5 Senior Operations Specialist": "20000000-0000-0000-0000-000000000020",
+    "L4 Software Engineer II": "20000000-0000-0000-0000-000000000007",
+    "L4 Product Analyst": "20000000-0000-0000-0000-000000000021",
+    "L4 Operations Analyst": "20000000-0000-0000-0000-000000000022",
+    "L3 Software Engineer I": "20000000-0000-0000-0000-000000000023",
+    "L3 Associate Analyst": "20000000-0000-0000-0000-000000000024"
+  };
+
+  // Seed Verticals and Designations from JSON
+  const verticalIdMap = new Map<string, string>();
+  const designationIdMap = new Map<string, string>();
+
+  // 1. Seed Verticals
+  for (let i = 0; i < mockData.verticals.length; i++) {
+    const vName = mockData.verticals[i].name;
+    const id = verticalIds[vName] || crypto.randomUUID();
     await db.execute(sql`
       INSERT INTO structural_metadata (id, type, name, sort_order)
-      VALUES (${v.id}, 'vertical', ${v.name}, 0);
+      VALUES (${id}, 'vertical', ${vName}, ${i});
     `);
+    verticalIdMap.set(vName, id);
   }
 
-  // Seed Designations
-  const designations = [
-    { id: '20000000-0000-0000-0000-000000000001', name: 'CEO' },
-    { id: '20000000-0000-0000-0000-000000000002', name: 'VP of Engineering' },
-    { id: '20000000-0000-0000-0000-000000000003', name: 'VP of Marketing' },
-    { id: '20000000-0000-0000-0000-000000000004', name: 'CFO' },
-    { id: '20000000-0000-0000-0000-000000000005', name: 'Engineering Manager' },
-    { id: '20000000-0000-0000-0000-000000000006', name: 'Senior Engineer' },
-    { id: '20000000-0000-0000-0000-000000000007', name: 'Software Engineer' },
-    { id: '20000000-0000-0000-0000-000000000008', name: 'Marketing Specialist' },
-    { id: '20000000-0000-0000-0000-000000000009', name: 'Financial Analyst' },
-  ];
-  for (const d of designations) {
+  // 2. Seed Job levels (Designations)
+  for (let i = 0; i < mockData.jobLevels.length; i++) {
+    const dName = mockData.jobLevels[i].name;
+    const id = designationIds[dName] || crypto.randomUUID();
     await db.execute(sql`
       INSERT INTO structural_metadata (id, type, name, sort_order)
-      VALUES (${d.id}, 'job_level', ${d.name}, 0);
+      VALUES (${id}, 'job_level', ${dName}, ${i});
     `);
+    designationIdMap.set(dName, id);
   }
 
-  // Seed Users with accurate designation_id, vertical_id, and manager_id
+  // 3. Seed Users with temporary manager_id = NULL
   const adminPasswordHash = '$2b$10$8Gub3V3ScET0bRZPdM8ONeG543SkOwVKLcfO6jU0CjmGlGxPRrAVm'; // password123
+  const userEidToIdMap = new Map<string, string>();
 
-  // E0001: CEO
-  const ceoId = '90000000-0000-0000-0000-000000000001';
-  await db.execute(sql`
-    INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${ceoId}, 'E0001', 'Super Admin', 'admin@sgforge.com', ${adminPasswordHash}, false, 'super_admin', '20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', NULL);
-  `);
+  for (const emp of mockData.employees) {
+    const designationId = designationIdMap.get(emp.designation) || null;
+    const verticalId = verticalIdMap.get(emp.vertical) || null;
+    
+    const result = await db.execute(sql`
+      INSERT INTO users (eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
+      VALUES (${emp.eid}, ${emp.name}, ${emp.email}, ${adminPasswordHash}, false, ${emp.role}, ${designationId}, ${verticalId}, NULL)
+      RETURNING id;
+    `);
+    const id = (result.rows || result)[0].id;
+    userEidToIdMap.set(emp.eid, id);
+  }
 
-  // E0002: VP of Eng
-  const vpEngId = '90000000-0000-0000-0000-000000000002';
-  await db.execute(sql`
-    INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${vpEngId}, 'E0002', 'Admin One', 'admin1@sgforge.com', ${adminPasswordHash}, false, 'admin', '20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', ${ceoId});
-  `);
-
-  // E0003: VP of Mkt
-  const vpMktId = '90000000-0000-0000-0000-000000000003';
-  await db.execute(sql`
-    INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${vpMktId}, 'E0003', 'Admin Two', 'admin2@sgforge.com', ${adminPasswordHash}, false, 'admin', '20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', ${ceoId});
-  `);
-
-  // E0004: CFO
-  const cfoId = '90000000-0000-0000-0000-000000000004';
-  await db.execute(sql`
-    INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${cfoId}, 'E0004', 'ReadOnly Admin', 'readonly@sgforge.com', ${adminPasswordHash}, false, 'read_only_admin', '20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000004', ${ceoId});
-  `);
-
-  // E0005: Engineering Manager
-  const engMgrId = '90000000-0000-0000-0000-000000000005';
-  await db.execute(sql`
-    INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${engMgrId}, 'E0005', 'Alice Smith', 'alice@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000002', ${vpEngId});
-  `);
-
-  // E0006: Senior Engineer (reports to Eng Manager)
-  const srEngId = '90000000-0000-0000-0000-000000000006';
-  await db.execute(sql`
-    INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${srEngId}, 'E0006', 'Bob Jones', 'bob@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000002', ${engMgrId});
-  `);
-
-  // E0007: Software Engineer (reports to Eng Manager)
-  const swEngId = '90000000-0000-0000-0000-000000000007';
-  await db.execute(sql`
-    INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${swEngId}, 'E0007', 'Charlie Brown', 'charlie@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000002', ${engMgrId});
-  `);
-
-  // E0008: Software Engineer (reports to VP of Eng directly for testing flat structures)
-  const swEngId2 = '90000000-0000-0000-0000-000000000008';
-  await db.execute(sql`
-    INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${swEngId2}, 'E0008', 'Diana Prince', 'diana@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000007', '10000000-0000-0000-0000-000000000002', ${vpEngId});
-  `);
-
-  // E0009: Marketing Specialist (reports to VP of Marketing)
-  const mktSpecId = '90000000-0000-0000-0000-000000000009';
-  await db.execute(sql`
-    INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${mktSpecId}, 'E0009', 'Evan Wright', 'evan@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000008', '10000000-0000-0000-0000-000000000003', ${vpMktId});
-  `);
-
-  // E0010: Financial Analyst (reports to CFO)
-  const finId = '90000000-0000-0000-0000-000000000010';
-  await db.execute(sql`
-    INSERT INTO users (id, eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-    VALUES (${finId}, 'E0010', 'Fiona Gallagher', 'fiona@sgforge.com', ${adminPasswordHash}, false, 'user', '20000000-0000-0000-0000-000000000009', '10000000-0000-0000-0000-000000000004', ${cfoId});
-  `);
+  // 4. Update manager_id for users based on managerEid references
+  for (const emp of mockData.employees) {
+    if (emp.managerEid) {
+      const userId = userEidToIdMap.get(emp.eid);
+      const managerId = userEidToIdMap.get(emp.managerEid) || null;
+      if (userId && managerId) {
+        await db.execute(sql`
+          UPDATE users
+          SET manager_id = ${managerId}
+          WHERE id = ${userId};
+        `);
+      }
+    }
+  }
 
   console.log('Seeding roles & permissions hierarchy...');
   
@@ -332,24 +332,16 @@ async function main() {
   `);
 
   // Map users to roles in user_roles
-  const dbUsers = [
-    { id: ceoId, role: 'super_admin' },
-    { id: vpEngId, role: 'admin' },
-    { id: vpMktId, role: 'admin' },
-    { id: cfoId, role: 'read_only_admin' },
-    { id: engMgrId, role: 'user' },
-    { id: srEngId, role: 'user' },
-    { id: swEngId, role: 'user' },
-    { id: swEngId2, role: 'user' },
-    { id: mktSpecId, role: 'user' },
-    { id: finId, role: 'user' },
-  ];
-  for (const u of dbUsers) {
-    const roleId = rolesSeed.find(r => r.name === u.role)!.id;
-    await db.execute(sql`
-      INSERT INTO user_roles (user_id, role_id)
-      VALUES (${u.id}, ${roleId});
-    `);
+  for (const emp of mockData.employees) {
+    const userId = userEidToIdMap.get(emp.eid);
+    if (userId) {
+      const roleName = emp.role; // 'super_admin' | 'admin' | 'read_only_admin' | 'user'
+      const roleId = rolesSeed.find(r => r.name === roleName)?.id || '30000000-0000-0000-0000-000000000004'; // default to user
+      await db.execute(sql`
+        INSERT INTO user_roles (user_id, role_id)
+        VALUES (${userId}, ${roleId});
+      `);
+    }
   }
 
   // Create Sprint B identity foundation tables
@@ -391,6 +383,121 @@ async function main() {
       group_id UUID REFERENCES groups(id) ON DELETE CASCADE NOT NULL
     );
   `);
+
+  console.log('Seeding departments, teams, groups, and user memberships...');
+  
+  // 1. Seed Departments based on Verticals in the generated data
+  const verticalToDeptIdMap = new Map<string, string>();
+  for (const vName of mockData.verticals.map((v: any) => v.name)) {
+    const result = await db.execute(sql`
+      INSERT INTO departments (name)
+      VALUES (${vName})
+      RETURNING id;
+    `);
+    const deptId = (result.rows || result)[0].id;
+    verticalToDeptIdMap.set(vName, deptId);
+  }
+
+  // 2. Seed Teams inside departments
+  const verticalToTeamsMap = new Map<string, string[]>();
+  
+  // Define team names for each vertical
+  const teamDefinitions: Record<string, string[]> = {
+    "Engineering": ["Core Engine", "Cloud Infra", "AI Models"],
+    "Product Management": ["Product Management Team"],
+    "Sales & Operations": ["Operations Team", "Sales Team"],
+    "Human Resources": ["People Operations Team"],
+    "Finance": ["Finance Team"],
+    "Executive": ["Executive Team"]
+  };
+
+  for (const [vName, tNames] of Object.entries(teamDefinitions)) {
+    const deptId = verticalToDeptIdMap.get(vName);
+    if (deptId) {
+      const teamIds: string[] = [];
+      for (const tName of tNames) {
+        const result = await db.execute(sql`
+          INSERT INTO teams (name, department_id)
+          VALUES (${tName}, ${deptId})
+          RETURNING id;
+        `);
+        const teamId = (result.rows || result)[0].id;
+        teamIds.push(teamId);
+      }
+      verticalToTeamsMap.set(vName, teamIds);
+    }
+  }
+
+  // 3. User Teams associations (assign employees to corresponding teams in their vertical)
+  // Admins do not belong to departments/teams.
+  for (const emp of mockData.employees) {
+    if (emp.role === 'user') { // working employees only
+      const userId = userEidToIdMap.get(emp.eid);
+      const teamIds = verticalToTeamsMap.get(emp.vertical);
+      if (userId && teamIds && teamIds.length > 0) {
+        // Choose team deterministically using EID number
+        const eidNum = parseInt(emp.eid.replace(/\D/g, '')) || 0;
+        const selectedTeamId = teamIds[eidNum % teamIds.length];
+        await db.execute(sql`
+          INSERT INTO user_teams (user_id, team_id)
+          VALUES (${userId}, ${selectedTeamId});
+        `);
+      }
+    }
+  }
+
+  // 4. Seed Groups & User Groups
+  const groupNames = ["All Employees", "All Engineers", "Managers & Leads"];
+  const groupNameToIdMap = new Map<string, string>();
+  for (const gName of groupNames) {
+    const result = await db.execute(sql`
+      INSERT INTO groups (name)
+      VALUES (${gName})
+      RETURNING id;
+    `);
+    const groupId = (result.rows || result)[0].id;
+    groupNameToIdMap.set(gName, groupId);
+  }
+
+  const allEmployeesGroupId = groupNameToIdMap.get("All Employees");
+  const allEngineersGroupId = groupNameToIdMap.get("All Engineers");
+  const managersLeadsGroupId = groupNameToIdMap.get("Managers & Leads");
+
+  for (const emp of mockData.employees) {
+    const userId = userEidToIdMap.get(emp.eid);
+    if (!userId) continue;
+
+    if (emp.role === 'user') {
+      // Add to "All Employees"
+      if (allEmployeesGroupId) {
+        await db.execute(sql`
+          INSERT INTO user_groups (user_id, group_id)
+          VALUES (${userId}, ${allEmployeesGroupId});
+        `);
+      }
+
+      // Add to "All Engineers" if in Engineering vertical
+      if (emp.vertical === 'Engineering' && allEngineersGroupId) {
+        await db.execute(sql`
+          INSERT INTO user_groups (user_id, group_id)
+          VALUES (${userId}, ${allEngineersGroupId});
+        `);
+      }
+
+      // Add to "Managers & Leads" if designation matches manager/VP/Director/Senior
+      const isLead = emp.designation.includes('Manager') || 
+                     emp.designation.includes('VP') || 
+                     emp.designation.includes('Director') || 
+                     emp.designation.includes('CEO') || 
+                     emp.designation.includes('Senior');
+      if (isLead && managersLeadsGroupId) {
+        await db.execute(sql`
+          INSERT INTO user_groups (user_id, group_id)
+          VALUES (${userId}, ${managersLeadsGroupId});
+        `);
+      }
+    }
+  }
 
   console.log('Local database initialization completed successfully!');
   process.exit(0);
