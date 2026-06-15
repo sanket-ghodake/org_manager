@@ -1,6 +1,6 @@
 import { expect, test, describe, spyOn, afterEach } from "bun:test";
-import { handleRequest } from "../../src/backend/dev-dashboard/server";
-import { db } from "../../src/database/connection";
+import { handleRequest } from "@backend/dev-dashboard/server";
+import { db } from "@database/connection";
 
 // Setup mocks for database execute
 const mockDbExecute = spyOn(db, "execute").mockImplementation(async (sqlObj: any) => {

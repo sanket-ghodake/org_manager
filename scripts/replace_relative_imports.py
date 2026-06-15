@@ -74,6 +74,7 @@ def process_file(file_path):
         if line.strip().startswith('//') or line.strip().startswith('*'):
             continue
 
+        current_line = line
         for pattern in IMPORT_PATTERNS:
             def repl(match):
                 nonlocal modified
@@ -98,7 +99,8 @@ def process_file(file_path):
                         return f"{prefix}{alias_path}{suffix}"
                 return match.group(0)
 
-            lines[idx] = pattern.sub(repl, line)
+            current_line = pattern.sub(repl, current_line)
+        lines[idx] = current_line
 
     if modified:
         new_content = '\n'.join(lines)

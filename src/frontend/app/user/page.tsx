@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { fetchUserDashboardData } from '../../../backend/services/userService';
-import UserLaunchpad from '../components/UserLaunchpad';
-import { decryptSession } from '../../../backend/auth/sessionManager';
+import { fetchUserDashboardData } from '@backend/services/userService';
+import UserLaunchpad from '@/app/components/UserLaunchpad';
+import { decryptSession } from '@backend/auth/sessionManager';
 
 export default async function UserDashboardPage() {
   const cookieStore = await cookies();

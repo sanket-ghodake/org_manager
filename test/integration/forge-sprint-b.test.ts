@@ -1,16 +1,16 @@
 import { expect, test, describe, beforeAll } from "bun:test";
-import { db } from "../../src/database/connection";
+import { db } from "@database/connection";
 import { sql } from "drizzle-orm";
-import { runHealthCheck } from "../../src/backend/workers/healthCheck";
-import { encryptSession } from "../../src/backend/auth/sessionManager";
+import { runHealthCheck } from "@backend/workers/healthCheck";
+import { encryptSession } from "@backend/auth/sessionManager";
 import crypto from "crypto";
 
 // Import handlers to execute integration tests
-import { POST as handshakeHandler } from "../../src/frontend/app/api/apps/handshake/route";
-import { POST as exchangeHandler } from "../../src/frontend/app/api/v1/auth/exchange/route";
-import { GET as userHandler } from "../../src/frontend/app/api/v1/user/route";
-import { POST as auditLogHandler } from "../../src/frontend/app/api/v1/audit/log/route";
-import { GET as adminAppsGetHandler, POST as adminAppsPostHandler } from "../../src/frontend/app/api/admin/apps/route";
+import { POST as handshakeHandler } from "@frontend/app/api/apps/handshake/route";
+import { POST as exchangeHandler } from "@frontend/app/api/v1/auth/exchange/route";
+import { GET as userHandler } from "@frontend/app/api/v1/user/route";
+import { POST as auditLogHandler } from "@frontend/app/api/v1/audit/log/route";
+import { GET as adminAppsGetHandler, POST as adminAppsPostHandler } from "@frontend/app/api/admin/apps/route";
 
 function mockRequest(options: {
   method: string;

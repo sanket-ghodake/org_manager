@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { getJobLevelByName, getMatchedAppsForUser, syncAppsToDatabase } from "../../src/backend/api/user/portal";
+import { getJobLevelByName, getMatchedAppsForUser, syncAppsToDatabase } from "@backend/api/user/portal";
 
 describe("Forge App Resolution Security Engine Tests", () => {
   test("Should accurately match app availability based on target rule configurations", () => {

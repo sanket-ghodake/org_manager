@@ -1,6 +1,6 @@
 import { expect, test, describe, spyOn, afterEach } from "bun:test";
-import { hasAppAccess } from "../../src/backend/auth/permissionEngine";
-import { db } from "../../src/database/connection";
+import { hasAppAccess } from "@backend/auth/permissionEngine";
+import { db } from "@database/connection";
 
 // Setup mocks for database execute
 const mockDbExecute = spyOn(db, "execute");

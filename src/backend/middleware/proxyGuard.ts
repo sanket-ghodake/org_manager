@@ -1,4 +1,4 @@
-import { db } from '../../database/connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 
 export function getJobLevelByName(name: string): number {

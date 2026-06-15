@@ -1,13 +1,13 @@
 import { expect, test, describe, beforeAll } from "bun:test";
-import { db, roDb } from "../../src/database/connection";
+import { db, roDb } from "@database/connection";
 import { sql } from "drizzle-orm";
-import { encryptSession } from "../../src/backend/auth/sessionManager";
-import { validateAppAccess } from "../../src/backend/middleware/proxyGuard";
+import { encryptSession } from "@backend/auth/sessionManager";
+import { validateAppAccess } from "@backend/middleware/proxyGuard";
 
 // Import handlers to execute integration tests
-import { POST as handshakeHandler } from "../../src/frontend/app/api/apps/handshake/route";
-import { GET as proxyHandler } from "../../src/frontend/app/api/forge-apps/[slug]/[[...path]]/route";
-import { POST as queryHandler } from "../../src/frontend/app/api/query/route";
+import { POST as handshakeHandler } from "@frontend/app/api/apps/handshake/route";
+import { GET as proxyHandler } from "@frontend/app/api/forge-apps/[slug]/[[...path]]/route";
+import { POST as queryHandler } from "@frontend/app/api/query/route";
 
 function mockRequest(options: {
   method: string;

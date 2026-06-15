@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { db } from '../../../../../database/connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
-import { getSession } from '../../../../../backend/auth/sessionManager';
-import { logEvent } from '../../../../../backend/utils/logger';
-import { parseAndRegisterManifests } from '../../../../../backend/utils/manifestParser';
+import { getSession } from '@backend/auth/sessionManager';
+import { logEvent } from '@backend/utils/logger';
+import { parseAndRegisterManifests } from '@backend/utils/manifestParser';
 
 // GET: List all registered applications in database
 export async function GET(request: Request) {

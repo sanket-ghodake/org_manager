@@ -1,7 +1,7 @@
 import { expect, test, describe, spyOn, beforeAll, afterAll } from "bun:test";
-import { middleware } from "../../src/backend/middleware/authGuard";
+import { middleware } from "@backend/middleware/authGuard";
 import { NextResponse } from "next/server";
-import { encryptSession } from "../../src/backend/auth/sessionManager";
+import { encryptSession } from "@backend/auth/sessionManager";
 
 describe("Middleware Authentication Guard Pipeline", () => {
   let originalFetch: typeof fetch;

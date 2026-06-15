@@ -1,17 +1,17 @@
 import { expect, test, describe, beforeAll } from "bun:test";
-import { db } from "../../src/database/connection";
+import { db } from "@database/connection";
 import { sql } from "drizzle-orm";
-import { syncAppsToDatabase } from "../../src/backend/api/user/portal";
-import { resolveUserPermissions, resolveAppPermissions, checkPermission } from "../../src/backend/auth/permissionEngine";
-import { encryptSession } from "../../src/backend/auth/sessionManager";
+import { syncAppsToDatabase } from "@backend/api/user/portal";
+import { resolveUserPermissions, resolveAppPermissions, checkPermission } from "@backend/auth/permissionEngine";
+import { encryptSession } from "@backend/auth/sessionManager";
 import crypto from "crypto";
 
 // Import Route Handlers to perform real pipeline logic testing
-import { POST as handshakeHandler } from "../../src/frontend/app/api/apps/handshake/route";
-import { POST as exchangeHandler } from "../../src/frontend/app/api/v1/auth/exchange/route";
-import { GET as userHandler } from "../../src/frontend/app/api/v1/user/route";
-import { GET as permissionsHandler } from "../../src/frontend/app/api/v1/permissions/route";
-import { POST as auditLogHandler } from "../../src/frontend/app/api/v1/audit/log/route";
+import { POST as handshakeHandler } from "@frontend/app/api/apps/handshake/route";
+import { POST as exchangeHandler } from "@frontend/app/api/v1/auth/exchange/route";
+import { GET as userHandler } from "@frontend/app/api/v1/user/route";
+import { GET as permissionsHandler } from "@frontend/app/api/v1/permissions/route";
+import { POST as auditLogHandler } from "@frontend/app/api/v1/audit/log/route";
 
 // Helper function to mock NextRequest interface for local handler execution
 function mockRequest(options: {

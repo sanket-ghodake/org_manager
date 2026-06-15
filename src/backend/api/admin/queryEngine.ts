@@ -1,5 +1,5 @@
 // src/backend/api/admin/queryEngine.ts
-import { roDb } from '../../../database/connection';
+import { roDb } from '@database/connection';
 import { sql } from 'drizzle-orm';
 
 export async function executeAdminQuery(sqlInputStr: string, adminRole: string) {

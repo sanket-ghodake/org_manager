@@ -1,9 +1,9 @@
-import { db } from '../../database/connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
-import { validateManifest, parseAndRegisterManifests } from '../utils/manifestParser';
-import { hasAppAccess } from '../auth/permissionEngine';
+import { validateManifest, parseAndRegisterManifests } from '@backend/utils/manifestParser';
+import { hasAppAccess } from '@backend/auth/permissionEngine';
 
 export interface AppConfig {
   id: string;

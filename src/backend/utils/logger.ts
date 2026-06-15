@@ -1,5 +1,5 @@
-import { db } from '../../database/connection';
-import { systemLogs } from '../../database/schema';
+import { db } from '@database/connection';
+import { systemLogs } from '@database/schema';
 
 export type LogSeverity = 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL';
 

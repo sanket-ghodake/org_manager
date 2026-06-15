@@ -1,4 +1,4 @@
-import { db } from './connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';

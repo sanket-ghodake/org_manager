@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { getSession, encryptSession } from "../../src/backend/auth/sessionManager";
+import { getSession, encryptSession } from "@backend/auth/sessionManager";
 
 describe("Stateless Session Manager", () => {
   test("Returns null if session_token cookie is missing", async () => {

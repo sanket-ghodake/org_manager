@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { validateManifest } from '../../../../backend/utils/manifestParser';
-import { db } from '../../../../database/connection';
+import { validateManifest } from '@backend/utils/manifestParser';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 
 function getAppsDirectory(): string {
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
     );
 
     // Trigger database sync
-    const { parseAndRegisterManifests } = await import('../../../../backend/utils/manifestParser');
+    const { parseAndRegisterManifests } = await import('@backend/utils/manifestParser');
     await parseAndRegisterManifests();
 
     return NextResponse.json({ success: true, message: `Manifest registered successfully under ${id}` });

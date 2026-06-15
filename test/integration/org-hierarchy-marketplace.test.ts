@@ -1,21 +1,21 @@
 import { expect, test, describe, beforeAll } from "bun:test";
-import { db } from "../../src/database/connection";
+import { db } from "@database/connection";
 import { sql } from "drizzle-orm";
 import crypto from "crypto";
-import { hasAppAccess } from "../../src/backend/auth/permissionEngine";
+import { hasAppAccess } from "@backend/auth/permissionEngine";
 
 // Import Next.js route handlers directly to run serverless integrations
-import { GET as getOrgContext } from "../../src/frontend/app/api/v1/org/context/route";
-import { GET as verifyRelationship } from "../../src/frontend/app/api/v1/org/hierarchy/verify-relationship/route";
-import { GET as getMarketplaceApps } from "../../src/frontend/app/api/v1/marketplace/apps/route";
-import { POST as requestAccess } from "../../src/frontend/app/api/v1/marketplace/request-access/route";
-import { GET as getRequests } from "../../src/frontend/app/api/v1/marketplace/requests/route";
-import { POST as approveRequest } from "../../src/frontend/app/api/v1/marketplace/approve-request/route";
-import { GET as getOrgHierarchy } from "../../src/frontend/app/api/v1/org/hierarchy/route";
-import { GET as getProjects } from "../../src/frontend/app/api/v1/org/projects/route";
-import { GET as getEntitlements, DELETE as deleteEntitlement } from "../../src/frontend/app/api/v1/marketplace/entitlements/route";
+import { GET as getOrgContext } from "@frontend/app/api/v1/org/context/route";
+import { GET as verifyRelationship } from "@frontend/app/api/v1/org/hierarchy/verify-relationship/route";
+import { GET as getMarketplaceApps } from "@frontend/app/api/v1/marketplace/apps/route";
+import { POST as requestAccess } from "@frontend/app/api/v1/marketplace/request-access/route";
+import { GET as getRequests } from "@frontend/app/api/v1/marketplace/requests/route";
+import { POST as approveRequest } from "@frontend/app/api/v1/marketplace/approve-request/route";
+import { GET as getOrgHierarchy } from "@frontend/app/api/v1/org/hierarchy/route";
+import { GET as getProjects } from "@frontend/app/api/v1/org/projects/route";
+import { GET as getEntitlements, DELETE as deleteEntitlement } from "@frontend/app/api/v1/marketplace/entitlements/route";
 
-import { encryptSession } from "../../src/backend/auth/sessionManager";
+import { encryptSession } from "@backend/auth/sessionManager";
 
 // Helper to construct a NextRequest mock
 function createNextRequest(options: {

@@ -1,6 +1,6 @@
-import { db } from '../../database/connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
-import { syncAppsToDatabase, getMatchedAppsForUser, AppConfig } from './appRegistry';
+import { syncAppsToDatabase, getMatchedAppsForUser, AppConfig } from '@backend/services/appRegistry';
 
 export interface UserSessionPayload {
   user: {

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { db } from '../../../../../database/connection';
-import { users } from '../../../../../database/schema';
+import { db } from '@database/connection';
+import { users } from '@database/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
-import { getSession, encryptSession } from '../../../../../backend/auth/sessionManager';
-import { logEvent } from '../../../../../backend/utils/logger';
+import { getSession, encryptSession } from '@backend/auth/sessionManager';
+import { logEvent } from '@backend/utils/logger';
 
 export async function POST(request: Request) {
   const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';

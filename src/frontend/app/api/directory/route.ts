@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { roDb } from '../../../../database/connection';
-import { getSession } from '../../../../backend/auth/sessionManager';
+import { roDb } from '@database/connection';
+import { getSession } from '@backend/auth/sessionManager';
 import { sql } from 'drizzle-orm';
 
 export async function GET(request: Request) {

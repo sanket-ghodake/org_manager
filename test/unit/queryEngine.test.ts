@@ -1,6 +1,6 @@
 import { expect, test, describe, spyOn, afterAll } from "bun:test";
-import { executeAdminQuery } from "../../src/backend/api/admin/queryEngine";
-import { db, roDb } from "../../src/database/connection";
+import { executeAdminQuery } from "@backend/api/admin/queryEngine";
+import { db, roDb } from "@database/connection";
 
 // Mock both db.execute and roDb.execute methods
 const mockExecute = spyOn(db, "execute").mockImplementation(async (sqlObj: any) => {

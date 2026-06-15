@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { db } from '../../database/connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 
 export interface AppManifest {

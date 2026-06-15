@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../../../database/connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import crypto from 'crypto';
-import { resolveAppPermissions } from '../../../../../../backend/auth/permissionEngine';
+import { resolveAppPermissions } from '@backend/auth/permissionEngine';
 
 export async function POST(request: NextRequest) {
   try {

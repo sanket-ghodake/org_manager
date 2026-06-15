@@ -1,8 +1,8 @@
-import { db } from '../../database/connection';
-import { users } from '../../database/schema';
+import { db } from '@database/connection';
+import { users } from '@database/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
-import { encryptSession } from '../auth/sessionManager';
+import { encryptSession } from '@backend/auth/sessionManager';
 
 export async function authenticateUser(email: string, password: string) {
   const [user] = await db

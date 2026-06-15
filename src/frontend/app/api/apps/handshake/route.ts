@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '../../../../../backend/auth/sessionManager';
-import { db } from '../../../../../database/connection';
+import { getSession } from '@backend/auth/sessionManager';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import crypto from 'crypto';
-import { validateAppAccess } from '../../../../../backend/middleware/proxyGuard';
+import { validateAppAccess } from '@backend/middleware/proxyGuard';
 
 export async function POST(request: NextRequest) {
   try {

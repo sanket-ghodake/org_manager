@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../../../database/connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
-import { getSession } from '../../../../../../backend/auth/sessionManager';
+import { getSession } from '@backend/auth/sessionManager';
 
 // GET /api/v1/marketplace/entitlements
 export async function GET(request: NextRequest) {

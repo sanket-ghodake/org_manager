@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../../../database/connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
-import { getSession } from '../../../../../../backend/auth/sessionManager';
-import { hasAppAccess } from '../../../../../../backend/auth/permissionEngine';
+import { getSession } from '@backend/auth/sessionManager';
+import { hasAppAccess } from '@backend/auth/permissionEngine';
 
 export async function GET(request: NextRequest) {
   try {

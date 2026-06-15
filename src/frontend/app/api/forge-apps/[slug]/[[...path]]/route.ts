@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../../../database/connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
-import { getSession } from '../../../../../../backend/auth/sessionManager';
-import { validateAppAccess } from '../../../../../../backend/middleware/proxyGuard';
+import { getSession } from '@backend/auth/sessionManager';
+import { validateAppAccess } from '@backend/middleware/proxyGuard';
 
 async function handleProxy(
   request: NextRequest,

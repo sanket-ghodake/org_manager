@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '../../../../../../database/connection';
+import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {

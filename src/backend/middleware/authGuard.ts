@@ -1,7 +1,7 @@
 // src/backend/middleware/authGuard.ts
 import { NextResponse } from 'next/server';
 
-import { getSession } from '../auth/sessionManager';
+import { getSession } from '@backend/auth/sessionManager';
 
 export async function middleware(request: any, event?: any) {
   const path = request.nextUrl.pathname;

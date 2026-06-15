@@ -2,7 +2,7 @@ import {
   getHierarchyLevel as serviceGetHierarchyLevel,
   fetchUserDashboardData as serviceFetchUserDashboardData,
   UserSessionPayload
-} from '../../services/userService';
+} from '@backend/services/userService';
 
 import {
   getDiscoveredApps as serviceGetDiscoveredApps,
@@ -10,7 +10,7 @@ import {
   syncAppsToDatabase as serviceSyncAppsToDatabase,
   getMatchedAppsForUser as serviceGetMatchedAppsForUser,
   AppConfig
-} from '../../services/appRegistry';
+} from '@backend/services/appRegistry';
 
 export { serviceGetHierarchyLevel as getHierarchyLevel };
 export { serviceFetchUserDashboardData as fetchUserDashboardData };
