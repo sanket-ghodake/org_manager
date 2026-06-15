@@ -32,8 +32,12 @@ export default async function UserDashboardPage() {
   let dashboardData;
   try {
     dashboardData = await fetchUserDashboardData(session.id);
-  } catch (error) {
-    console.error('Failed to load user portal data server-side:', error);
+  } catch (error: any) {
+    if (error instanceof Error && error.message.includes('not found')) {
+      console.warn(`User session stale: ${error.message}. Redirecting to login.`);
+    } else {
+      console.error('Failed to load user portal data server-side:', error);
+    }
     redirect('/login');
   }
 

@@ -170,6 +170,335 @@ export default function AdminPanel({
   const [isAppsLoading, setIsAppsLoading] = useState(false);
   const [revealedSecrets, setRevealedSecrets] = useState<Record<string, boolean>>({});
 
+  // Marketplace Admin states
+  const [appManagementView, setAppManagementView] = useState<'registry' | 'requests' | 'entitlements'>('registry');
+  const [adminAccessRequests, setAdminAccessRequests] = useState<any[]>([]);
+  const [isRequestsLoading, setIsRequestsLoading] = useState(false);
+  const [requestActionNotes, setRequestActionNotes] = useState<Record<string, string>>({});
+  const [isSubmittingRequestAction, setIsSubmittingRequestAction] = useState<Record<string, boolean>>({});
+  const [activeEntitlements, setActiveEntitlements] = useState<any[]>([]);
+  const [isEntitlementsLoading, setIsEntitlementsLoading] = useState(false);
+  const [isRevokingEntitlement, setIsRevokingEntitlement] = useState<Record<string, boolean>>({});
+
+  // ─── NEW APP ACCESS & DELEGATION STATES ───
+  const [selectedAppForAccess, setSelectedAppForAccess] = useState<any | null>(null);
+  const [appAccessUsers, setAppAccessUsers] = useState<any[]>([]);
+  const [isAccessLoading, setIsAccessLoading] = useState(false);
+  const [appAssignedAdmins, setAppAssignedAdmins] = useState<any[]>([]);
+  const [appAllAdmins, setAppAllAdmins] = useState<any[]>([]);
+  const [isAdminsLoading, setIsAdminsLoading] = useState(false);
+  const [searchUserQuery, setSearchUserQuery] = useState('');
+  const [isUpdatingAccess, setIsUpdatingAccess] = useState<Record<string, boolean>>({});
+  const [isUpdatingDelegation, setIsUpdatingDelegation] = useState(false);
+  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+
+  const fetchAppAccessDetails = async (appId: string) => {
+    setIsAccessLoading(true);
+    try {
+      const res = await fetch(`/api/admin/apps/access?appId=${appId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAppAccessUsers(data.users || []);
+        if (data.app) {
+          setSelectedAppForAccess(data.app);
+        }
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to fetch app access details', 'error');
+      }
+    } catch (e) {
+      showToast('Network error fetching app access details', 'error');
+    } finally {
+      setIsAccessLoading(false);
+    }
+  };
+
+  const fetchAppAdminDelegation = async (appId: string) => {
+    setIsAdminsLoading(true);
+    try {
+      const res = await fetch(`/api/admin/apps/admins?appId=${appId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAppAssignedAdmins(data.assignedAdmins || []);
+        setAppAllAdmins(data.allAdmins || []);
+      } else {
+        showToast('Failed to fetch admin delegation data', 'error');
+      }
+    } catch (e) {
+      showToast('Network error fetching admin delegation', 'error');
+    } finally {
+      setIsAdminsLoading(false);
+    }
+  };
+
+  const handleUpdateAppAccess = async (userId: string, action: 'grant' | 'revoke', scope: 'individual' | 'subtree') => {
+    if (!selectedAppForAccess) return;
+    const appId = selectedAppForAccess.id;
+    const key = `${userId}-${scope}`;
+    setIsUpdatingAccess(prev => ({ ...prev, [key]: true }));
+    try {
+      const res = await fetch('/api/admin/apps/access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appId, userId, action, scope })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Access successfully ${action}ed for ${data.affectedCount} user(s)!`, 'success');
+        fetchAppAccessDetails(appId);
+        fetchActiveEntitlements();
+      } else {
+        showToast(data.error || 'Failed to update access', 'error');
+      }
+    } catch (e) {
+      showToast('Network error updating access', 'error');
+    } finally {
+      setIsUpdatingAccess(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const handleUpdateAdminDelegation = async (userId: string, action: 'add' | 'remove') => {
+    if (!selectedAppForAccess) return;
+    const appId = selectedAppForAccess.id;
+    setIsUpdatingDelegation(true);
+    try {
+      const res = await fetch('/api/admin/apps/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appId, userId, action })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(action === 'add' ? 'Admin successfully assigned!' : 'Admin successfully removed!', 'success');
+        fetchAppAdminDelegation(appId);
+      } else {
+        showToast(data.error || 'Failed to update delegation', 'error');
+      }
+    } catch (e) {
+      showToast('Network error updating admin delegation', 'error');
+    } finally {
+      setIsUpdatingDelegation(false);
+    }
+  };
+
+  const hierarchyRoots = useMemo(() => {
+    const userIds = new Set(appAccessUsers.map(u => u.id));
+    return appAccessUsers.filter(u => !u.managerId || !userIds.has(u.managerId));
+  }, [appAccessUsers]);
+
+  const renderHierarchyNode = (node: any, depth = 0) => {
+    const directReports = appAccessUsers.filter(u => u.managerId === node.id);
+    const isExpanded = expandedNodes[node.id] !== false;
+    const hasReports = directReports.length > 0;
+    
+    const matchesSearch = (u: any): boolean => {
+      const q = searchUserQuery.trim().toLowerCase();
+      if (!q) return true;
+      if (u.name.toLowerCase().includes(q) || u.eid.toLowerCase().includes(q) || u.designation.toLowerCase().includes(q)) return true;
+      return false;
+    };
+    
+    const subtreeMatchesSearch = (u: any): boolean => {
+      if (matchesSearch(u)) return true;
+      const reports = appAccessUsers.filter(r => r.managerId === u.id);
+      return reports.some(r => subtreeMatchesSearch(r));
+    };
+
+    if (searchUserQuery.trim() && !subtreeMatchesSearch(node)) {
+      return null;
+    }
+
+    const badgeClass = node.hasAccess 
+      ? 'bg-success/15 border-success/20 text-success' 
+      : 'bg-danger/15 border-danger/20 text-danger';
+
+    const eligibilityClass = node.isEligible 
+      ? 'bg-brand-muted border-brand-accent/20 text-brand-accent' 
+      : 'bg-surface-elevated border-border-accent text-text-secondary';
+
+    const isUpdatingInd = isUpdatingAccess[`${node.id}-individual`] || false;
+    const isUpdatingSub = isUpdatingAccess[`${node.id}-subtree`] || false;
+
+    return (
+      <div key={node.id} className="space-y-1.5" style={{ marginLeft: `${depth * 16}px` }}>
+        <div className={`flex items-center justify-between p-3 bg-background-portal border border-border-accent/40 rounded-2xl hover:border-brand-accent/20 transition-all group ${!node.isEligible ? 'opacity-75' : ''}`}>
+          <div className="flex items-center gap-3.5 min-w-0">
+            {hasReports ? (
+              <button 
+                type="button"
+                onClick={() => setExpandedNodes(prev => ({ ...prev, [node.id]: !isExpanded }))}
+                className="w-5 h-5 flex items-center justify-center rounded-lg bg-surface-elevated hover:bg-surface-card border border-border-accent text-[9px] cursor-pointer"
+              >
+                {isExpanded ? '▼' : '►'}
+              </button>
+            ) : (
+              <span className="w-5 h-5 flex items-center justify-center text-text-tertiary/40 text-[10px]">•</span>
+            )}
+            
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-xs text-text-primary truncate">{node.name}</span>
+                <span className="text-[9px] font-mono bg-surface-elevated px-1.5 py-0.5 rounded border border-border-accent text-text-secondary">{node.eid}</span>
+              </div>
+              <p className="text-[10px] text-text-secondary mt-0.5 font-bold truncate">
+                {node.designation} <span className="text-text-tertiary">·</span> {node.vertical}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 flex-shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${eligibilityClass}`} title="Default Rule Eligibility">
+                {node.isEligible ? 'Eligible' : 'Restricted'}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${badgeClass}`} title="Resolved Access Permission">
+                {node.hasAccess ? 'Granted' : 'Blocked'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+              {node.hasAccess ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateAppAccess(node.id, 'revoke', 'individual')}
+                    disabled={isUpdatingInd}
+                    className="px-2.5 py-1.5 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 hover:border-danger/35 rounded-xl text-[10px] font-black uppercase transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {isUpdatingInd ? 'Revoking...' : 'Revoke Individual'}
+                  </button>
+                  {hasReports && (
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateAppAccess(node.id, 'revoke', 'subtree')}
+                      disabled={isUpdatingSub}
+                      className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/35 rounded-xl text-[10px] font-black uppercase transition-all disabled:opacity-50 cursor-pointer"
+                      title="Revoke access for this user and all downstream direct/indirect reports"
+                    >
+                      {isUpdatingSub ? 'Revoking Team...' : 'Revoke Team ⧉'}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateAppAccess(node.id, 'grant', 'individual')}
+                    disabled={isUpdatingInd}
+                    className="px-2.5 py-1.5 bg-success/15 hover:bg-success/20 text-success border border-success/20 hover:border-success/35 rounded-xl text-[10px] font-black uppercase transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {isUpdatingInd ? 'Granting...' : 'Grant Individual'}
+                  </button>
+                  {hasReports && (
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateAppAccess(node.id, 'grant', 'subtree')}
+                      disabled={isUpdatingSub}
+                      className="px-2.5 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/35 rounded-xl text-[10px] font-black uppercase transition-all disabled:opacity-50 cursor-pointer"
+                      title="Grant access to this user and all downstream direct/indirect reports"
+                    >
+                      {isUpdatingSub ? 'Granting Team...' : 'Grant Team ⧉'}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {hasReports && isExpanded && (
+          <div className="space-y-1.5">
+            {directReports.map(report => renderHierarchyNode(report, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const fetchActiveEntitlements = async () => {
+    setIsEntitlementsLoading(true);
+    try {
+      const res = await fetch('/api/v1/marketplace/entitlements');
+      if (res.ok) {
+        const data = await res.json();
+        setActiveEntitlements(data.entitlements || []);
+      } else {
+        showToast('Failed to fetch active entitlements', 'error');
+      }
+    } catch (e) {
+      showToast('Network error fetching active entitlements', 'error');
+    } finally {
+      setIsEntitlementsLoading(false);
+    }
+  };
+
+  const handleRevokeEntitlement = async (entitlementId: string) => {
+    if (!confirm('Are you sure you want to revoke this active entitlement?')) return;
+    setIsRevokingEntitlement(prev => ({ ...prev, [entitlementId]: true }));
+    try {
+      const res = await fetch(`/api/v1/marketplace/entitlements?id=${entitlementId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('Entitlement was successfully revoked!', 'success');
+        fetchActiveEntitlements();
+      } else {
+        showToast(data.error || 'Failed to revoke entitlement', 'error');
+      }
+    } catch (err) {
+      showToast('Network error revoking entitlement', 'error');
+    } finally {
+      setIsRevokingEntitlement(prev => ({ ...prev, [entitlementId]: false }));
+    }
+  };
+
+  const fetchAdminAccessRequests = async () => {
+    setIsRequestsLoading(true);
+    try {
+      const res = await fetch('/api/v1/marketplace/requests?filter=all');
+      if (res.ok) {
+        const data = await res.json();
+        setAdminAccessRequests(data.requests || []);
+      } else {
+        showToast('Failed to fetch access requests queue', 'error');
+      }
+    } catch (e) {
+      showToast('Network error fetching requests queue', 'error');
+    } finally {
+      setIsRequestsLoading(false);
+    }
+  };
+
+  const handleReviewAccessRequest = async (requestId: string, status: 'approved' | 'rejected') => {
+    const notes = requestActionNotes[requestId] || '';
+    setIsSubmittingRequestAction(prev => ({ ...prev, [requestId]: true }));
+    try {
+      const res = await fetch('/api/v1/marketplace/approve-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, status, notes }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Request was successfully ${status}!`, 'success');
+        setRequestActionNotes(prev => {
+          const updated = { ...prev };
+          delete updated[requestId];
+          return updated;
+        });
+        fetchAdminAccessRequests();
+        fetchActiveEntitlements();
+      } else {
+        showToast(data.error || 'Failed to review request', 'error');
+      }
+    } catch (err) {
+      showToast('Network error reviewing request', 'error');
+    } finally {
+      setIsSubmittingRequestAction(prev => ({ ...prev, [requestId]: false }));
+    }
+  };
+
   const fetchApps = async () => {
     setIsAppsLoading(true);
     try {
@@ -256,6 +585,8 @@ export default function AdminPanel({
   useEffect(() => {
     if (sub === 'apps') {
       fetchApps();
+      fetchAdminAccessRequests();
+      fetchActiveEntitlements();
     }
   }, [sub]);
 
@@ -1037,6 +1368,23 @@ export default function AdminPanel({
       CRITICAL: 'text-red-500 border-l-4 border-l-red-500 bg-red-500/10 hover:bg-red-500/15 font-bold animate-pulse',
     };
     return map[severity] || 'text-text-secondary hover:bg-table-row-hover';
+  };
+
+  const getAppIcon = (iconName: string) => {
+    switch (iconName?.toLowerCase()) {
+      case 'users':
+        return '👥';
+      case 'creditcard':
+        return '💳';
+      case 'briefcase':
+        return '💼';
+      case 'activity':
+        return '📈';
+      case 'settings':
+        return '⚙️';
+      default:
+        return '📦';
+    }
   };
 
   return (
@@ -2302,171 +2650,655 @@ export default function AdminPanel({
         {/* ── 7. MODULE: APP REGISTRY LIFECYCLE ── */}
         {sub === 'apps' && (
           <div className="flex-1 overflow-y-auto p-6 space-y-6 animate-fadeIn">
-            <div className="flex items-center justify-between border-b border-border-accent pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border-accent pb-4 gap-4">
               <div>
-                <h1 className="text-xl font-black tracking-tight text-text-primary">Application Registry & Lifecycle</h1>
-                <p className="text-[11px] text-text-secondary mt-0.5">Install, configure, check health telemetry, and toggle access states for modular extensions.</p>
+                <h1 className="text-xl font-black tracking-tight text-text-primary">Enterprise App Management</h1>
+                <p className="text-[11px] text-text-secondary mt-0.5">Manage app registration, toggle global access, and approve entitlement requests.</p>
               </div>
-              <button
-                onClick={scanApps}
-                disabled={isAppsLoading}
-                className="px-4.5 py-2.5 bg-brand-accent hover:bg-brand-hover text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow flex items-center gap-2 disabled:opacity-50"
-              >
-                🔄 Scan & Re-sync Apps
-              </button>
+              
+              <div className="flex items-center gap-3">
+                <div className="flex bg-surface-card border border-border-accent/60 rounded-xl p-1 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setAppManagementView('registry')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      appManagementView === 'registry'
+                        ? 'bg-brand-accent text-white shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    🔌 Registry Lifecycle
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAppManagementView('requests')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      appManagementView === 'requests'
+                        ? 'bg-brand-accent text-white shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    📜 Access Request Queue
+                    {adminAccessRequests.filter(r => r.status.startsWith('pending')).length > 0 && (
+                      <span className="bg-warning text-[#0f172a] text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-4 text-center">
+                        {adminAccessRequests.filter(r => r.status.startsWith('pending')).length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppManagementView('entitlements');
+                      fetchActiveEntitlements();
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      appManagementView === 'entitlements'
+                        ? 'bg-brand-accent text-white shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    🔑 Active Entitlements
+                  </button>
+                </div>
+                
+                {appManagementView === 'registry' && (
+                  <button
+                    onClick={scanApps}
+                    disabled={isAppsLoading}
+                    className="px-4 py-2 bg-brand-accent hover:bg-brand-hover text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    🔄 Scan Apps
+                  </button>
+                )}
+              </div>
             </div>
 
-            {isAppsLoading && appsList.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-xs text-text-secondary">Loading registered applications...</p>
-              </div>
-            ) : (
-              <div className="bg-surface-card border border-border-accent rounded-3xl shadow-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-border-accent bg-surface-card/10 text-text-tertiary font-bold uppercase tracking-wider">
-                        <th className="p-4">Application Details</th>
-                        <th className="p-4">Entry / Schema</th>
-                        <th className="p-4">OAuth Credentials</th>
-                        <th className="p-4">Health Status</th>
-                        <th className="p-4 text-right">Lifecycle Controls</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border-accent/40">
-                      {appsList.map(app => {
-                        const isSecretRevealed = revealedSecrets[app.id] || false;
-                        
-                        let statusColor = 'bg-rose-500/15 text-rose-400 border-rose-500/30';
-                        let statusText = 'Offline';
-                        if (app.status === 'active') {
-                          statusColor = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
-                          statusText = 'Active';
-                        } else if (app.status === 'degraded') {
-                          statusColor = 'bg-amber-500/15 text-amber-400 border-amber-500/30';
-                          statusText = 'Degraded';
-                        }
-
-                        const lastSeenStr = app.lastSeen
-                          ? new Date(app.lastSeen).toLocaleTimeString()
-                          : 'Never';
-
-                        return (
-                          <tr key={app.id} className="hover:bg-surface-card/20 transition-colors">
-                            {/* App Details */}
-                            <td className="p-4 max-w-sm">
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-accent to-pink-500 flex items-center justify-center text-white text-base font-extrabold shadow-inner">
-                                  {app.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <h4 className="font-bold text-text-primary text-sm flex items-center gap-2">
-                                    {app.name}
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-background-portal text-text-secondary font-mono border border-border-accent">
-                                      v{app.scopes && app.scopes.length > 0 ? '1.0.0' : '1.0'}
+            {appManagementView === 'registry' && !selectedAppForAccess && (
+              isAppsLoading && appsList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                  <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-xs text-text-secondary">Loading registered applications...</p>
+                </div>
+              ) : (
+                <div className="bg-surface-card border border-border-accent rounded-3xl shadow-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-border-accent bg-surface-card/10 text-text-tertiary font-bold uppercase tracking-wider">
+                          <th className="p-4">Application Details</th>
+                          <th className="p-4">Entry / Schema</th>
+                          <th className="p-4">OAuth Credentials</th>
+                          <th className="p-4">Health Status</th>
+                          <th className="p-4 text-right">Lifecycle Controls</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-accent/40">
+                        {appsList.map(app => {
+                          const isSecretRevealed = revealedSecrets[app.id] || false;
+                          
+                          return (
+                            <tr key={app.id} className="hover:bg-surface-card/20 transition-colors">
+                              {/* Application Details */}
+                              <td className="p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-9 w-9 rounded-xl bg-surface-elevated text-lg flex items-center justify-center border border-border-accent/30 shadow-sm">
+                                    {getAppIcon(app.icon)}
+                                  </div>
+                                  <div>
+                                    <h3 className="font-black text-text-primary text-sm leading-tight">{app.name}</h3>
+                                    <span className="text-[10px] text-text-secondary mt-0.5 block">{app.description}</span>
+                                    <span className="inline-block mt-1.5 px-1.5 py-0.5 rounded bg-background-portal text-text-secondary border border-border-accent text-[9px] font-bold uppercase">
+                                      {app.id}
                                     </span>
-                                  </h4>
-                                  <p className="text-[10px] text-text-secondary truncate mt-0.5">{app.slug}</p>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
+                              </td>
 
-                            {/* Entry Point / Isolated Schema namespace */}
-                            <td className="p-4 font-mono text-[11px] text-text-secondary">
-                              <div className="space-y-1">
-                                <div className="truncate max-w-xs">{app.entryUrl}</div>
-                                {app.isIsolatedLifecycle ? (
-                                  <span className="inline-block px-1.5 py-0.5 rounded bg-brand-accent/10 border border-brand-accent/25 text-brand-accent text-[9px] font-bold">
-                                    Isolated Schema
-                                  </span>
-                                ) : (
-                                  <span className="inline-block px-1.5 py-0.5 rounded bg-background-portal border border-border-accent text-text-tertiary text-[9px]">
-                                    Shared Namespace
-                                  </span>
-                                )}
-                              </div>
-                            </td>
+                              {/* Entry / Schema */}
+                              <td className="p-4 font-mono text-[10px] text-text-secondary">
+                                <div>Path: <span className="text-text-primary font-bold">{app.filePath}</span></div>
+                                <div className="mt-1">Slug: <span className="text-brand-accent font-black">{app.slug}</span></div>
+                              </td>
 
-                            {/* Credentials */}
-                            <td className="p-4 font-mono text-[10px]">
-                              <div className="space-y-1">
-                                <div><span className="text-text-tertiary">ID: </span><span className="text-text-secondary">{app.clientId || 'N/A'}</span></div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-text-tertiary">Secret: </span>
-                                  <span className="text-text-secondary mr-1">
+                              {/* OAuth Credentials */}
+                              <td className="p-4 font-mono text-[10px] space-y-1">
+                                <div>Client ID: <span className="text-text-primary font-bold">{app.clientId}</span></div>
+                                <div className="flex items-center gap-1.5">
+                                  <span>Client Secret:</span>
+                                  <span className="font-bold text-text-secondary">
                                     {isSecretRevealed ? app.clientSecret : '••••••••••••••••'}
                                   </span>
                                   <button
+                                    type="button"
                                     onClick={() => setRevealedSecrets(prev => ({ ...prev, [app.id]: !isSecretRevealed }))}
-                                    className="text-[10px] text-brand-accent hover:underline focus:outline-none font-bold"
+                                    className="text-[9px] font-sans font-black uppercase text-brand-accent hover:underline ml-1"
                                   >
                                     {isSecretRevealed ? 'Hide' : 'Reveal'}
                                   </button>
                                 </div>
-                              </div>
-                            </td>
+                              </td>
 
-                            {/* Health Status & Telemetry */}
-                            <td className="p-4">
-                              <div className="flex flex-col gap-1">
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase w-fit ${statusColor}`}>
-                                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
-                                  {statusText}
-                                </span>
-                                <span className="text-[10px] text-text-tertiary">
-                                  Last Checked: {lastSeenStr}
-                                </span>
-                              </div>
-                            </td>
+                              {/* Health Status */}
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-success animate-pulse"></span>
+                                  <div>
+                                    <span className="text-[10px] font-bold text-success uppercase block">Active / Ready</span>
+                                    <span className="text-[9px] text-text-tertiary">Verified successfully</span>
+                                  </div>
+                                </div>
+                              </td>
 
-                            {/* Enable/Disable & Actions */}
-                            <td className="p-4 text-right">
-                              <div className="flex items-center justify-end gap-3">
-                                {/* Toggle enable */}
-                                <label className="relative inline-flex items-center cursor-pointer select-none">
-                                  <input
-                                    type="checkbox"
-                                    checked={app.isEnabled}
-                                    onChange={() => toggleAppEnable(app.id, app.isEnabled)}
-                                    className="sr-only peer"
-                                  />
-                                  <div className="w-9 h-5 bg-background-portal border border-border-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-secondary peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-success peer-checked:border-success"></div>
-                                  <span className="ml-2 text-[10px] font-bold text-text-secondary hidden sm:inline">
-                                    {app.isEnabled ? 'Enabled' : 'Disabled'}
-                                  </span>
-                                </label>
+                              {/* Enable/Disable & Actions */}
+                              <td className="p-4 text-right">
+                                <div className="flex items-center justify-end gap-3">
+                                  {/* Toggle enable */}
+                                  <label className="relative inline-flex items-center cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={app.isEnabled}
+                                      onChange={() => toggleAppEnable(app.id, app.isEnabled)}
+                                      className="sr-only peer"
+                                    />
+                                    <div className="w-9 h-5 bg-background-portal border border-border-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-secondary peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-success peer-checked:border-success"></div>
+                                    <span className="ml-2 text-[10px] font-bold text-text-secondary hidden sm:inline">
+                                      {app.isEnabled ? 'Enabled' : 'Disabled'}
+                                    </span>
+                                  </label>
 
-                                <button
-                                  onClick={() => removeApp(app.id)}
-                                  className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/35 rounded-xl font-bold transition-all text-[11px]"
-                                >
-                                  Remove
-                                </button>
-                              </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      fetchAppAccessDetails(app.id);
+                                      fetchAppAdminDelegation(app.id);
+                                    }}
+                                    className="px-2.5 py-1.5 bg-brand-muted hover:bg-brand-accent/20 text-brand-accent border border-brand-accent/20 hover:border-brand-accent/35 rounded-xl font-bold transition-all text-[11px] cursor-pointer"
+                                  >
+                                    ⚙️ Manage Access
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => removeApp(app.id)}
+                                    className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/35 rounded-xl font-bold transition-all text-[11px] cursor-pointer"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        
+                        {appsList.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-text-secondary italic">
+                              No applications currently registered. Click Scan to discover apps.
                             </td>
                           </tr>
-                        );
-                      })}
-                      
-                      {appsList.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="p-8 text-center text-text-secondary italic">
-                            No applications currently registered. Click Scan to discover apps.
-                          </td>
-                        </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            )}
+
+            {appManagementView === 'registry' && selectedAppForAccess && (
+              <div className="space-y-6 animate-fadeIn">
+                {/* Back bar */}
+                <div className="flex items-center justify-between bg-surface-card border border-border-accent p-4 rounded-3xl shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setSelectedAppForAccess(null);
+                        setAppAccessUsers([]);
+                        setAppAssignedAdmins([]);
+                      }}
+                      className="px-3.5 py-1.5 bg-surface-elevated hover:bg-surface-card border border-border-accent hover:border-brand-accent/30 text-xs font-black text-text-primary rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+                    >
+                      ← Back to Registry
+                    </button>
+                    <span className="text-text-tertiary">|</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{getAppIcon(selectedAppForAccess.icon)}</span>
+                      <div>
+                        <h3 className="text-sm font-black text-text-primary">{selectedAppForAccess.name}</h3>
+                        <p className="text-[9px] text-text-secondary">App ID: {selectedAppForAccess.id}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick target rules summary */}
+                  <div className="flex items-center gap-4 text-xs font-mono">
+                    <div className="text-right">
+                      <span className="text-[9px] text-text-tertiary block font-sans">Min Job Level Required</span>
+                      <span className="text-text-primary font-bold">L{selectedAppForAccess.targetRules?.minJobLevel || 1}+</span>
+                    </div>
+                    <div className="text-right border-l border-border-accent/40 pl-4">
+                      <span className="text-[9px] text-text-tertiary block font-sans">Vertical Targets</span>
+                      <span className="text-text-primary font-bold truncate max-w-[120px] inline-block" title={selectedAppForAccess.targetRules?.verticals?.join(', ')}>
+                        {selectedAppForAccess.targetRules?.verticals?.join(', ') || 'Global'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left part: Org hierarchy user entitlements tree */}
+                  <div className="lg:col-span-2 bg-surface-card border border-border-accent rounded-3xl p-6 shadow-sm space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-accent/40 pb-4">
+                      <div>
+                        <h4 className="text-sm font-black text-text-primary uppercase tracking-wider">Organizational Entitlements Tree</h4>
+                        <p className="text-[10px] text-text-secondary mt-0.5">Control app visibility and usage permissions hierarchically across the reporting tree.</p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newExpanded: Record<string, boolean> = {};
+                            appAccessUsers.forEach(u => {
+                              newExpanded[u.id] = true;
+                            });
+                            setExpandedNodes(newExpanded);
+                          }}
+                          className="px-2.5 py-1 bg-surface-elevated hover:bg-surface-card border border-border-accent text-[9px] text-text-secondary font-bold uppercase rounded-lg"
+                        >
+                          Expand All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedNodes({})}
+                          className="px-2.5 py-1 bg-surface-elevated hover:bg-surface-card border border-border-accent text-[9px] text-text-secondary font-bold uppercase rounded-lg"
+                        >
+                          Collapse All
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Search bar */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search users by name, EID, or designation to configure access..."
+                        value={searchUserQuery}
+                        onChange={(e) => setSearchUserQuery(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-background-portal border border-input-border rounded-xl focus:border-brand-accent outline-none text-xs font-bold text-text-primary"
+                      />
+                    </div>
+
+                    {/* Hierarchy Legend */}
+                    <div className="flex items-center gap-4 text-[10px] text-text-secondary border-b border-border-accent/20 pb-4">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-brand-accent"></span>
+                        <span>Developer Eligible Profile</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-success"></span>
+                        <span>Access Active (Granted)</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-danger"></span>
+                        <span>Access Blocked (Revoked)</span>
+                      </div>
+                    </div>
+
+                    {isAccessLoading ? (
+                      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                        <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-xs text-text-tertiary">Resolving user eligibility and entitlement policies...</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                        {hierarchyRoots.length === 0 ? (
+                          <div className="text-center py-12 text-xs text-text-secondary italic">
+                            No reporting hierarchy roots resolved in active directory dataset.
+                          </div>
+                        ) : (
+                          hierarchyRoots.map(root => renderHierarchyNode(root, 0))
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right part: Delegation control */}
+                  <div className="bg-surface-card border border-border-accent rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-6">
+                    <div className="space-y-4">
+                      <div className="border-b border-border-accent/40 pb-4">
+                        <h4 className="text-sm font-black text-text-primary uppercase tracking-wider">App Management Delegation</h4>
+                        <p className="text-[10px] text-text-secondary mt-0.5">Configure which administrators can review, approve, grant, or revoke permissions for this app.</p>
+                      </div>
+
+                      <div className="p-3 bg-surface-elevated/40 border border-border-accent/45 rounded-2xl text-[10px] text-text-secondary leading-relaxed">
+                        💡 <span className="font-bold text-text-primary">Super Admins</span> retain complete global ownership over all apps. Here you can delegate operational control to standard <span className="font-bold text-text-primary">App Admins</span>.
+                      </div>
+
+                      {simulatedRole === 'super_admin' ? (
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black uppercase tracking-wider text-text-tertiary">Delegate to Administrator</label>
+                          <div className="flex gap-2">
+                            <select
+                              id="delegatedAdminSelect"
+                              className="flex-1 px-3 py-2 bg-background-portal border border-input-border rounded-xl text-xs font-bold text-text-primary outline-none"
+                            >
+                              <option value="">-- Select Administrator --</option>
+                              {appAllAdmins
+                                .filter(adm => !appAssignedAdmins.some(a => a.id === adm.id))
+                                .map(adm => (
+                                  <option key={adm.id} value={adm.id}>
+                                    {adm.name} ({adm.eid} - {adm.role})
+                                  </option>
+                                ))
+                              }
+                            </select>
+                            <button
+                              type="button"
+                              disabled={isUpdatingDelegation}
+                              onClick={() => {
+                                const sel = document.getElementById('delegatedAdminSelect') as HTMLSelectElement;
+                                if (sel && sel.value) {
+                                  handleUpdateAdminDelegation(sel.value, 'add');
+                                  sel.value = '';
+                                }
+                              }}
+                              className="px-4 py-2 bg-brand-accent hover:bg-brand-hover text-white text-xs font-black rounded-xl shadow-md transition-all flex items-center justify-center disabled:opacity-50 cursor-pointer"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-3 bg-warning/10 border border-warning/20 text-warning-text rounded-xl text-[10px] font-bold">
+                          ⚠️ Management Delegation controls are read-only for App Admins.
+                        </div>
                       )}
-                    </tbody>
-                  </table>
+
+                      <div className="space-y-2.5 pt-4">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-text-tertiary block">Assigned App Managers ({appAssignedAdmins.length})</span>
+                        {isAdminsLoading ? (
+                          <div className="flex justify-center items-center py-6">
+                            <span className="w-5 h-5 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></span>
+                          </div>
+                        ) : appAssignedAdmins.length === 0 ? (
+                          <p className="text-[10px] text-text-secondary italic">No admins currently assigned. Only Super Admins can manage this application.</p>
+                        ) : (
+                          <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                            {appAssignedAdmins.map(admin => (
+                              <div key={admin.id} className="p-3 bg-background-portal border border-border-accent/40 rounded-xl flex items-center justify-between hover:border-brand-accent/20 transition-all">
+                                <div>
+                                  <span className="font-extrabold text-xs text-text-primary block">{admin.name}</span>
+                                  <span className="text-[9px] text-text-tertiary block mt-0.5">{admin.eid} · <span className="uppercase text-brand-accent font-black">{admin.role}</span></span>
+                                </div>
+                                {simulatedRole === 'super_admin' && (
+                                  <button
+                                    type="button"
+                                    disabled={isUpdatingDelegation}
+                                    onClick={() => handleUpdateAdminDelegation(admin.id, 'remove')}
+                                    className="px-2 py-1 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 hover:border-danger/35 text-[9px] font-black uppercase rounded-lg transition-all disabled:opacity-50 cursor-pointer"
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAppForAccess(null);
+                        setAppAccessUsers([]);
+                        setAppAssignedAdmins([]);
+                      }}
+                      className="w-full py-2 bg-surface-elevated hover:bg-surface-card border border-border-accent text-xs font-black text-text-primary rounded-xl transition-all text-center cursor-pointer"
+                    >
+                      Close Control Panel
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
+
+            {appManagementView === 'requests' && (
+              isRequestsLoading && adminAccessRequests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                  <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-xs text-text-secondary">Loading pending access requests...</p>
+                </div>
+              ) : (
+                <div className="bg-surface-card border border-border-accent rounded-3xl shadow-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-border-accent bg-surface-card/10 text-text-tertiary font-bold uppercase tracking-wider">
+                          <th className="p-4 w-44">Requester / Role</th>
+                          <th className="p-4 w-44">App / Created On</th>
+                          <th className="p-4">Reason & Justification</th>
+                          <th className="p-4 w-32">Scope</th>
+                          <th className="p-4 w-44">Status</th>
+                          <th className="p-4 w-72">Action / Review Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-accent/40">
+                        {adminAccessRequests.map(req => {
+                          const isPending = req.status.startsWith('pending');
+                          const isSubmitting = isSubmittingRequestAction[req.id] || false;
+                          const notesValue = requestActionNotes[req.id] || '';
+
+                          let statusClass = 'bg-surface-elevated text-text-secondary border-border-accent';
+                          let statusLabel = req.status;
+
+                          if (req.status === 'pending_app_admin') {
+                            statusClass = 'bg-warning/10 border-warning/20 text-warning-text';
+                            statusLabel = 'Pending App Admin';
+                          } else if (req.status === 'pending_super_admin') {
+                            statusClass = 'bg-warning/10 border-warning/20 text-warning-text';
+                            statusLabel = 'Pending Super Admin';
+                          } else if (req.status === 'approved') {
+                            statusClass = 'bg-success/15 border-success/20 text-success';
+                            statusLabel = 'Approved';
+                          } else if (req.status === 'rejected') {
+                            statusClass = 'bg-danger/15 border-danger/20 text-danger';
+                            statusLabel = 'Rejected';
+                          }
+
+                          return (
+                            <tr key={req.id} className="hover:bg-surface-card/20 transition-colors">
+                              {/* Requester */}
+                              <td className="p-4">
+                                <span className="font-bold text-text-primary text-sm block">{req.requesterName}</span>
+                                <span className="text-[10px] text-text-tertiary block font-mono mt-0.5">ID: {req.requesterId}</span>
+                              </td>
+
+                              {/* App & Date */}
+                              <td className="p-4">
+                                <span className="font-bold text-text-primary block">{req.appName}</span>
+                                <span className="text-[10px] text-text-tertiary block mt-0.5">
+                                  {new Date(req.createdAt).toLocaleDateString()}
+                                </span>
+                              </td>
+
+                              {/* Reason */}
+                              <td className="p-4 text-[11px] text-text-secondary leading-relaxed max-w-xs break-words">
+                                "{req.reason}"
+                              </td>
+
+                              {/* Scope */}
+                              <td className="p-4 font-mono text-[10px] uppercase">
+                                <span className="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-accent text-text-secondary font-bold">
+                                  {req.scope}
+                                </span>
+                                {req.targetEntityId && (
+                                  <span className="text-[9px] text-text-tertiary block mt-1 truncate max-w-[100px]" title={req.targetEntityId}>
+                                    ID: {req.targetEntityId}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Status Badge */}
+                              <td className="p-4">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase ${statusClass}`}>
+                                  {statusLabel}
+                                </span>
+                              </td>
+
+                              {/* Action Controls */}
+                              <td className="p-4">
+                                {isPending ? (
+                                  <div className="space-y-2">
+                                    <textarea
+                                      rows={2}
+                                      value={notesValue}
+                                      onChange={(e) => setRequestActionNotes(prev => ({ ...prev, [req.id]: e.target.value }))}
+                                      placeholder="Add review feedback notes (optional)..."
+                                      className="w-full px-2 py-1 bg-background-portal border border-input-border focus:border-brand-accent rounded-lg text-[10px] resize-none outline-none leading-normal text-text-primary"
+                                    />
+                                    <div className="flex gap-2 justify-end">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleReviewAccessRequest(req.id, 'rejected')}
+                                        disabled={isSubmitting}
+                                        className="px-2.5 py-1 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 hover:border-danger/35 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
+                                      >
+                                        Reject
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleReviewAccessRequest(req.id, 'approved')}
+                                        disabled={isSubmitting}
+                                        className="px-2.5 py-1 bg-success/10 hover:bg-success/20 text-success border border-success/20 hover:border-success/35 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
+                                      >
+                                        Approve
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-[11px] text-text-secondary leading-normal max-w-[200px] break-words italic">
+                                    {req.notes || <span className="text-text-tertiary opacity-40">No review comments left.</span>}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+
+                        {adminAccessRequests.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="p-10 text-center text-text-secondary italic">
+                              No access requests in the queue.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            )}
+
+            {appManagementView === 'entitlements' && (
+              isEntitlementsLoading && activeEntitlements.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                  <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-xs text-text-secondary">Loading active app entitlements...</p>
+                </div>
+              ) : (
+                <div className="bg-surface-card border border-border-accent rounded-3xl shadow-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-border-accent bg-surface-card/10 text-text-tertiary font-bold uppercase tracking-wider">
+                          <th className="p-4 w-48">Application Name</th>
+                          <th className="p-4 w-44">Subject Type / Name</th>
+                          <th className="p-4 w-32">Access Type</th>
+                          <th className="p-4 w-44">Granted By</th>
+                          <th className="p-4 w-44">Granted On</th>
+                          <th className="p-4 w-32 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-accent/40">
+                        {activeEntitlements.map(ent => {
+                          const isRevoking = isRevokingEntitlement[ent.id] || false;
+
+                          let subjectLabel = '';
+                          let subjectSub = '';
+                          if (ent.subjectType === 'user') {
+                            subjectLabel = ent.userName || 'Unknown User';
+                            subjectSub = ent.userEid ? `EID: ${ent.userEid}` : `ID: ${ent.subjectId}`;
+                          } else {
+                            subjectLabel = ent.nodeName || 'Unknown Node';
+                            subjectSub = `Org Node (${ent.nodeType || 'N/A'})`;
+                          }
+
+                          return (
+                            <tr key={ent.id} className="hover:bg-surface-card/20 transition-colors">
+                              {/* Application Name */}
+                              <td className="p-4">
+                                <span className="font-bold text-text-primary text-sm block">{ent.appName}</span>
+                                <span className="text-[10px] text-text-tertiary block font-mono mt-0.5">App ID: {ent.appId}</span>
+                              </td>
+
+                              {/* Subject Type / Name */}
+                              <td className="p-4">
+                                <span className="font-bold text-text-primary block">{subjectLabel}</span>
+                                <span className="text-[10px] text-text-tertiary block mt-0.5">
+                                  {ent.subjectType === 'user' ? '👤 ' : '🏢 '} {subjectSub}
+                                </span>
+                              </td>
+
+                              {/* Access Type */}
+                              <td className="p-4 font-mono text-[10px] uppercase">
+                                <span className="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-accent text-text-secondary font-bold">
+                                  {ent.accessType}
+                                </span>
+                              </td>
+
+                              {/* Granted By */}
+                              <td className="p-4 font-mono text-[10px]">
+                                <span className="text-text-secondary">{ent.grantedByName || 'System'}</span>
+                              </td>
+
+                              {/* Granted On */}
+                              <td className="p-4 text-text-secondary">
+                                {new Date(ent.createdAt).toLocaleDateString()}
+                              </td>
+
+                              {/* Actions */}
+                              <td className="p-4 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRevokeEntitlement(ent.id)}
+                                  disabled={isRevoking}
+                                  className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/35 rounded-xl font-bold transition-all text-[11px] cursor-pointer disabled:opacity-50"
+                                >
+                                  {isRevoking ? 'Revoking...' : 'Revoke'}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+
+                        {activeEntitlements.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="p-10 text-center text-text-secondary italic">
+                              No active app entitlements found.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            )}
           </div>
         )}
-
       </main>
 
-      {/* ─── ADD/EDIT SINGLE USER DIALOG MODAL (Radix Focus Lock) ─── */}
       {isUserModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <FocusScope trapped={true}>

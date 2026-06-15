@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, boolean, timestamp, jsonb, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, boolean, timestamp, jsonb, integer, text, date } from 'drizzle-orm/pg-core';
 
 // Core User Account Profiles
 export const users = pgTable('users', {
@@ -153,6 +153,90 @@ export const userGroups = pgTable('user_groups', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   groupId: uuid('group_id').references(() => groups.id, { onDelete: 'cascade' }).notNull(),
+});
+
+// Unified Org Node Hierarchy (Vertical Dimension)
+export const orgNodeTypes = pgTable('org_node_types', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 50 }).unique().notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+});
+
+export const orgNodes = pgTable('org_nodes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  nodeTypeId: uuid('node_type_id').references(() => orgNodeTypes.id).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  parentId: uuid('parent_id').references((): any => orgNodes.id, { onDelete: 'restrict' }),
+  metadata: jsonb('metadata').default({}).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const userOrgNodes = pgTable('user_org_nodes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  orgNodeId: uuid('org_node_id').references(() => orgNodes.id, { onDelete: 'cascade' }).notNull(),
+  relationship: varchar('relationship', { length: 50 }).default('member').notNull(), // 'member' | 'lead' | 'manager'
+  isPrimary: boolean('is_primary').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Horizontal Matrix Projects
+export const projects = pgTable('projects', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  code: varchar('code', { length: 100 }).unique().notNull(),
+  description: text('description'),
+  ownerId: uuid('owner_id').references(() => users.id).notNull(),
+  status: varchar('status', { length: 30 }).default('active').notNull(), // 'planning' | 'active' | 'completed' | 'paused'
+  startDate: date('start_date'),
+  endDate: date('end_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const projectMembers = pgTable('project_members', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  role: varchar('role', { length: 100 }).default('contributor').notNull(), // 'lead' | 'contributor' | 'observer'
+  allocationPercent: integer('allocation_percent').default(100).notNull(),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+});
+
+// Granular App Entitlements Engine
+export const forgeAppEntitlements = pgTable('forge_app_entitlements', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  appId: uuid('app_id').references(() => forgeApps.id, { onDelete: 'cascade' }).notNull(),
+  subjectType: varchar('subject_type', { length: 50 }).notNull(), // 'user' | 'org_node' | 'project' | 'group' | 'designation'
+  subjectId: uuid('subject_id').notNull(),
+  accessType: varchar('access_type', { length: 10 }).default('grant').notNull(), // 'grant' | 'deny'
+  grantedBy: uuid('granted_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Marketplace Discoverability & Access Workflow
+export const forgeAppAdmins = pgTable('forge_app_admins', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  appId: uuid('app_id').references(() => forgeApps.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const forgeAppAccessRequests = pgTable('forge_app_access_requests', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  appId: uuid('app_id').references(() => forgeApps.id, { onDelete: 'cascade' }).notNull(),
+  requesterId: uuid('requester_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  reason: text('reason').notNull(),
+  scope: varchar('scope', { length: 30 }).default('individual').notNull(), // 'individual' | 'org_node' | 'project'
+  targetEntityId: uuid('target_entity_id'),
+  status: varchar('status', { length: 30 }).default('pending_app_admin').notNull(), // 'pending_app_admin' | 'pending_super_admin' | 'approved' | 'rejected'
+  appAdminReviewedBy: uuid('app_admin_reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  appAdminNotes: text('app_admin_notes'),
+  superAdminReviewedBy: uuid('super_admin_reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  superAdminNotes: text('super_admin_notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 

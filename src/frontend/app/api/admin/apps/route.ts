@@ -13,14 +13,28 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const res = await db.execute(sql`
-      SELECT id, slug, name, entry_url as "entryUrl", is_enabled as "isEnabled",
-             status, last_seen as "lastSeen", health_check_url as "healthCheckUrl",
-             is_isolated_lifecycle as "isIsolatedLifecycle", scopes, target_rules as "targetRules"
-      FROM forge_apps
-      ORDER BY name ASC
-    `);
+    let query;
+    if (session.role === 'super_admin') {
+      query = sql`
+        SELECT id, slug, name, entry_url as "entryUrl", is_enabled as "isEnabled",
+               status, last_seen as "lastSeen", health_check_url as "healthCheckUrl",
+               is_isolated_lifecycle as "isIsolatedLifecycle", scopes, target_rules as "targetRules"
+        FROM forge_apps
+        ORDER BY name ASC
+      `;
+    } else {
+      query = sql`
+        SELECT a.id, a.slug, a.name, a.entry_url as "entryUrl", a.is_enabled as "isEnabled",
+               a.status, a.last_seen as "lastSeen", a.health_check_url as "healthCheckUrl",
+               a.is_isolated_lifecycle as "isIsolatedLifecycle", a.scopes, a.target_rules as "targetRules"
+        FROM forge_apps a
+        INNER JOIN forge_app_admins adm ON a.id = adm.app_id
+        WHERE adm.user_id = ${session.id}
+        ORDER BY a.name ASC
+      `;
+    }
 
+    const res = await db.execute(query);
     const apps = res.rows || res;
     return NextResponse.json({ apps });
   } catch (err: any) {

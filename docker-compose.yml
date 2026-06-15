@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: change_me_db_password
       POSTGRES_DB: org_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -31,12 +31,19 @@ services:
       - DATABASE_READONLY_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
       - PORTAL_URL=http://localhost:3001
       - PORT=3001
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
     ports:
       - "3001:3001"
       - "3002:3002"
       - "8085:8085"
       - "8086:8086"
       - "8087:8087"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/src/frontend/node_modules
+      - /app/src/frontend/.next
     restart: always
 
 volumes:

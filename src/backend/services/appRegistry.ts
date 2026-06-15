@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 import { validateManifest, parseAndRegisterManifests } from '../utils/manifestParser';
+import { hasAppAccess } from '../auth/permissionEngine';
 
 export interface AppConfig {
   id: string;
@@ -86,46 +87,22 @@ export async function syncAppsToDatabase() {
 export async function getMatchedAppsForUser(userId: string, user: any): Promise<AppConfig[]> {
   const discovered = getDiscoveredApps();
   const appsResult = await db.execute(sql`
-    SELECT slug, name, entry_url as "entryUrl", target_rules as "targetRules" FROM forge_apps WHERE is_enabled = true
+    SELECT id, slug, name, entry_url as "entryUrl", target_rules as "targetRules" FROM forge_apps WHERE is_enabled = true
   `);
   const appsRows = appsResult.rows || appsResult;
-  
-  const userJobLevel = getJobLevelByName(user.designation);
   const matchedApps: AppConfig[] = [];
 
   for (const appRow of appsRows) {
     const slug = appRow.slug as string;
+    const appId = appRow.id as string;
+
+    const hasAccess = await hasAppAccess(userId, appId, user);
+    if (!hasAccess) continue;
+
     const diskApp = discovered.find(a => (a.slug || a.id) === slug);
     if (!diskApp) continue;
 
     const rules = (appRow.targetRules || diskApp.targetRules || {}) as any;
-    
-    // 1. Check Verticals
-    if (rules.verticals && rules.verticals.length > 0) {
-      if (!rules.verticals.includes('all')) {
-        const targetVerticals = rules.verticals.map((v: string) => {
-          if (v === 'core-tech-uuid-placeholder') return '10000000-0000-0000-0000-000000000002';
-          if (v === 'exec-uuid-placeholder') return '10000000-0000-0000-0000-000000000001';
-          return v;
-        });
-        if (!targetVerticals.includes(user.verticalId)) {
-          continue; 
-        }
-      }
-    }
-
-    // 2. Check Designations
-    if (rules.designations && rules.designations.length > 0) {
-      if (!rules.designations.includes(user.designationId)) {
-        continue; 
-      }
-    }
-
-    // 3. Check Job Level
-    const minJobLevel = rules.minJobLevel !== undefined ? Number(rules.minJobLevel) : 1;
-    if (userJobLevel < minJobLevel) {
-      continue; 
-    }
 
     matchedApps.push({
       id: diskApp.id,

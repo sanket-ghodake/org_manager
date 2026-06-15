@@ -2,11 +2,20 @@ import { db } from './connection';
 import { sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 async function main() {
   console.log('Initializing local database schema...');
 
   // Drop existing tables to ensure clean state
+  await db.execute(sql`DROP TABLE IF EXISTS forge_app_access_requests CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS forge_app_admins CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS forge_app_entitlements CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS project_members CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS projects CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS user_org_nodes CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS org_nodes CASCADE;`);
+  await db.execute(sql`DROP TABLE IF EXISTS org_node_types CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS user_groups CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS user_teams CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS groups CASCADE;`);
@@ -23,6 +32,11 @@ async function main() {
   await db.execute(sql`DROP TABLE IF EXISTS system_logs CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS users CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS structural_metadata CASCADE;`);
+
+  await db.execute(sql`DROP TRIGGER IF EXISTS trigger_prevent_circular_reporting ON users;`);
+  await db.execute(sql`DROP FUNCTION IF EXISTS check_circular_manager;`);
+  await db.execute(sql`DROP TRIGGER IF EXISTS trigger_prevent_circular_org_node ON org_nodes;`);
+  await db.execute(sql`DROP FUNCTION IF EXISTS check_circular_org_node;`);
 
   // Create structural_metadata table
   await db.execute(sql`
@@ -384,6 +398,169 @@ async function main() {
     );
   `);
 
+  console.log('Creating Org Node Hierarchy and Marketplace tables...');
+  await db.execute(sql`
+    CREATE TABLE org_node_types (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name VARCHAR(50) UNIQUE NOT NULL,
+      sort_order INT NOT NULL DEFAULT 0
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE org_nodes (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      node_type_id UUID NOT NULL REFERENCES org_node_types(id),
+      name VARCHAR(255) NOT NULL,
+      parent_id UUID REFERENCES org_nodes(id) ON DELETE RESTRICT,
+      metadata JSONB DEFAULT '{}'::jsonb NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`CREATE INDEX idx_org_nodes_parent ON org_nodes(parent_id);`);
+
+  await db.execute(sql`
+    CREATE TABLE user_org_nodes (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      org_node_id UUID REFERENCES org_nodes(id) ON DELETE CASCADE,
+      relationship VARCHAR(50) DEFAULT 'member' NOT NULL,
+      is_primary BOOLEAN DEFAULT true NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      UNIQUE(user_id, org_node_id)
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE projects (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name VARCHAR(255) NOT NULL,
+      code VARCHAR(100) UNIQUE NOT NULL,
+      description TEXT,
+      owner_id UUID NOT NULL REFERENCES users(id),
+      status VARCHAR(30) DEFAULT 'active' NOT NULL,
+      start_date DATE,
+      end_date DATE,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE project_members (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role VARCHAR(100) DEFAULT 'contributor' NOT NULL,
+      allocation_percent INT DEFAULT 100 NOT NULL,
+      joined_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      UNIQUE(project_id, user_id)
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE forge_app_entitlements (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      app_id UUID NOT NULL REFERENCES forge_apps(id) ON DELETE CASCADE,
+      subject_type VARCHAR(50) NOT NULL,
+      subject_id UUID NOT NULL,
+      access_type VARCHAR(10) NOT NULL DEFAULT 'grant',
+      granted_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`CREATE INDEX idx_entitlements_lookup ON forge_app_entitlements (app_id, subject_type, subject_id);`);
+
+  await db.execute(sql`
+    CREATE TABLE forge_app_admins (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      app_id UUID NOT NULL REFERENCES forge_apps(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      UNIQUE(app_id, user_id)
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE forge_app_access_requests (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      app_id UUID NOT NULL REFERENCES forge_apps(id) ON DELETE CASCADE,
+      requester_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      reason TEXT NOT NULL,
+      scope VARCHAR(30) NOT NULL DEFAULT 'individual',
+      target_entity_id UUID,
+      status VARCHAR(30) NOT NULL DEFAULT 'pending_app_admin',
+      app_admin_reviewed_by UUID REFERENCES users(id),
+      app_admin_notes TEXT,
+      super_admin_reviewed_by UUID REFERENCES users(id),
+      super_admin_notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  console.log('Creating database circular reporting prevention triggers...');
+  await db.execute(sql`
+    CREATE OR REPLACE FUNCTION check_circular_manager()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        IF NEW.manager_id IS NOT NULL THEN
+            IF EXISTS (
+                WITH RECURSIVE reporting_chain AS (
+                    SELECT id, manager_id FROM users WHERE id = NEW.manager_id
+                    UNION ALL
+                    SELECT u.id, u.manager_id 
+                    FROM users u
+                    INNER JOIN reporting_chain rc ON rc.manager_id = u.id
+                )
+                SELECT 1 FROM reporting_chain WHERE id = NEW.id
+            ) THEN
+                RAISE EXCEPTION 'Circular reporting loop detected: User cannot report directly or indirectly to their subordinate.';
+            END IF;
+        END IF;
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+
+  await db.execute(sql`
+    CREATE TRIGGER trigger_prevent_circular_reporting
+    BEFORE INSERT OR UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION check_circular_manager();
+  `);
+
+  await db.execute(sql`
+    CREATE OR REPLACE FUNCTION check_circular_org_node()
+    RETURNS TRIGGER AS $$
+    BEGIN
+        IF NEW.parent_id IS NOT NULL THEN
+            IF EXISTS (
+                WITH RECURSIVE node_chain AS (
+                    SELECT id, parent_id FROM org_nodes WHERE id = NEW.parent_id
+                    UNION ALL
+                    SELECT o.id, o.parent_id 
+                    FROM org_nodes o
+                    INNER JOIN node_chain nc ON nc.parent_id = o.id
+                )
+                SELECT 1 FROM node_chain WHERE id = NEW.id
+            ) THEN
+                RAISE EXCEPTION 'Circular node reference loop detected: Org Node cannot report directly or indirectly to its child node.';
+            END IF;
+        END IF;
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+
+  await db.execute(sql`
+    CREATE TRIGGER trigger_prevent_circular_org_node
+    BEFORE INSERT OR UPDATE ON org_nodes
+    FOR EACH ROW EXECUTE FUNCTION check_circular_org_node();
+  `);
+
   console.log('Seeding departments, teams, groups, and user memberships...');
   
   // 1. Seed Departments based on Verticals in the generated data
@@ -496,6 +673,149 @@ async function main() {
           VALUES (${userId}, ${managersLeadsGroupId});
         `);
       }
+    }
+  }
+
+  console.log('Seeding org node types...');
+  const companyTypeId = crypto.randomUUID();
+  const divisionTypeId = crypto.randomUUID();
+  const departmentTypeId = crypto.randomUUID();
+  const teamTypeId = crypto.randomUUID();
+  const podTypeId = crypto.randomUUID();
+
+  await db.execute(sql`
+    INSERT INTO org_node_types (id, name, sort_order)
+    VALUES 
+      (${companyTypeId}, 'company', 0),
+      (${divisionTypeId}, 'division', 1),
+      (${departmentTypeId}, 'department', 2),
+      (${teamTypeId}, 'team', 3),
+      (${podTypeId}, 'pod', 4);
+  `);
+
+  console.log('Seeding root org node...');
+  const rootNodeId = crypto.randomUUID();
+  await db.execute(sql`
+    INSERT INTO org_nodes (id, node_type_id, name, parent_id, metadata)
+    VALUES (${rootNodeId}, ${companyTypeId}, 'SG Forge Root', NULL, '{}'::jsonb);
+  `);
+
+  // 1. Create Division nodes for each Vertical
+  const verticalToNodeIdMap = new Map<string, string>();
+  for (const vName of mockData.verticals.map((v: any) => v.name)) {
+    const divisionNodeId = crypto.randomUUID();
+    await db.execute(sql`
+      INSERT INTO org_nodes (id, node_type_id, name, parent_id)
+      VALUES (${divisionNodeId}, ${divisionTypeId}, ${vName + " Division"}, ${rootNodeId});
+    `);
+    verticalToNodeIdMap.set(vName, divisionNodeId);
+  }
+
+  // 2. Create Team nodes under each Division
+  const teamToNodeIdMap = new Map<string, string>();
+  for (const [vName, tNames] of Object.entries(teamDefinitions)) {
+    const divisionNodeId = verticalToNodeIdMap.get(vName);
+    if (divisionNodeId) {
+      for (const tName of tNames) {
+        const teamNodeId = crypto.randomUUID();
+        await db.execute(sql`
+          INSERT INTO org_nodes (id, node_type_id, name, parent_id)
+          VALUES (${teamNodeId}, ${teamTypeId}, ${tName}, ${divisionNodeId});
+        `);
+        teamToNodeIdMap.set(tName, teamNodeId);
+      }
+    }
+  }
+
+  // 3. User Org Nodes membership (Primary teams and managers/leads)
+  for (const emp of mockData.employees) {
+    const userId = userEidToIdMap.get(emp.eid);
+    if (!userId) continue;
+
+    const relationship = emp.designation.includes('CEO') ? 'manager' :
+                         emp.designation.includes('VP') ? 'manager' :
+                         emp.designation.includes('Director') ? 'manager' :
+                         emp.designation.includes('Manager') ? 'lead' : 'member';
+
+    // If CEO, place them in the root node as 'manager'
+    if (emp.designation.includes('CEO')) {
+      await db.execute(sql`
+        INSERT INTO user_org_nodes (user_id, org_node_id, relationship, is_primary)
+        VALUES (${userId}, ${rootNodeId}, 'manager', true);
+      `);
+      continue;
+    }
+
+    // If VP or Director, place them in their Vertical's Division node as 'manager' / 'lead'
+    if (emp.designation.includes('VP') || emp.designation.includes('Director')) {
+      const divisionNodeId = verticalToNodeIdMap.get(emp.vertical);
+      if (divisionNodeId) {
+        await db.execute(sql`
+          INSERT INTO user_org_nodes (user_id, org_node_id, relationship, is_primary)
+          VALUES (${userId}, ${divisionNodeId}, ${relationship}, true);
+        `);
+      }
+      continue;
+    }
+
+    // For other employees, choose their team deterministically
+    const teamNames = teamDefinitions[emp.vertical];
+    if (teamNames && teamNames.length > 0) {
+      const eidNum = parseInt(emp.eid.replace(/\D/g, '')) || 0;
+      const selectedTeamName = teamNames[eidNum % teamNames.length];
+      const teamNodeId = teamToNodeIdMap.get(selectedTeamName);
+      if (teamNodeId) {
+        await db.execute(sql`
+          INSERT INTO user_org_nodes (user_id, org_node_id, relationship, is_primary)
+          VALUES (${userId}, ${teamNodeId}, ${relationship}, true);
+        `);
+      }
+    }
+  }
+
+  console.log('Seeding projects & project members...');
+  const projectOwnerRes = await db.execute(sql`SELECT id FROM users WHERE eid = 'E0005'`);
+  const projectOwnerId = (projectOwnerRes.rows || projectOwnerRes)[0]?.id || Array.from(userEidToIdMap.values())[0];
+
+  const projectId = crypto.randomUUID();
+  await db.execute(sql`
+    INSERT INTO projects (id, name, code, description, owner_id, status, start_date, end_date)
+    VALUES (
+      ${projectId}, 
+      'Project Delta', 
+      'PROJ-DELTA', 
+      'End-to-end telemetry system enhancement initiative.', 
+      ${projectOwnerId}, 
+      'active', 
+      '2026-01-01', 
+      '2026-12-31'
+    );
+  `);
+
+  const membersEids = ['E0007', 'E0008', 'E0009'];
+  for (const mEid of membersEids) {
+    const memberId = userEidToIdMap.get(mEid);
+    if (memberId) {
+      await db.execute(sql`
+        INSERT INTO project_members (project_id, user_id, role, allocation_percent)
+        VALUES (${projectId}, ${memberId}, 'contributor', 50);
+      `);
+    }
+  }
+
+  // Seeding app admins
+  const allApps = await db.execute(sql`SELECT id FROM forge_apps`);
+  const apps = allApps.rows || allApps;
+  const appAdminUserRes = await db.execute(sql`SELECT id FROM users WHERE eid = 'E0005'`);
+  const appAdminUserId = (appAdminUserRes.rows || appAdminUserRes)[0]?.id;
+  if (appAdminUserId && apps.length > 0) {
+    console.log('Seeding app admins...');
+    for (const app of apps) {
+      await db.execute(sql`
+        INSERT INTO forge_app_admins (app_id, user_id)
+        VALUES (${app.id}, ${appAdminUserId})
+        ON CONFLICT DO NOTHING;
+      `);
     }
   }
 

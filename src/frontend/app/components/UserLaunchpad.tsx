@@ -139,6 +139,161 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Marketplace & access states
+  const [marketplaceSubTab, setMarketplaceSubTab] = useState<'catalog' | 'requests'>('catalog');
+  const [marketplaceApps, setMarketplaceApps] = useState<{
+    enabledApps: AppConfig[];
+    requestableApps: AppConfig[];
+    unavailableApps: AppConfig[];
+  }>({
+    enabledApps: initialData.apps,
+    requestableApps: [],
+    unavailableApps: [],
+  });
+  const [accessRequests, setAccessRequests] = useState<any[]>([]);
+  const [isMarketplaceLoading, setIsMarketplaceLoading] = useState(false);
+  const [showRequestAccessModal, setShowRequestAccessModal] = useState(false);
+  const [selectedRequestApp, setSelectedRequestApp] = useState<AppConfig | null>(null);
+  
+  // Request Form fields
+  const [requestReason, setRequestReason] = useState('');
+  const [requestScope, setRequestScope] = useState<'individual' | 'org_node' | 'project'>('individual');
+  const [requestTargetEntityId, setRequestTargetEntityId] = useState('');
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [requestError, setRequestError] = useState('');
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Org Hierarchy Tree and Autocomplete states
+  const [teamSubView, setTeamSubView] = useState<'peers' | 'tree'>('peers');
+  const [orgHierarchy, setOrgHierarchy] = useState<{ nodes: any[]; nodeTypes: any[] } | null>(null);
+  const [isHierarchyLoading, setIsHierarchyLoading] = useState(false);
+  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+  const [availableNodes, setAvailableNodes] = useState<any[]>([]);
+  const [availableProjects, setAvailableProjects] = useState<any[]>([]);
+
+  const fetchHierarchyData = async () => {
+    setIsHierarchyLoading(true);
+    try {
+      const res = await fetch('/api/v1/org/hierarchy');
+      if (res.ok) {
+        const data = await res.json();
+        setOrgHierarchy(data);
+        // Pre-expand all nodes by default
+        const initialExpanded: Record<string, boolean> = {};
+        data.nodes?.forEach((node: any) => {
+          initialExpanded[node.id] = true;
+        });
+        setExpandedNodes(initialExpanded);
+        setAvailableNodes(data.nodes || []);
+      }
+    } catch (e) {
+      console.error('Error fetching hierarchy data:', e);
+    } finally {
+      setIsHierarchyLoading(false);
+    }
+  };
+
+  const fetchProjectsData = async () => {
+    try {
+      const res = await fetch('/api/v1/org/projects');
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableProjects(data.projects || []);
+      }
+    } catch (e) {
+      console.error('Error fetching projects data:', e);
+    }
+  };
+
+  const fetchMarketplaceData = async () => {
+    setIsMarketplaceLoading(true);
+    try {
+      const appsRes = await fetch('/api/v1/marketplace/apps');
+      if (appsRes.ok) {
+        const appsData = await appsRes.json();
+        setMarketplaceApps({
+          enabledApps: appsData.enabledApps || [],
+          requestableApps: appsData.requestableApps || [],
+          unavailableApps: appsData.unavailableApps || [],
+        });
+      }
+
+      const reqRes = await fetch('/api/v1/marketplace/requests');
+      if (reqRes.ok) {
+        const reqData = await reqRes.json();
+        setAccessRequests(reqData.requests || []);
+      }
+    } catch (e) {
+      console.error('Error loading marketplace data:', e);
+    } finally {
+      setIsMarketplaceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'apps') {
+      fetchMarketplaceData();
+      fetchHierarchyData();
+      fetchProjectsData();
+    } else if (activeTab === 'team') {
+      fetchHierarchyData();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (toastMessage) {
+      const t = setTimeout(() => setToastMessage(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [toastMessage]);
+
+  useEffect(() => {
+    if (requestScope === 'project' && availableProjects.length > 0) {
+      setRequestTargetEntityId(availableProjects[0].id);
+    } else if (requestScope === 'org_node' && availableNodes.length > 0) {
+      setRequestTargetEntityId(availableNodes[0].id);
+    } else {
+      setRequestTargetEntityId('');
+    }
+  }, [requestScope, availableProjects, availableNodes]);
+
+  const handleRequestAccessSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRequestApp) return;
+
+    setIsSubmittingRequest(true);
+    setRequestError('');
+
+    try {
+      const res = await fetch('/api/v1/marketplace/request-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId: selectedRequestApp.id,
+          reason: requestReason,
+          scope: requestScope,
+          targetEntityId: requestTargetEntityId || null,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setToastMessage({ text: 'Access request submitted successfully!', type: 'success' });
+        setShowRequestAccessModal(false);
+        setRequestReason('');
+        setRequestScope('individual');
+        setRequestTargetEntityId('');
+        fetchMarketplaceData();
+      } else {
+        setRequestError(data.error || 'Failed to submit request');
+      }
+    } catch (err: any) {
+      setRequestError(err.message || 'An error occurred');
+    } finally {
+      setIsSubmittingRequest(false);
+    }
+  };
+
   // Keyboard shortcut listener for Cmd+K / Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -253,6 +408,85 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
         u.eid.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.designation.toLowerCase().includes(searchQuery.toLowerCase())
       );
+
+  const renderOrgNodeTree = (parentId: string | null): React.ReactNode => {
+    if (!orgHierarchy) return null;
+    const currentNodes = orgHierarchy.nodes.filter(n => n.parentId === parentId);
+    if (currentNodes.length === 0) return null;
+
+    return (
+      <div className="flex flex-col gap-6 pl-4 border-l border-border-accent/40 mt-3 ml-2">
+        {currentNodes.map(node => {
+          const isExpanded = expandedNodes[node.id] !== false;
+          const childNodesCount = orgHierarchy.nodes.filter(n => n.parentId === node.id).length;
+          
+          return (
+            <div key={node.id} className="relative group">
+              {/* Card Container */}
+              <div className="bg-surface-card border border-border-accent/60 hover:border-brand-accent rounded-2xl p-4 shadow-sm hover:shadow-md transition-all max-w-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">
+                      {node.type === 'company' ? '🏢' : node.type === 'division' ? '📁' : node.type === 'department' ? '💼' : '👥'}
+                    </span>
+                    <div>
+                      <h4 className="font-bold text-text-primary text-xs flex items-center gap-2">
+                        {node.name}
+                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-background-portal text-text-secondary font-mono border border-border-accent uppercase">
+                          {node.type}
+                        </span>
+                      </h4>
+                      <p className="text-[9px] text-text-tertiary font-mono">ID: {node.id}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {childNodesCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedNodes(prev => ({ ...prev, [node.id]: !isExpanded }))}
+                        className="px-2.5 py-1 bg-surface-elevated hover:bg-brand-accent/20 border border-border-accent hover:border-brand-accent/40 rounded-lg text-[9px] font-black text-text-secondary hover:text-text-primary transition-colors cursor-pointer uppercase tracking-wider"
+                      >
+                        {isExpanded ? 'Collapse' : `Expand (${childNodesCount})`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Node Members List */}
+                {isExpanded && node.members && node.members.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border-accent/40 space-y-2">
+                    <span className="text-[8px] text-text-tertiary font-black uppercase tracking-wider block">Members & Leads</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {node.members.map((member: any) => (
+                        <div key={member.id} className="flex items-center gap-2 bg-background-portal/50 border border-border-accent/30 rounded-xl p-2">
+                          <div className="h-6 w-6 rounded-lg bg-surface-elevated text-text-secondary text-[10px] font-black flex items-center justify-center">
+                            {member.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-bold text-text-primary block truncate leading-tight">
+                              {member.name}
+                              {member.relationship === 'lead' && (
+                                <span className="ml-1 text-[8px] text-warning bg-warning/10 border border-warning/20 px-1 rounded font-black uppercase">Lead</span>
+                              )}
+                            </span>
+                            <span className="text-[8px] text-text-secondary block truncate mt-0.5">{member.designation || 'Staff'}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Children Nodes */}
+              {isExpanded && renderOrgNodeTree(node.id)}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const handleLogout = async () => {
     try {
@@ -865,110 +1099,173 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
           {activeTab === 'team' && (
             <div className="space-y-6 max-w-5xl mx-auto animate-fadeIn">
               
-              {/* Upstream Manager Card Block */}
-              <div className="space-y-3">
-                <span className="text-[10px] text-text-tertiary font-black uppercase tracking-widest block text-center">
-                  Upstream Node Coordinates
-                </span>
+              {/* View Selector Toggle */}
+              <div className="flex justify-between items-center border-b border-border-accent/40 pb-3">
+                <div>
+                  <h3 className="text-base font-black text-text-primary">Team Coordinates & Structure</h3>
+                  <p className="text-[10px] text-text-secondary mt-0.5">Explore reporting chains and org unit hierarchy</p>
+                </div>
                 
-                {activeManager ? (
-                  <div className="bg-surface-card border-2 border-brand-accent/25 rounded-3xl p-6 max-w-xl mx-auto shadow-md hover:border-brand-accent transition-colors flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-brand-muted border border-brand-accent/20 text-brand-accent flex items-center justify-center font-bold text-lg shadow-sm">
-                        💼
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="text-sm font-black text-text-primary truncate">{activeManager.name}</h4>
-                        <p className="text-[10px] text-brand-accent font-extrabold uppercase mt-0.5 tracking-wide">{activeManager.designation}</p>
-                        <span className="text-[9px] text-text-secondary font-mono">{activeManager.eid} · {activeManager.email}</span>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      onClick={() => handlePivotProfile(activeManager.id)}
-                      className="px-3.5 py-2 bg-surface-elevated hover:bg-brand-accent hover:text-white border border-border-accent hover:border-brand-accent text-[11px] font-black rounded-xl transition-all cursor-pointer whitespace-nowrap shadow-sm"
-                    >
-                      View Profile Circle
-                    </button>
-                  </div>
-                ) : (
-                  <div className="bg-surface-card border border-border-accent/40 rounded-3xl p-6 max-w-xl mx-auto text-center">
-                    <p className="text-xs font-black text-text-primary uppercase tracking-wider">Top level node structural status</p>
-                    <p className="text-[10px] text-text-secondary mt-1">This node reports directly to the Board of Directors.</p>
-                  </div>
-                )}
+                <div className="flex bg-surface-card border border-border-accent/60 rounded-xl p-1 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setTeamSubView('peers')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      teamSubView === 'peers'
+                        ? 'bg-brand-accent text-white shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    👥 Peer Coordinates
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTeamSubView('tree')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      teamSubView === 'tree'
+                        ? 'bg-brand-accent text-white shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    🏢 Org Structure Tree
+                  </button>
+                </div>
               </div>
 
-              {/* Connected Active Circle Peer Matrix */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center border-b border-border-accent/40 pb-3.5">
-                  <div>
-                    <h3 className="text-base font-black text-text-primary">Connected Peer Coordinates</h3>
-                    <p className="text-[10px] text-text-secondary mt-0.5">All employees reporting to the same upline node</p>
+              {teamSubView === 'peers' ? (
+                <>
+                  {/* Upstream Manager Card Block */}
+                  <div className="space-y-3">
+                    <span className="text-[10px] text-text-tertiary font-black uppercase tracking-widest block text-center">
+                      Upstream Node Coordinates
+                    </span>
+                    
+                    {activeManager ? (
+                      <div className="bg-surface-card border-2 border-brand-accent/25 rounded-3xl p-6 max-w-xl mx-auto shadow-md hover:border-brand-accent transition-colors flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-2xl bg-brand-muted border border-brand-accent/20 text-brand-accent flex items-center justify-center font-bold text-lg shadow-sm">
+                            💼
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-black text-text-primary truncate">{activeManager.name}</h4>
+                            <p className="text-[10px] text-brand-accent font-extrabold uppercase mt-0.5 tracking-wide">{activeManager.designation}</p>
+                            <span className="text-[9px] text-text-secondary font-mono">{activeManager.eid} · {activeManager.email}</span>
+                          </div>
+                        </div>
+                        
+                        <button 
+                          type="button"
+                          onClick={() => handlePivotProfile(activeManager.id)}
+                          className="px-3.5 py-2 bg-surface-elevated hover:bg-brand-accent hover:text-white border border-border-accent hover:border-brand-accent text-[11px] font-black rounded-xl transition-all cursor-pointer whitespace-nowrap shadow-sm"
+                        >
+                          View Profile Circle
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="bg-surface-card border border-border-accent/40 rounded-3xl p-6 max-w-xl mx-auto text-center">
+                        <p className="text-xs font-black text-text-primary uppercase tracking-wider">Top level node structural status</p>
+                        <p className="text-[10px] text-text-secondary mt-1">This node reports directly to the Board of Directors.</p>
+                      </div>
+                    )}
                   </div>
-                  <span className="px-3 py-1 bg-brand-muted border border-brand-accent/20 rounded-full text-xs font-black text-brand-accent">
-                    {activePeers.length + 1} Total Members
-                  </span>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {/* Highlight Self card in peers matrix */}
-                  <div className="bg-gradient-to-br from-surface-card to-brand-muted/10 border-2 border-brand-accent rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
-                    <div className="absolute top-0 right-0 p-2.5">
-                      <span className="px-2 py-0.5 bg-brand-accent text-white text-[8px] font-black uppercase rounded tracking-widest shadow-sm">
-                        You
+                  {/* Connected Active Circle Peer Matrix */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b border-border-accent/40 pb-3.5">
+                      <div>
+                        <h3 className="text-base font-black text-text-primary">Connected Peer Coordinates</h3>
+                        <p className="text-[10px] text-text-secondary mt-0.5">All employees reporting to the same upline node</p>
+                      </div>
+                      <span className="px-3 py-1 bg-brand-muted border border-brand-accent/20 rounded-full text-xs font-black text-brand-accent">
+                        {activePeers.length + 1} Total Members
                       </span>
                     </div>
-                    
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold flex items-center justify-center text-sm shadow">
-                        {activeUser.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="text-xs font-black text-text-primary leading-tight truncate">{activeUser.name} (You)</h4>
-                        <p className="text-[9px] text-brand-accent font-extrabold uppercase mt-0.5 truncate tracking-wide">{activeUser.designation}</p>
-                      </div>
-                    </div>
 
-                    <div className="border-t border-border-accent/60 pt-3 flex justify-between items-center text-[10px]">
-                      <span className="text-text-secondary font-mono font-bold">{activeUser.eid}</span>
-                      <span className="text-text-primary font-bold">{activeUser.verticalName}</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {/* Highlight Self card in peers matrix */}
+                      <div className="bg-gradient-to-br from-surface-card to-brand-muted/10 border-2 border-brand-accent rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                        <div className="absolute top-0 right-0 p-2.5">
+                          <span className="px-2 py-0.5 bg-brand-accent text-white text-[8px] font-black uppercase rounded tracking-widest shadow-sm">
+                            You
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold flex items-center justify-center text-sm shadow">
+                            {activeUser.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-black text-text-primary leading-tight truncate">{activeUser.name} (You)</h4>
+                            <p className="text-[9px] text-brand-accent font-extrabold uppercase mt-0.5 truncate tracking-wide">{activeUser.designation}</p>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-border-accent/60 pt-3 flex justify-between items-center text-[10px]">
+                          <span className="text-text-secondary font-mono font-bold">{activeUser.eid}</span>
+                          <span className="text-text-primary font-bold">{activeUser.verticalName}</span>
+                        </div>
+                      </div>
+
+                      {/* Other Peers */}
+                      {activePeers.map(peer => (
+                        <div 
+                          key={peer.id}
+                          onClick={() => handlePivotProfile(peer.id)}
+                          className="bg-surface-card border border-border-accent hover:border-brand-accent/40 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="h-10 w-10 rounded-xl bg-surface-elevated group-hover:bg-brand-muted text-text-secondary group-hover:text-brand-accent border border-border-accent/40 group-hover:border-brand-accent/20 flex items-center justify-center font-bold text-sm transition-all">
+                              {peer.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-black text-text-primary leading-tight truncate group-hover:text-brand-accent transition-colors">{peer.name}</h4>
+                              <p className="text-[9px] text-text-secondary font-medium uppercase mt-0.5 truncate tracking-wide">{peer.designation}</p>
+                            </div>
+                          </div>
+
+                          <div className="border-t border-border-accent/40 pt-3 flex justify-between items-center text-[10px]">
+                            <span className="text-text-secondary font-mono font-semibold">{peer.eid}</span>
+                            <span className="text-text-primary font-bold">{peer.verticalName}</span>
+                          </div>
+                        </div>
+                      ))}
+
+                      {activePeers.length === 0 && (
+                        <div className="col-span-full py-12 text-center bg-surface-card/40 border border-dashed border-border-accent rounded-3xl">
+                          <span className="text-3xl block mb-2">🔭</span>
+                          <p className="text-xs font-black text-text-secondary uppercase">No matching peers located</p>
+                          <p className="text-[10px] text-text-tertiary mt-1">This employee appears to be the sole node coordinate reporting to their manager.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* Other Peers */}
-                  {activePeers.map(peer => (
-                    <div 
-                      key={peer.id}
-                      onClick={() => handlePivotProfile(peer.id)}
-                      className="bg-surface-card border border-border-accent hover:border-brand-accent/40 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
-                    >
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="h-10 w-10 rounded-xl bg-surface-elevated group-hover:bg-brand-muted text-text-secondary group-hover:text-brand-accent border border-border-accent/40 group-hover:border-brand-accent/20 flex items-center justify-center font-bold text-sm transition-all">
-                          {peer.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-black text-text-primary leading-tight truncate group-hover:text-brand-accent transition-colors">{peer.name}</h4>
-                          <p className="text-[9px] text-text-secondary font-medium uppercase mt-0.5 truncate tracking-wide">{peer.designation}</p>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-border-accent/40 pt-3 flex justify-between items-center text-[10px]">
-                        <span className="text-text-secondary font-mono font-semibold">{peer.eid}</span>
-                        <span className="text-text-primary font-bold">{peer.verticalName}</span>
-                      </div>
+                </>
+              ) : (
+                /* Interactive Org Hierarchy Tree Sub-View */
+                isHierarchyLoading && !orgHierarchy ? (
+                  <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                    <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-xs text-text-secondary">Loading organizational hierarchy tree...</p>
+                  </div>
+                ) : (
+                  <div className="bg-surface-card border border-border-accent rounded-3xl p-6 shadow-lg overflow-x-auto min-h-[400px]">
+                    <div className="text-xs font-bold text-text-secondary mb-4 flex justify-between items-center">
+                      <span>Company Node Hierarchy</span>
+                      <button
+                        type="button"
+                        onClick={fetchHierarchyData}
+                        className="px-3 py-1 bg-surface-elevated hover:bg-brand-muted border border-border-accent rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                      >
+                        🔄 Refresh Tree
+                      </button>
                     </div>
-                  ))}
-
-                  {activePeers.length === 0 && (
-                    <div className="col-span-full py-12 text-center bg-surface-card/40 border border-dashed border-border-accent rounded-3xl">
-                      <span className="text-3xl block mb-2">🔭</span>
-                      <p className="text-xs font-black text-text-secondary uppercase">No matching peers located</p>
-                      <p className="text-[10px] text-text-tertiary mt-1">This employee appears to be the sole node coordinate reporting to their manager.</p>
+                    
+                    <div className="tree-container">
+                      {renderOrgNodeTree(null)}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                )
+              )}
             </div>
           )}
 
@@ -1039,84 +1336,304 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
 
           {/* Tab Content 4: Modular App Marketplace */}
           {activeTab === 'apps' && (
-            <div className="space-y-6 max-w-5xl mx-auto animate-fadeIn">
+            <div className="space-y-6 max-w-5xl mx-auto animate-fadeIn pb-12">
               
-              <div className="border-b border-border-accent/40 pb-3.5">
-                <h3 className="text-base font-black text-text-primary font-sans">Enterprise Applications Hub</h3>
-                <p className="text-[10px] text-text-secondary mt-0.5">Explore active extensions and download modular coordinates</p>
-              </div>
-
-              {/* Configured app listing */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border-accent/45 pb-3.5 gap-4">
+                <div>
+                  <h3 className="text-base font-black text-text-primary font-sans">Enterprise Applications Hub</h3>
+                  <p className="text-[10px] text-text-secondary mt-0.5">Explore active extensions, request new privileges, and track entitlements</p>
+                </div>
                 
-                {/* Apps Grid */}
-                {filteredApps.map(app => (
-                  <div 
-                    key={app.id} 
-                    className="bg-surface-card border border-border-accent rounded-3xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                {/* Marketplace view toggles */}
+                <div className="flex bg-surface-card border border-border-accent/60 rounded-xl p-1 gap-1">
+                  <button
+                    onClick={() => setMarketplaceSubTab('catalog')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      marketplaceSubTab === 'catalog'
+                        ? 'bg-brand-accent text-white shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
                   >
-                    <div>
-                      <div className="flex justify-between items-start mb-4">
-                        <span className="h-10 w-10 rounded-2xl bg-brand-muted border border-brand-accent/20 text-brand-accent flex items-center justify-center font-bold text-lg shadow-sm">
-                          {getAppIcon(app.icon)}
-                        </span>
-                        <span className="px-2.5 py-1 bg-success/15 border border-success/20 text-[9px] font-black text-success uppercase tracking-wider rounded-md">
-                          Installed
-                        </span>
-                      </div>
-
-                      <h4 className="text-sm font-black text-text-primary">{app.name}</h4>
-                      <p className="text-[11px] text-text-secondary mt-1.5 leading-relaxed">{app.description}</p>
-                      
-                      <div className="flex items-center gap-1.5 mt-4">
-                        <span className="text-[8px] text-text-tertiary font-bold uppercase">Authorized Access:</span>
-                        <div className="flex flex-wrap gap-1">
-                          {(app.roles || []).map(r => (
-                            <span key={r} className="text-[8px] bg-surface-elevated border border-border-accent px-1.5 py-0.5 rounded font-mono font-bold text-text-secondary">
-                              {r}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-6">
-                      <Link 
-                        href={`/apps/${app.id}`}
-                        className="w-full py-2 bg-brand-accent text-white hover:bg-brand-hover text-xs font-black rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
-                      >
-                        Launch Application 🡥
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Ecosystem Marketplace placeholders */}
-                {[1, 2].map(num => (
-                  <div
-                    key={num}
-                    className="bg-surface-card/40 border border-dashed border-border-accent/80 rounded-3xl p-6 shadow-sm hover:bg-surface-card/65 transition-all flex flex-col justify-between items-center text-center group cursor-pointer"
+                    🔌 App Catalog
+                  </button>
+                  <button
+                    onClick={() => setMarketplaceSubTab('requests')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      marketplaceSubTab === 'requests'
+                        ? 'bg-brand-accent text-white shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    }`}
                   >
-                    <div className="my-auto py-6 space-y-3">
-                      <div className="h-11 w-11 rounded-2xl border border-dashed border-border-accent text-text-tertiary group-hover:text-brand-accent group-hover:border-brand-accent/40 flex items-center justify-center font-bold text-lg mx-auto transition-all">
-                        ＋
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-text-secondary group-hover:text-text-primary transition-colors">Add New Application</h4>
-                        <p className="text-[10px] text-text-tertiary mt-1 leading-relaxed max-w-[220px] mx-auto">Register new modular micro-frontends directly into the launchpad registry</p>
-                      </div>
-                    </div>
-                    
-                    <button
-                      disabled
-                      className="px-4 py-1.5 bg-surface-elevated/40 border border-border-accent text-text-tertiary text-[10px] font-black rounded-lg cursor-not-allowed group-hover:border-brand-accent/20 group-hover:text-brand-accent transition-colors"
-                    >
-                      Ecosystem Integration Blocked
-                    </button>
-                  </div>
-                ))}
-
+                    📜 My Access Requests
+                    {accessRequests.filter(r => r.status.startsWith('pending')).length > 0 && (
+                      <span className="w-1.5 h-1.5 bg-warning rounded-full animate-pulse"></span>
+                    )}
+                  </button>
+                </div>
               </div>
+
+              {isMarketplaceLoading && marketplaceApps.enabledApps.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                  <div className="w-7 h-7 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-xs text-text-tertiary">Connecting to app registry engine...</p>
+                </div>
+              ) : marketplaceSubTab === 'catalog' ? (
+                <div className="space-y-10">
+                  
+                  {/* Category 1: Enabled Apps */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-text-primary uppercase tracking-wider">Installed / Active Applications</span>
+                      <span className="text-[9px] bg-success/10 border border-success/20 text-success px-2 py-0.5 rounded-full font-mono font-bold">
+                        {marketplaceApps.enabledApps.length}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {marketplaceApps.enabledApps.map(app => (
+                        <div 
+                          key={app.id} 
+                          className="bg-surface-card border border-border-accent rounded-3xl p-6 shadow-sm hover:shadow-md hover:border-brand-accent/20 transition-all flex flex-col justify-between group"
+                        >
+                          <div>
+                            <div className="flex justify-between items-start mb-4">
+                              <span className="h-10 w-10 rounded-2xl bg-brand-muted border border-brand-accent/20 text-brand-accent flex items-center justify-center font-bold text-lg shadow-sm group-hover:scale-105 transition-all">
+                                {getAppIcon(app.icon)}
+                              </span>
+                              <span className="px-2.5 py-1 bg-success/15 border border-success/20 text-[9px] font-black text-success uppercase tracking-wider rounded-md">
+                                Installed
+                              </span>
+                            </div>
+
+                            <h4 className="text-sm font-black text-text-primary">{app.name}</h4>
+                            <p className="text-[11px] text-text-secondary mt-1.5 leading-relaxed">{app.description}</p>
+                            
+                            <div className="flex items-center gap-1.5 mt-4">
+                              <span className="text-[8px] text-text-tertiary font-bold uppercase">Targeting vertical:</span>
+                              <span className="text-[8px] bg-surface-elevated border border-border-accent px-1.5 py-0.5 rounded font-mono font-bold text-text-secondary">
+                                {app.targetRules?.verticals?.join(', ') || 'Global'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="pt-6">
+                            <Link 
+                              href={`/apps/${app.id}`}
+                              className="w-full py-2 bg-brand-accent text-white hover:bg-brand-hover text-xs font-black rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              Launch Application 🡥
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+
+                      {marketplaceApps.enabledApps.length === 0 && (
+                        <div className="col-span-full py-10 text-center bg-surface-card/20 border border-dashed border-border-accent rounded-3xl text-text-secondary text-xs italic">
+                          No active applications provisioned to your profile.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Category 2: Requestable Apps */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-text-primary uppercase tracking-wider">Discoverable Extensions (Eligible)</span>
+                      <span className="text-[9px] bg-brand-accent/10 border border-brand-accent/20 text-brand-accent px-2 py-0.5 rounded-full font-mono font-bold">
+                        {marketplaceApps.requestableApps.length}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {marketplaceApps.requestableApps.map(app => (
+                        <div 
+                          key={app.id} 
+                          className="bg-surface-card border border-border-accent rounded-3xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="flex justify-between items-start mb-4">
+                              <span className="h-10 w-10 rounded-2xl bg-surface-elevated border border-border-accent/40 text-text-secondary flex items-center justify-center font-bold text-lg shadow-sm">
+                                {getAppIcon(app.icon)}
+                              </span>
+                              <span className="px-2.5 py-1 bg-brand-muted border border-brand-accent/10 text-[9px] font-black text-brand-accent uppercase tracking-wider rounded-md">
+                                Requestable
+                              </span>
+                            </div>
+
+                            <h4 className="text-sm font-black text-text-primary">{app.name}</h4>
+                            <p className="text-[11px] text-text-secondary mt-1.5 leading-relaxed">{app.description}</p>
+                            
+                            <div className="flex items-center gap-1.5 mt-4">
+                              <span className="text-[8px] text-text-tertiary font-bold uppercase">Designations:</span>
+                              <span className="text-[8px] bg-surface-elevated border border-border-accent px-1.5 py-0.5 rounded font-mono font-bold text-text-secondary max-w-[200px] truncate" title={app.targetRules?.designations?.join(', ') || 'Any'}>
+                                {app.targetRules?.designations?.join(', ') || 'Any'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="pt-6">
+                            <button 
+                              onClick={() => {
+                                setSelectedRequestApp(app);
+                                setShowRequestAccessModal(true);
+                              }}
+                              className="w-full py-2 bg-surface-elevated hover:bg-surface-card border border-border-accent hover:border-brand-accent/30 text-xs font-black text-text-primary rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              🔑 Request Access
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {marketplaceApps.requestableApps.length === 0 && (
+                        <div className="col-span-full py-8 text-center bg-surface-card/10 border border-dashed border-border-accent/40 rounded-3xl text-text-tertiary text-xs italic">
+                          No additional eligible applications discovered in the catalog.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Category 3: Unavailable Apps */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-text-primary uppercase tracking-wider text-text-tertiary">Unavailable extensions (Restricted)</span>
+                      <span className="text-[9px] bg-surface-elevated border border-border-accent/40 text-text-tertiary px-2 py-0.5 rounded-full font-mono font-bold">
+                        {marketplaceApps.unavailableApps.length}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 opacity-60">
+                      {marketplaceApps.unavailableApps.map(app => (
+                        <div 
+                          key={app.id} 
+                          className="bg-surface-card/60 border border-border-accent/40 rounded-3xl p-6 shadow-sm flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="flex justify-between items-start mb-4">
+                              <span className="h-10 w-10 rounded-2xl bg-surface-elevated border border-border-accent/20 text-text-tertiary flex items-center justify-center font-bold text-lg shadow-sm">
+                                🔒
+                              </span>
+                              <span className="px-2.5 py-1 bg-surface-elevated border border-border-accent/60 text-[9px] font-black text-text-tertiary uppercase tracking-wider rounded-md">
+                                Locked
+                              </span>
+                            </div>
+
+                            <h4 className="text-sm font-black text-text-secondary">{app.name}</h4>
+                            <p className="text-[11px] text-text-tertiary mt-1.5 leading-relaxed">{app.description}</p>
+                            
+                            <div className="space-y-2 mt-4">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[8px] text-text-tertiary font-bold uppercase">Required Level:</span>
+                                <span className="text-[8px] bg-surface-elevated border border-border-accent px-1.5 py-0.5 rounded font-mono font-bold text-text-tertiary">
+                                  L{app.targetRules?.minJobLevel || 1}+
+                                </span>
+                              </div>
+                              {app.targetRules?.verticals && app.targetRules.verticals.length > 0 && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[8px] text-text-tertiary font-bold uppercase">Vertical Target:</span>
+                                  <span className="text-[8px] bg-surface-elevated border border-border-accent px-1.5 py-0.5 rounded font-mono font-bold text-text-tertiary max-w-[180px] truncate">
+                                    {app.targetRules.verticals.join(', ')}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="pt-6">
+                            <button 
+                              disabled
+                              className="w-full py-2 bg-surface-elevated/40 border border-border-accent/40 text-xs font-black text-text-tertiary rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5"
+                            >
+                              Restricted Targeting Rules
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {marketplaceApps.unavailableApps.length === 0 && (
+                        <div className="col-span-full py-6 text-center bg-surface-card/5 border border-dashed border-border-accent/20 rounded-3xl text-text-tertiary text-xs italic">
+                          No restricted applications discovered.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              ) : (
+                /* Sub-tab: My Access Requests */
+                <div className="bg-surface-card border border-border-accent rounded-3xl shadow-lg overflow-hidden animate-fadeIn">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-border-accent bg-surface-card/10 text-text-tertiary font-bold uppercase tracking-wider">
+                          <th className="p-4 w-44">App / Requested On</th>
+                          <th className="p-4">Reason / Justification</th>
+                          <th className="p-4 w-32">Scope</th>
+                          <th className="p-4 w-44">Status</th>
+                          <th className="p-4">Admin Notes / Feedback</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-accent/40">
+                        {accessRequests.map(req => {
+                          let statusClass = 'bg-surface-elevated text-text-secondary border-border-accent';
+                          let statusLabel = req.status;
+
+                          if (req.status.startsWith('pending')) {
+                            statusClass = 'bg-warning/10 border-warning/20 text-warning-text';
+                            statusLabel = 'Pending Review';
+                          } else if (req.status === 'approved') {
+                            statusClass = 'bg-success/15 border-success/20 text-success';
+                            statusLabel = 'Approved';
+                          } else if (req.status === 'rejected') {
+                            statusClass = 'bg-danger/15 border-danger/20 text-danger';
+                            statusLabel = 'Rejected';
+                          }
+
+                          return (
+                            <tr key={req.id} className="hover:bg-surface-card/20 transition-colors">
+                              <td className="p-4">
+                                <span className="font-bold text-text-primary text-sm block">{req.appName}</span>
+                                <span className="text-[10px] text-text-tertiary block mt-0.5">
+                                  {new Date(req.createdAt).toLocaleDateString()}
+                                </span>
+                              </td>
+                              <td className="p-4 text-[11px] text-text-secondary leading-relaxed max-w-xs break-words">
+                                "{req.reason}"
+                              </td>
+                              <td className="p-4 font-mono text-[10px] uppercase">
+                                <span className="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-accent text-text-secondary font-bold">
+                                  {req.scope}
+                                </span>
+                                {req.targetEntityId && (
+                                  <span className="text-[9px] text-text-tertiary block mt-1 truncate max-w-[100px]" title={req.targetEntityId}>
+                                    ID: {req.targetEntityId}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase ${statusClass}`}>
+                                  {statusLabel}
+                                </span>
+                              </td>
+                              <td className="p-4 text-[11px] italic text-text-secondary">
+                                {req.notes || <span className="text-text-tertiary opacity-50">—</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+
+                        {accessRequests.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="p-10 text-center text-text-secondary italic">
+                              You have not submitted any access requests yet.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {/* Developer Link Section */}
               <div className="bg-surface-card border border-border-accent/40 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -1128,7 +1645,7 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                 <Link 
                   href="https://github.com/google"
                   target="_blank"
-                  className="px-4 py-2 bg-surface-elevated hover:bg-surface-card border border-border-accent hover:border-brand-accent/30 text-xs font-black rounded-xl transition-all shadow-sm flex-shrink-0 cursor-pointer text-center"
+                  className="px-4 py-2 bg-surface-elevated hover:bg-surface-card border border-border-accent hover:border-brand-accent/30 text-xs font-black rounded-xl transition-all shadow-sm flex-shrink-0 cursor-pointer text-center text-text-primary"
                 >
                   View Developer Boilerplate Docs
                 </Link>
@@ -1340,6 +1857,144 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
 
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Access Request Modal */}
+      {showRequestAccessModal && selectedRequestApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-surface-card border border-border-accent rounded-3xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-border-accent bg-surface-card/10 flex items-center justify-between">
+              <h3 className="font-black text-xs uppercase tracking-wider text-text-primary">
+                Request Application Access
+              </h3>
+              <button
+                onClick={() => {
+                  setShowRequestAccessModal(false);
+                  setRequestError('');
+                }}
+                className="text-text-tertiary hover:text-text-primary text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleRequestAccessSubmit} className="p-5 space-y-4 text-xs">
+              {requestError && (
+                <div className="p-3 bg-danger/15 border border-danger/20 text-danger rounded-xl text-[10px] font-bold font-mono">
+                  [ERROR] {requestError}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 bg-surface-elevated/40 border border-border-accent/40 p-3 rounded-2xl">
+                <span className="text-2xl">{getAppIcon(selectedRequestApp.icon)}</span>
+                <div>
+                  <h4 className="font-bold text-text-primary text-xs">{selectedRequestApp.name}</h4>
+                  <p className="text-[10px] text-text-secondary">{selectedRequestApp.description}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Reason / Justification</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={requestReason}
+                  onChange={(e) => setRequestReason(e.target.value)}
+                  placeholder="Explain why you require access to this extension..."
+                  className="w-full px-3 py-2 bg-background-portal border border-input-border focus:border-brand-accent rounded-xl outline-none resize-none leading-relaxed text-text-primary"
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Entitlement Scope</label>
+                <select
+                  value={requestScope}
+                  onChange={(e) => setRequestScope(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-background-portal border border-input-border rounded-xl outline-none font-bold text-text-primary"
+                >
+                  <option value="individual">Individual (Just for me)</option>
+                  <option value="project">Project / Workspace</option>
+                  <option value="org_node">Department / Team Node</option>
+                </select>
+              </div>
+
+              {requestScope !== 'individual' && (
+                <div className="animate-fadeIn">
+                  <label className="text-[9px] font-black uppercase text-text-tertiary block mb-1">
+                    {requestScope === 'project' ? 'Select Target Project' : 'Select Target Department / Team'}
+                  </label>
+                  {requestScope === 'project' ? (
+                    availableProjects.length === 0 ? (
+                      <p className="text-[10px] text-text-secondary italic">No active projects available to select.</p>
+                    ) : (
+                      <select
+                        required
+                        value={requestTargetEntityId}
+                        onChange={(e) => setRequestTargetEntityId(e.target.value)}
+                        className="w-full px-3 py-2 bg-background-portal border border-input-border rounded-xl outline-none font-bold text-text-primary"
+                      >
+                        {availableProjects.map(proj => (
+                          <option key={proj.id} value={proj.id}>
+                            {proj.name} ({proj.code})
+                          </option>
+                        ))}
+                      </select>
+                    )
+                  ) : (
+                    availableNodes.length === 0 ? (
+                      <p className="text-[10px] text-text-secondary italic">No organizational nodes available to select.</p>
+                    ) : (
+                      <select
+                        required
+                        value={requestTargetEntityId}
+                        onChange={(e) => setRequestTargetEntityId(e.target.value)}
+                        className="w-full px-3 py-2 bg-background-portal border border-input-border rounded-xl outline-none font-bold text-text-primary"
+                      >
+                        {availableNodes.map(node => (
+                          <option key={node.id} value={node.id}>
+                            {node.name} [{node.type.toUpperCase()}]
+                          </option>
+                        ))}
+                      </select>
+                    )
+                  )}
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-border-accent/40 flex items-center justify-end gap-3.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRequestAccessModal(false);
+                    setRequestError('');
+                  }}
+                  className="px-4 py-2 border border-border-accent rounded-xl text-xs hover:bg-background-portal text-text-secondary font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingRequest}
+                  className="px-5 py-2 bg-brand-accent hover:bg-brand-hover disabled:opacity-40 text-white font-bold text-xs uppercase rounded-xl transition-all shadow flex items-center gap-2 cursor-pointer"
+                >
+                  {isSubmittingRequest ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-55 bg-surface-card border border-border-accent rounded-2xl px-5 py-3 shadow-2xl animate-fadeIn flex items-center gap-3">
+          <span className={toastMessage.type === 'success' ? 'text-success' : 'text-danger'}>
+            {toastMessage.type === 'success' ? '✓' : '⚠'}
+          </span>
+          <span className="text-xs font-bold text-text-primary">{toastMessage.text}</span>
         </div>
       )}
 
