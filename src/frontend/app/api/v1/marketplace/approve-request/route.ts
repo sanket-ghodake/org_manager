@@ -23,14 +23,16 @@ export async function POST(request: NextRequest) {
     // 1. Fetch request details
     const requestResult = await db.execute(sql`
       SELECT 
-        id, 
-        app_id as "appId", 
-        requester_id as "requesterId", 
-        scope, 
-        target_entity_id as "targetEntityId", 
-        status
-      FROM forge_app_access_requests
-      WHERE id = ${requestId}
+        r.id, 
+        r.app_id as "appId", 
+        r.requester_id as "requesterId", 
+        u.manager_id as "managerId",
+        r.scope, 
+        r.target_entity_id as "targetEntityId", 
+        r.status
+      FROM forge_app_access_requests r
+      INNER JOIN users u ON r.requester_id = u.id
+      WHERE r.id = ${requestId}
     `);
     const requestRows = (requestResult.rows || requestResult) as any[];
     if (!requestRows || requestRows.length === 0) {
@@ -39,67 +41,71 @@ export async function POST(request: NextRequest) {
     const accessRequest = requestRows[0] as any;
 
     const appId = accessRequest.appId;
-    const requesterId = accessRequest.requesterId;
     const scope = accessRequest.scope;
-    const targetEntityId = accessRequest.targetEntityId;
     const currentStatus = accessRequest.status;
+
+    if (session.id === accessRequest.requesterId) {
+      return NextResponse.json({ error: 'Forbidden: You cannot review your own access request.' }, { status: 403 });
+    }
 
     // 2. Determine reviewer authorities
     const isSuperAdmin = session.role === 'super_admin';
+    const isRequesterManager = session.id === accessRequest.managerId;
     const appAdminRes = await db.execute(sql`
       SELECT 1 FROM forge_app_admins WHERE app_id = ${appId} AND user_id = ${session.id}
     `);
     const appAdminRows = (appAdminRes.rows || appAdminRes) as any[];
     const isAppAdmin = appAdminRows && appAdminRows.length > 0;
 
-    if (!isSuperAdmin && !isAppAdmin) {
-      return NextResponse.json({ error: 'Forbidden: You are not authorized to review this request' }, { status: 403 });
+    let isAuthorized = false;
+    if (currentStatus === 'pending_manager') {
+      isAuthorized = isRequesterManager || isSuperAdmin;
+    } else if (currentStatus === 'pending_app_admin') {
+      isAuthorized = isAppAdmin || isSuperAdmin;
+    } else if (currentStatus === 'pending_super_admin') {
+      isAuthorized = isSuperAdmin;
+    }
+
+    if (!isAuthorized) {
+      return NextResponse.json({ error: 'Forbidden: You are not authorized to review this request at its current stage' }, { status: 403 });
     }
 
     // 3. Process Review state transitions
     let nextStatus = currentStatus;
-    let provisionEntitlement = false;
-
-    if (isSuperAdmin) {
-      // Super Admin can override or approve any request at pending_app_admin or pending_super_admin
-      if (status === 'rejected') {
-        nextStatus = 'rejected';
-      } else {
-        nextStatus = 'approved';
-        provisionEntitlement = true;
-      }
+    if (status === 'rejected') {
+      nextStatus = 'rejected';
     } else {
-      // App Admin review
-      if (currentStatus !== 'pending_app_admin') {
-        return NextResponse.json({ error: 'Request is not pending App Admin review' }, { status: 400 });
-      }
-
-      if (status === 'rejected') {
-        nextStatus = 'rejected';
+      if (isSuperAdmin) {
+        nextStatus = 'approved';
       } else {
-        if (scope === 'individual') {
+        if (currentStatus === 'pending_manager') {
+          nextStatus = 'pending_app_admin';
+        } else if (currentStatus === 'pending_app_admin') {
+          if (scope === 'individual') {
+            nextStatus = 'approved';
+          } else {
+            // Elevated scopes require Super Admin signoff
+            nextStatus = 'pending_super_admin';
+          }
+        } else if (currentStatus === 'pending_super_admin') {
           nextStatus = 'approved';
-          provisionEntitlement = true;
-        } else {
-          // Elevated scopes require Super Admin signoff
-          nextStatus = 'pending_super_admin';
         }
       }
     }
 
-    // 4. Update request & provision in a transaction
+    // 4. Update request status and log messages (including automatic entitlement provisioning)
     await db.transaction(async (tx) => {
-      if (isSuperAdmin) {
+      if (currentStatus === 'pending_manager') {
         await tx.execute(sql`
           UPDATE forge_app_access_requests
           SET 
             status = ${nextStatus},
-            super_admin_reviewed_by = ${session.id},
-            super_admin_notes = ${notes || null},
+            manager_reviewed_by = ${session.id},
+            manager_notes = ${notes || null},
             updated_at = NOW()
           WHERE id = ${requestId}
         `);
-      } else {
+      } else if (currentStatus === 'pending_app_admin') {
         await tx.execute(sql`
           UPDATE forge_app_access_requests
           SET 
@@ -109,23 +115,47 @@ export async function POST(request: NextRequest) {
             updated_at = NOW()
           WHERE id = ${requestId}
         `);
+      } else if (currentStatus === 'pending_super_admin') {
+        await tx.execute(sql`
+          UPDATE forge_app_access_requests
+          SET 
+            status = ${nextStatus},
+            super_admin_reviewed_by = ${session.id},
+            super_admin_notes = ${notes || null},
+            updated_at = NOW()
+          WHERE id = ${requestId}
+        `);
       }
 
-      if (provisionEntitlement) {
-        const subjectType = scope === 'individual' ? 'user' :
-                            scope === 'org_node' ? 'org_node' : 'project';
-        
-        const subjectId = scope === 'individual' ? requesterId : targetEntityId;
+      // Insert system logging message into discussion timeline
+      const systemMessage = status === 'rejected'
+        ? `🚨 Request rejected by ${session.name} (${session.role === 'super_admin' ? 'Super Admin' : (isAppAdmin ? 'App Admin' : 'Manager')}). Feedback: "${notes || 'No review notes provided.'}"`
+        : `✅ Request approved by ${session.name} (${session.role === 'super_admin' ? 'Super Admin' : (isAppAdmin ? 'App Admin' : 'Manager')}). Transitioned status to: ${nextStatus}. Notes: "${notes || 'No notes provided.'}"`;
 
-        if (!subjectId) {
-          throw new Error('Missing target subject ID for provisioning elevated scope.');
+      await tx.execute(sql`
+        INSERT INTO forge_app_access_request_messages (request_id, sender_id, message)
+        VALUES (${requestId}, ${session.id}, ${systemMessage})
+      `);
+
+      // Provision entitlements automatically when the request hits 'approved'
+      if (nextStatus === 'approved') {
+        const subjectType = scope === 'individual' ? 'user' : (scope === 'org_node' ? 'org_node' : 'project');
+        const subjectId = scope === 'individual' ? accessRequest.requesterId : accessRequest.targetEntityId;
+
+        if (subjectId) {
+          // Verify to prevent duplicate active grants
+          const checkEnt = await tx.execute(sql`
+            SELECT 1 FROM forge_app_entitlements 
+            WHERE app_id = ${appId} AND subject_type = ${subjectType} AND subject_id = ${subjectId} AND access_type = 'grant'
+          `);
+          const checkRows = checkEnt.rows || checkEnt;
+          if (!checkRows || checkRows.length === 0) {
+            await tx.execute(sql`
+              INSERT INTO forge_app_entitlements (app_id, subject_type, subject_id, access_type, granted_by)
+              VALUES (${appId}, ${subjectType}, ${subjectId}, 'grant', ${session.id})
+            `);
+          }
         }
-
-        // Insert into entitlements table
-        await tx.execute(sql`
-          INSERT INTO forge_app_entitlements (app_id, subject_type, subject_id, access_type, granted_by)
-          VALUES (${appId}, ${subjectType}, ${subjectId}, 'grant', ${session.id})
-        `);
       }
     });
 

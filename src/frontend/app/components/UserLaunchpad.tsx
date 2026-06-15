@@ -140,11 +140,11 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Marketplace & access states
-  const [marketplaceSubTab, setMarketplaceSubTab] = useState<'catalog' | 'requests'>('catalog');
+  const [marketplaceSubTab, setMarketplaceSubTab] = useState<'catalog' | 'requests' | 'team-requests'>('catalog');
   const [marketplaceApps, setMarketplaceApps] = useState<{
-    enabledApps: AppConfig[];
-    requestableApps: AppConfig[];
-    unavailableApps: AppConfig[];
+    enabledApps: any[];
+    requestableApps: any[];
+    unavailableApps: any[];
   }>({
     enabledApps: initialData.apps,
     requestableApps: [],
@@ -153,7 +153,7 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
   const [accessRequests, setAccessRequests] = useState<any[]>([]);
   const [isMarketplaceLoading, setIsMarketplaceLoading] = useState(false);
   const [showRequestAccessModal, setShowRequestAccessModal] = useState(false);
-  const [selectedRequestApp, setSelectedRequestApp] = useState<AppConfig | null>(null);
+  const [selectedRequestApp, setSelectedRequestApp] = useState<any | null>(null);
   
   // Request Form fields
   const [requestReason, setRequestReason] = useState('');
@@ -162,6 +162,14 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [requestError, setRequestError] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  // Ticket / Timeline Communication Modal states
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [ticketMessages, setTicketMessages] = useState<any[]>([]);
+  const [newMessageText, setNewMessageText] = useState('');
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [isReviewing, setIsReviewing] = useState(false);
 
   // Org Hierarchy Tree and Autocomplete states
   const [teamSubView, setTeamSubView] = useState<'peers' | 'tree'>('peers');
@@ -227,6 +235,75 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
       console.error('Error loading marketplace data:', e);
     } finally {
       setIsMarketplaceLoading(false);
+    }
+  };
+
+  const fetchTicketMessages = async (requestId: string) => {
+    setIsMessagesLoading(true);
+    try {
+      const res = await fetch(`/api/v1/marketplace/requests/messages?requestId=${requestId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTicketMessages(data.messages || []);
+      }
+    } catch (err) {
+      console.error('Error fetching ticket messages:', err);
+    } finally {
+      setIsMessagesLoading(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedTicket || !newMessageText.trim()) return;
+    try {
+      const res = await fetch('/api/v1/marketplace/requests/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: selectedTicket.id,
+          message: newMessageText.trim(),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTicketMessages(prev => [...prev, data.message]);
+        setNewMessageText('');
+      }
+    } catch (err) {
+      console.error('Error sending message:', err);
+    }
+  };
+
+  const handleReviewTicket = async (status: 'approved' | 'rejected') => {
+    if (!selectedTicket) return;
+    setIsReviewing(true);
+    try {
+      const res = await fetch('/api/v1/marketplace/approve-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: selectedTicket.id,
+          status,
+          notes: reviewNotes,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Update local ticket status
+        setSelectedTicket((prev: any) => prev ? { ...prev, status: data.nextStatus } : null);
+        setReviewNotes('');
+        fetchMarketplaceData();
+        fetchTicketMessages(selectedTicket.id);
+        setToastMessage({ text: `Request successfully ${status}!`, type: 'success' });
+      } else {
+        const data = await res.json();
+        setToastMessage({ text: data.error || 'Failed to review request', type: 'error' });
+      }
+    } catch (err) {
+      console.error('Error reviewing request:', err);
+      setToastMessage({ text: 'Error reviewing request', type: 'error' });
+    } finally {
+      setIsReviewing(false);
     }
   };
 
@@ -1365,10 +1442,25 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                     }`}
                   >
                     📜 My Access Requests
-                    {accessRequests.filter(r => r.status.startsWith('pending')).length > 0 && (
+                    {accessRequests.filter(r => r.requesterId === initialData.user.id && r.status.startsWith('pending')).length > 0 && (
                       <span className="w-1.5 h-1.5 bg-warning rounded-full animate-pulse"></span>
                     )}
                   </button>
+                  {initialData.directReports && initialData.directReports.length > 0 && (
+                    <button
+                      onClick={() => setMarketplaceSubTab('team-requests')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        marketplaceSubTab === 'team-requests'
+                          ? 'bg-brand-accent text-white shadow-sm'
+                          : 'text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      👥 Team Requests
+                      {accessRequests.filter(r => r.requesterId !== initialData.user.id && r.status === 'pending_manager').length > 0 && (
+                        <span className="w-1.5 h-1.5 bg-warning rounded-full animate-pulse"></span>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1455,9 +1547,15 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                               <span className="h-10 w-10 rounded-2xl bg-surface-elevated border border-border-accent/40 text-text-secondary flex items-center justify-center font-bold text-lg shadow-sm">
                                 {getAppIcon(app.icon)}
                               </span>
-                              <span className="px-2.5 py-1 bg-brand-muted border border-brand-accent/10 text-[9px] font-black text-brand-accent uppercase tracking-wider rounded-md">
-                                Requestable
-                              </span>
+                              {app.hasPendingRequest ? (
+                                <span className="px-2.5 py-1 bg-warning/15 border border-warning/20 text-[9px] font-black text-warning-text uppercase tracking-wider rounded-md">
+                                  Pending Review
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 bg-brand-muted border border-brand-accent/10 text-[9px] font-black text-brand-accent uppercase tracking-wider rounded-md">
+                                  Requestable
+                                </span>
+                              )}
                             </div>
 
                             <h4 className="text-sm font-black text-text-primary">{app.name}</h4>
@@ -1472,15 +1570,24 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                           </div>
 
                           <div className="pt-6">
-                            <button 
-                              onClick={() => {
-                                setSelectedRequestApp(app);
-                                setShowRequestAccessModal(true);
-                              }}
-                              className="w-full py-2 bg-surface-elevated hover:bg-surface-card border border-border-accent hover:border-brand-accent/30 text-xs font-black text-text-primary rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-                            >
-                              🔑 Request Access
-                            </button>
+                            {app.hasPendingRequest ? (
+                              <button 
+                                disabled
+                                className="w-full py-2 bg-surface-elevated/40 border border-border-accent/45 text-xs font-black text-text-tertiary rounded-xl cursor-not-allowed flex items-center justify-center gap-1.5"
+                              >
+                                ⏳ Request Pending
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => {
+                                  setSelectedRequestApp(app);
+                                  setShowRequestAccessModal(true);
+                                }}
+                                className="w-full py-2 bg-surface-elevated hover:bg-surface-card border border-border-accent hover:border-brand-accent/30 text-xs font-black text-text-primary rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                🔑 Request Access
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -1559,7 +1666,7 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                   </div>
 
                 </div>
-              ) : (
+              ) : marketplaceSubTab === 'requests' ? (
                 /* Sub-tab: My Access Requests */
                 <div className="bg-surface-card border border-border-accent rounded-3xl shadow-lg overflow-hidden animate-fadeIn">
                   <div className="overflow-x-auto">
@@ -1570,62 +1677,158 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                           <th className="p-4">Reason / Justification</th>
                           <th className="p-4 w-32">Scope</th>
                           <th className="p-4 w-44">Status</th>
-                          <th className="p-4">Admin Notes / Feedback</th>
+                          <th className="p-4 w-36">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border-accent/40">
-                        {accessRequests.map(req => {
-                          let statusClass = 'bg-surface-elevated text-text-secondary border-border-accent';
-                          let statusLabel = req.status;
+                        {accessRequests
+                          .filter(req => req.requesterId === initialData.user.id)
+                          .map(req => {
+                            let statusClass = 'bg-surface-elevated text-text-secondary border-border-accent';
+                            let statusLabel = req.status;
 
-                          if (req.status.startsWith('pending')) {
-                            statusClass = 'bg-warning/10 border-warning/20 text-warning-text';
-                            statusLabel = 'Pending Review';
-                          } else if (req.status === 'approved') {
-                            statusClass = 'bg-success/15 border-success/20 text-success';
-                            statusLabel = 'Approved';
-                          } else if (req.status === 'rejected') {
-                            statusClass = 'bg-danger/15 border-danger/20 text-danger';
-                            statusLabel = 'Rejected';
-                          }
+                            if (req.status.startsWith('pending')) {
+                              statusClass = 'bg-warning/10 border-warning/20 text-warning-text';
+                              statusLabel = 'Pending Review';
+                            } else if (req.status === 'approved') {
+                              statusClass = 'bg-success/15 border-success/20 text-success';
+                              statusLabel = 'Approved';
+                            } else if (req.status === 'rejected') {
+                              statusClass = 'bg-danger/15 border-danger/20 text-danger';
+                              statusLabel = 'Rejected';
+                            }
 
-                          return (
-                            <tr key={req.id} className="hover:bg-surface-card/20 transition-colors">
-                              <td className="p-4">
-                                <span className="font-bold text-text-primary text-sm block">{req.appName}</span>
-                                <span className="text-[10px] text-text-tertiary block mt-0.5">
-                                  {new Date(req.createdAt).toLocaleDateString()}
-                                </span>
-                              </td>
-                              <td className="p-4 text-[11px] text-text-secondary leading-relaxed max-w-xs break-words">
-                                "{req.reason}"
-                              </td>
-                              <td className="p-4 font-mono text-[10px] uppercase">
-                                <span className="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-accent text-text-secondary font-bold">
-                                  {req.scope}
-                                </span>
-                                {req.targetEntityId && (
-                                  <span className="text-[9px] text-text-tertiary block mt-1 truncate max-w-[100px]" title={req.targetEntityId}>
-                                    ID: {req.targetEntityId}
+                            return (
+                              <tr key={req.id} className="hover:bg-surface-card/20 transition-colors">
+                                <td className="p-4">
+                                  <span className="font-bold text-text-primary text-sm block">{req.appName}</span>
+                                  <span className="text-[10px] text-text-tertiary block mt-0.5">
+                                    {new Date(req.createdAt).toLocaleDateString()}
                                   </span>
-                                )}
-                              </td>
-                              <td className="p-4">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase ${statusClass}`}>
-                                  {statusLabel}
-                                </span>
-                              </td>
-                              <td className="p-4 text-[11px] italic text-text-secondary">
-                                {req.notes || <span className="text-text-tertiary opacity-50">—</span>}
-                              </td>
-                            </tr>
-                          );
-                        })}
+                                </td>
+                                <td className="p-4 text-[11px] text-text-secondary leading-relaxed max-w-xs break-words">
+                                  "{req.reason}"
+                                </td>
+                                <td className="p-4 font-mono text-[10px] uppercase">
+                                  <span className="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-accent text-text-secondary font-bold">
+                                    {req.scope}
+                                  </span>
+                                  {req.targetEntityId && (
+                                    <span className="text-[9px] text-text-tertiary block mt-1 truncate max-w-[100px]" title={req.targetEntityId}>
+                                      ID: {req.targetEntityId}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="p-4">
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase ${statusClass}`}>
+                                    {statusLabel}
+                                  </span>
+                                </td>
+                                <td className="p-4">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedTicket(req);
+                                      fetchTicketMessages(req.id);
+                                    }}
+                                    className="px-2.5 py-1 bg-brand-accent/10 hover:bg-brand-accent text-brand-accent hover:text-white border border-brand-accent/20 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                                  >
+                                    💬 View Ticket
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
 
-                        {accessRequests.length === 0 && (
+                        {accessRequests.filter(req => req.requesterId === initialData.user.id).length === 0 && (
                           <tr>
                             <td colSpan={5} className="p-10 text-center text-text-secondary italic">
                               You have not submitted any access requests yet.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                /* Sub-tab: Team Access Requests */
+                <div className="bg-surface-card border border-border-accent rounded-3xl shadow-lg overflow-hidden animate-fadeIn">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-border-accent bg-surface-card/10 text-text-tertiary font-bold uppercase tracking-wider">
+                          <th className="p-4 w-44">Requester / Date</th>
+                          <th className="p-4 w-44">App</th>
+                          <th className="p-4">Reason / Justification</th>
+                          <th className="p-4 w-32">Scope</th>
+                          <th className="p-4 w-44">Status</th>
+                          <th className="p-4 w-36">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-accent/40">
+                        {accessRequests
+                          .filter(req => req.requesterId !== initialData.user.id)
+                          .map(req => {
+                            let statusClass = 'bg-surface-elevated text-text-secondary border-border-accent';
+                            let statusLabel = req.status;
+
+                            if (req.status === 'pending_manager') {
+                              statusClass = 'bg-warning/15 border-warning/20 text-warning-text';
+                              statusLabel = 'Pending Your Review';
+                            } else if (req.status === 'pending_app_admin' || req.status === 'pending_super_admin') {
+                              statusClass = 'bg-brand-accent/10 border-brand-accent/20 text-brand-accent';
+                              statusLabel = 'Pending Admin Review';
+                            } else if (req.status === 'approved') {
+                              statusClass = 'bg-success/15 border-success/20 text-success';
+                              statusLabel = 'Approved';
+                            } else if (req.status === 'rejected') {
+                              statusClass = 'bg-danger/15 border-danger/20 text-danger';
+                              statusLabel = 'Rejected';
+                            }
+
+                            return (
+                              <tr key={req.id} className="hover:bg-surface-card/20 transition-colors">
+                                <td className="p-4">
+                                  <span className="font-bold text-text-primary text-sm block">{req.requesterName}</span>
+                                  <span className="text-[10px] text-text-tertiary block mt-0.5">
+                                    {new Date(req.createdAt).toLocaleDateString()}
+                                  </span>
+                                </td>
+                                <td className="p-4 font-bold text-text-primary text-sm">
+                                  {req.appName}
+                                </td>
+                                <td className="p-4 text-[11px] text-text-secondary leading-relaxed max-w-xs break-words">
+                                  "{req.reason}"
+                                </td>
+                                <td className="p-4 font-mono text-[10px] uppercase">
+                                  <span className="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-accent text-text-secondary font-bold">
+                                    {req.scope}
+                                  </span>
+                                </td>
+                                <td className="p-4">
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase ${statusClass}`}>
+                                    {statusLabel}
+                                  </span>
+                                </td>
+                                <td className="p-4">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedTicket(req);
+                                      fetchTicketMessages(req.id);
+                                    }}
+                                    className="px-2.5 py-1 bg-brand-accent/10 hover:bg-brand-accent text-brand-accent hover:text-white border border-brand-accent/20 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                                  >
+                                    {req.status === 'pending_manager' ? '⚡ Review & Chat' : '💬 View Ticket'}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+
+                        {accessRequests.filter(req => req.requesterId !== initialData.user.id).length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="p-10 text-center text-text-secondary italic">
+                              No team access requests found.
                             </td>
                           </tr>
                         )}
@@ -1984,6 +2187,197 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Ticket Details & Discussion Modal */}
+      {selectedTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-4xl bg-surface-card border border-border-accent rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[80vh] max-h-[700px]">
+            
+            {/* Left Column: Metadata & Approvals */}
+            <div className="w-full md:w-2/5 border-r border-border-accent/40 bg-surface-card/10 p-6 flex flex-col justify-between overflow-y-auto">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-text-tertiary bg-surface-elevated border border-border-accent/60 px-2 py-0.5 rounded">
+                    Ticket #{selectedTicket.id.split('-')[0]}
+                  </span>
+                  <button 
+                    onClick={() => setSelectedTicket(null)}
+                    className="text-text-tertiary hover:text-text-primary text-sm font-bold md:hidden"
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3 bg-surface-elevated/40 border border-border-accent/30 p-4 rounded-2xl">
+                  <span className="text-3xl">🔑</span>
+                  <div>
+                    <h4 className="font-bold text-text-primary text-xs">{selectedTicket.appName}</h4>
+                    <p className="text-[10px] text-text-secondary">Access Entitlement Request</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 text-xs">
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Requester</span>
+                    <p className="font-bold text-text-primary">{selectedTicket.requesterName}</p>
+                    <p className="text-[10px] text-text-secondary mt-0.5">ID: {selectedTicket.requesterId}</p>
+                  </div>
+
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Scope / Target</span>
+                    <span className="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-accent text-text-secondary font-mono font-bold uppercase text-[9px]">
+                      {selectedTicket.scope}
+                    </span>
+                    {selectedTicket.targetEntityId && (
+                      <p className="text-[10px] text-text-tertiary font-mono mt-1 select-all">
+                        Target ID: {selectedTicket.targetEntityId}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Status</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase ${
+                      selectedTicket.status.startsWith('pending') ? 'bg-warning/15 border-warning/20 text-warning-text' :
+                      selectedTicket.status === 'approved' ? 'bg-success/15 border-success/20 text-success' :
+                      'bg-danger/15 border-danger/20 text-danger'
+                    }`}>
+                      {selectedTicket.status}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Submitted Reason</span>
+                    <div className="p-3 bg-surface-elevated/30 border border-border-accent/30 rounded-xl text-[11px] leading-relaxed text-text-secondary italic">
+                      "{selectedTicket.reason}"
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reviewer Action Controls (For Managers) */}
+              {selectedTicket.status === 'pending_manager' && selectedTicket.requesterId !== initialData.user.id && (
+                <div className="mt-6 pt-6 border-t border-border-accent/40 space-y-3">
+                  <div className="p-3 bg-warning/10 border border-warning/25 rounded-2xl text-[10px] text-warning-text leading-relaxed font-bold">
+                    ⚡ Manager Action Required: You are the designated manager for this requester.
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Manager Review Notes</label>
+                    <textarea
+                      rows={2}
+                      value={reviewNotes}
+                      onChange={(e) => setReviewNotes(e.target.value)}
+                      placeholder="Add manager review feedback (optional)..."
+                      className="w-full px-2.5 py-1.5 bg-background-portal border border-input-border focus:border-brand-accent rounded-xl text-[11px] resize-none outline-none text-text-primary"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleReviewTicket('rejected')}
+                      disabled={isReviewing}
+                      className="flex-1 py-1.5 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 hover:border-danger/30 rounded-xl font-black text-[10px] uppercase transition-all disabled:opacity-50 cursor-pointer text-center"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => handleReviewTicket('approved')}
+                      disabled={isReviewing}
+                      className="flex-1 py-1.5 bg-success/15 hover:bg-success/25 text-success border border-success/20 hover:border-success/35 rounded-xl font-black text-[10px] uppercase transition-all disabled:opacity-50 cursor-pointer text-center"
+                    >
+                      Approve
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Chat/Messages Timeline Thread */}
+            <div className="flex-1 flex flex-col justify-between p-6 h-full min-w-0">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-border-accent/40 pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">💬</span>
+                  <h4 className="font-bold text-text-primary text-xs uppercase tracking-wider">Discussion Ticket Thread</h4>
+                </div>
+                <button
+                  onClick={() => setSelectedTicket(null)}
+                  className="px-3 py-1.5 bg-surface-elevated hover:bg-surface-card border border-border-accent hover:border-brand-accent/30 text-[10px] font-black rounded-lg text-text-secondary transition-all cursor-pointer hidden md:block"
+                >
+                  ✕ Close Ticket
+                </button>
+              </div>
+
+              {/* Scrollable chat body */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0 text-xs">
+                {isMessagesLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full space-y-2 py-20">
+                    <div className="w-6 h-6 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-[10px] text-text-tertiary">Loading ticket logs...</p>
+                  </div>
+                ) : ticketMessages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full py-20 text-center text-text-tertiary italic">
+                    <span>📣</span>
+                    <p className="text-[10px] mt-1">No ticket activity logs or messages yet.</p>
+                    <p className="text-[9px] mt-0.5">Use the input below to leave questions or notes.</p>
+                  </div>
+                ) : (
+                  ticketMessages.map((msg: any) => {
+                    let roleBadgeClass = 'bg-surface-elevated text-text-secondary';
+                    if (msg.senderRole === 'super_admin') roleBadgeClass = 'bg-danger/10 border border-danger/20 text-danger';
+                    else if (msg.senderRole === 'app_admin') roleBadgeClass = 'bg-success/15 border border-success/20 text-success';
+                    else if (msg.senderRole === 'manager') roleBadgeClass = 'bg-warning/15 border border-warning/20 text-warning-text';
+                    else if (msg.senderRole === 'user') roleBadgeClass = 'bg-brand-accent/15 border border-brand-accent/20 text-brand-accent';
+
+                    return (
+                      <div key={msg.id} className="flex flex-col space-y-1 bg-surface-elevated/20 border border-border-accent/30 p-3 rounded-2xl animate-fadeIn">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-black text-text-primary text-[10px]">{msg.senderName}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${roleBadgeClass}`}>
+                              {msg.senderRole}
+                            </span>
+                          </div>
+                          <span className="text-[8px] text-text-tertiary">
+                            {new Date(msg.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-text-secondary leading-relaxed whitespace-pre-wrap mt-1">
+                          {msg.message}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Message Input box */}
+              <div className="mt-4 pt-4 border-t border-border-accent/40 flex items-center gap-2">
+                <textarea
+                  rows={2}
+                  value={newMessageText}
+                  onChange={(e) => setNewMessageText(e.target.value)}
+                  placeholder="Type a message or request details..."
+                  className="flex-1 px-3 py-2 bg-background-portal border border-input-border focus:border-brand-accent rounded-xl text-xs resize-none outline-none text-text-primary"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!newMessageText.trim()}
+                  className="px-4 py-2.5 bg-brand-accent hover:bg-brand-hover disabled:opacity-40 text-white font-bold text-[10px] uppercase rounded-xl transition-all shadow-md cursor-pointer h-full"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

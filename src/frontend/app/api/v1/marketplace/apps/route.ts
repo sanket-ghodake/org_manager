@@ -36,6 +36,16 @@ export async function GET(request: NextRequest) {
     };
     const userJobLevel = getJobLevelByName(user.designation || 'Staff Member');
 
+    // Fetch all unresolved requests for this user
+    const unresolvedRequestsResult = await db.execute(sql`
+      SELECT app_id FROM forge_app_access_requests
+      WHERE requester_id = ${userId}
+        AND status IN ('pending_manager', 'pending_app_admin', 'pending_super_admin')
+    `);
+    const unresolvedAppIds = new Set(
+      ((unresolvedRequestsResult.rows || unresolvedRequestsResult) as any[]).map(r => r.app_id)
+    );
+
     // Fetch all active/enabled apps
     const allAppsResult = await db.execute(sql`
       SELECT id, slug, name, entry_url as "entryUrl", target_rules as "targetRules", is_enabled as "isEnabled"
@@ -56,7 +66,8 @@ export async function GET(request: NextRequest) {
         slug: app.slug,
         name: app.name,
         entryUrl: app.entryUrl,
-        targetRules: app.targetRules
+        targetRules: app.targetRules,
+        hasPendingRequest: unresolvedAppIds.has(app.id)
       };
 
       if (hasAccess) {

@@ -8,6 +8,7 @@ async function main() {
   console.log('Initializing local database schema...');
 
   // Drop existing tables to ensure clean state
+  await db.execute(sql`DROP TABLE IF EXISTS forge_app_access_request_messages CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS forge_app_access_requests CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS forge_app_admins CASCADE;`);
   await db.execute(sql`DROP TABLE IF EXISTS forge_app_entitlements CASCADE;`);
@@ -495,12 +496,24 @@ async function main() {
       scope VARCHAR(30) NOT NULL DEFAULT 'individual',
       target_entity_id UUID,
       status VARCHAR(30) NOT NULL DEFAULT 'pending_app_admin',
+      manager_reviewed_by UUID REFERENCES users(id),
+      manager_notes TEXT,
       app_admin_reviewed_by UUID REFERENCES users(id),
       app_admin_notes TEXT,
       super_admin_reviewed_by UUID REFERENCES users(id),
       super_admin_notes TEXT,
       created_at TIMESTAMP DEFAULT NOW() NOT NULL,
       updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE forge_app_access_request_messages (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      request_id UUID REFERENCES forge_app_access_requests(id) ON DELETE CASCADE NOT NULL,
+      sender_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      message TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
     );
   `);
 

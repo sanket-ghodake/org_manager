@@ -186,6 +186,12 @@ export default function AdminPanel({
   const [isEntitlementsLoading, setIsEntitlementsLoading] = useState(false);
   const [isRevokingEntitlement, setIsRevokingEntitlement] = useState<Record<string, boolean>>({});
 
+  // Ticket Timeline / Discussion Modal states
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [ticketMessages, setTicketMessages] = useState<any[]>([]);
+  const [newMessageText, setNewMessageText] = useState('');
+  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+
   // ─── NEW APP ACCESS & DELEGATION STATES ───
   const [selectedAppForAccess, setSelectedAppForAccess] = useState<any | null>(null);
   const [appAccessUsers, setAppAccessUsers] = useState<any[]>([]);
@@ -476,6 +482,42 @@ export default function AdminPanel({
     }
   };
 
+  const fetchTicketMessages = async (requestId: string) => {
+    setIsMessagesLoading(true);
+    try {
+      const res = await fetch(`/api/v1/marketplace/requests/messages?requestId=${requestId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTicketMessages(data.messages || []);
+      }
+    } catch (err) {
+      console.error('Error fetching ticket messages:', err);
+    } finally {
+      setIsMessagesLoading(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!selectedTicket || !newMessageText.trim()) return;
+    try {
+      const res = await fetch('/api/v1/marketplace/requests/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: selectedTicket.id,
+          message: newMessageText.trim(),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTicketMessages(prev => [...prev, data.message]);
+        setNewMessageText('');
+      }
+    } catch (err) {
+      console.error('Error sending message:', err);
+    }
+  };
+
   const handleReviewAccessRequest = async (requestId: string, status: 'approved' | 'rejected') => {
     const notes = requestActionNotes[requestId] || '';
     setIsSubmittingRequestAction(prev => ({ ...prev, [requestId]: true }));
@@ -495,6 +537,10 @@ export default function AdminPanel({
         });
         fetchAdminAccessRequests();
         fetchActiveEntitlements();
+        if (selectedTicket && selectedTicket.id === requestId) {
+          setSelectedTicket((prev: any) => prev ? { ...prev, status: data.nextStatus } : null);
+          fetchTicketMessages(requestId);
+        }
       } else {
         showToast(data.error || 'Failed to review request', 'error');
       }
@@ -3293,6 +3339,16 @@ export default function AdminPanel({
                                     <div className="flex gap-2 justify-end">
                                       <button
                                         type="button"
+                                        onClick={() => {
+                                          setSelectedTicket(req);
+                                          fetchTicketMessages(req.id);
+                                        }}
+                                        className="px-2.5 py-1 bg-brand-accent/10 hover:bg-brand-accent text-brand-accent hover:text-white border border-brand-accent/20 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all cursor-pointer"
+                                      >
+                                        💬 Discuss / Ticket
+                                      </button>
+                                      <button
+                                        type="button"
                                         onClick={() => handleReviewAccessRequest(req.id, 'rejected')}
                                         disabled={isSubmitting}
                                         className="px-2.5 py-1 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 hover:border-danger/35 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer"
@@ -3310,8 +3366,20 @@ export default function AdminPanel({
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="text-[11px] text-text-secondary leading-normal max-w-[200px] break-words italic">
-                                    {req.notes || <span className="text-text-tertiary opacity-40">No review comments left.</span>}
+                                  <div className="space-y-1.5">
+                                    <div className="text-[11px] text-text-secondary leading-normal max-w-[200px] break-words italic">
+                                      {req.notes || <span className="text-text-tertiary opacity-40">No review comments left.</span>}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedTicket(req);
+                                        fetchTicketMessages(req.id);
+                                      }}
+                                      className="px-2 py-0.5 bg-surface-elevated hover:bg-surface-card border border-border-accent text-text-secondary rounded text-[9px] font-bold transition-all cursor-pointer"
+                                    >
+                                      💬 View Ticket Thread
+                                    </button>
                                   </div>
                                 )}
                               </td>
@@ -3580,6 +3648,162 @@ export default function AdminPanel({
 
             </div>
           </FocusScope>
+        </div>
+      )}
+
+      {/* Ticket Details & Discussion Modal */}
+      {selectedTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-4xl bg-surface-card border border-border-accent rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[80vh] max-h-[700px]">
+            
+            {/* Left Column: Metadata */}
+            <div className="w-full md:w-2/5 border-r border-border-accent/40 bg-surface-card/10 p-6 flex flex-col justify-between overflow-y-auto">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-text-tertiary bg-surface-elevated border border-border-accent/60 px-2 py-0.5 rounded">
+                    Ticket #{selectedTicket.id.split('-')[0]}
+                  </span>
+                  <button 
+                    onClick={() => setSelectedTicket(null)}
+                    className="text-text-tertiary hover:text-text-primary text-sm font-bold md:hidden"
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3 bg-surface-elevated/40 border border-border-accent/30 p-4 rounded-2xl">
+                  <span className="text-3xl">🔑</span>
+                  <div>
+                    <h4 className="font-bold text-text-primary text-xs">{selectedTicket.appName}</h4>
+                    <p className="text-[10px] text-text-secondary">Access Entitlement Request</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 text-xs">
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Requester</span>
+                    <p className="font-bold text-text-primary">{selectedTicket.requesterName}</p>
+                    <p className="text-[10px] text-text-secondary mt-0.5">ID: {selectedTicket.requesterId}</p>
+                  </div>
+
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Scope / Target</span>
+                    <span className="px-1.5 py-0.5 rounded bg-surface-elevated border border-border-accent text-text-secondary font-mono font-bold uppercase text-[9px]">
+                      {selectedTicket.scope}
+                    </span>
+                    {selectedTicket.targetEntityId && (
+                      <p className="text-[10px] text-text-tertiary font-mono mt-1 select-all">
+                        Target ID: {selectedTicket.targetEntityId}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Status</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase ${
+                      selectedTicket.status.startsWith('pending') ? 'bg-warning/15 border-warning/20 text-warning-text' :
+                      selectedTicket.status === 'approved' ? 'bg-success/15 border-success/20 text-success' :
+                      'bg-danger/15 border-danger/20 text-danger'
+                    }`}>
+                      {selectedTicket.status}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[9px] font-black uppercase text-text-tertiary block mb-1">Submitted Reason</span>
+                    <div className="p-3 bg-surface-elevated/30 border border-border-accent/30 rounded-xl text-[11px] leading-relaxed text-text-secondary italic">
+                      "{selectedTicket.reason}"
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Chat/Messages Timeline Thread */}
+            <div className="flex-1 flex flex-col justify-between p-6 h-full min-w-0">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-border-accent/40 pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">💬</span>
+                  <h4 className="font-bold text-text-primary text-xs uppercase tracking-wider">Discussion Ticket Thread</h4>
+                </div>
+                <button
+                  onClick={() => setSelectedTicket(null)}
+                  className="px-3 py-1.5 bg-surface-elevated hover:bg-surface-card border border-border-accent hover:border-brand-accent/30 text-[10px] font-black rounded-lg text-text-secondary transition-all cursor-pointer hidden md:block"
+                >
+                  ✕ Close Ticket
+                </button>
+              </div>
+
+              {/* Scrollable chat body */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0 text-xs">
+                {isMessagesLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full space-y-2 py-20">
+                    <div className="w-6 h-6 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-[10px] text-text-tertiary">Loading ticket logs...</p>
+                  </div>
+                ) : ticketMessages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full py-20 text-center text-text-tertiary italic">
+                    <span>📣</span>
+                    <p className="text-[10px] mt-1">No ticket activity logs or messages yet.</p>
+                    <p className="text-[9px] mt-0.5">Use the input below to leave questions or notes.</p>
+                  </div>
+                ) : (
+                  ticketMessages.map((msg: any) => {
+                    let roleBadgeClass = 'bg-surface-elevated text-text-secondary';
+                    if (msg.senderRole === 'super_admin') roleBadgeClass = 'bg-danger/10 border border-danger/20 text-danger';
+                    else if (msg.senderRole === 'app_admin') roleBadgeClass = 'bg-success/15 border border-success/20 text-success';
+                    else if (msg.senderRole === 'manager') roleBadgeClass = 'bg-warning/15 border border-warning/20 text-warning-text';
+                    else if (msg.senderRole === 'user') roleBadgeClass = 'bg-brand-accent/15 border border-brand-accent/20 text-brand-accent';
+
+                    return (
+                      <div key={msg.id} className="flex flex-col space-y-1 bg-surface-elevated/20 border border-border-accent/30 p-3 rounded-2xl animate-fadeIn">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-black text-text-primary text-[10px]">{msg.senderName}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${roleBadgeClass}`}>
+                              {msg.senderRole}
+                            </span>
+                          </div>
+                          <span className="text-[8px] text-text-tertiary">
+                            {new Date(msg.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-text-secondary leading-relaxed whitespace-pre-wrap mt-1">
+                          {msg.message}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Message Input box */}
+              <div className="mt-4 pt-4 border-t border-border-accent/40 flex items-center gap-2">
+                <textarea
+                  rows={2}
+                  value={newMessageText}
+                  onChange={(e) => setNewMessageText(e.target.value)}
+                  placeholder="Type a message or request details..."
+                  className="flex-1 px-3 py-2 bg-background-portal border border-input-border focus:border-brand-accent rounded-xl text-xs resize-none outline-none text-text-primary"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!newMessageText.trim()}
+                  className="px-4 py-2.5 bg-brand-accent hover:bg-brand-hover disabled:opacity-40 text-white font-bold text-[10px] uppercase rounded-xl transition-all shadow-md cursor-pointer h-full"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
       )}
 

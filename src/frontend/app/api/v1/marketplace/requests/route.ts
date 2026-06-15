@@ -22,65 +22,75 @@ export async function GET(request: NextRequest) {
           a.name as "appName", 
           r.requester_id as "requesterId", 
           u.name as "requesterName", 
+          u.manager_id as "managerId",
           r.reason, 
           r.scope, 
           r.target_entity_id as "targetEntityId", 
           r.status, 
-          r.created_at as "createdAt"
+          r.created_at as "createdAt",
+          r.manager_notes as "managerNotes",
+          r.app_admin_notes as "appAdminNotes",
+          r.super_admin_notes as "superAdminNotes"
         FROM forge_app_access_requests r
         INNER JOIN forge_apps a ON r.app_id = a.id
         INNER JOIN users u ON r.requester_id = u.id
-        WHERE (${filter} != 'pending' OR r.status IN ('pending_app_admin', 'pending_super_admin'))
+        WHERE (${filter} != 'pending' OR r.status IN ('pending_manager', 'pending_app_admin', 'pending_super_admin'))
         ORDER BY r.created_at DESC
       `;
     } else {
+      // Fetch report users (recursive)
+      const reportsRes = await db.execute(sql`
+        WITH RECURSIVE reports AS (
+          SELECT id FROM users WHERE manager_id = ${session.id}
+          UNION ALL
+          SELECT u.id FROM users u INNER JOIN reports r ON u.manager_id = r.id
+        )
+        SELECT id FROM reports
+      `);
+      const reportsRows = (reportsRes.rows || reportsRes) as any[];
+      const reportUserIds = (reportsRows || []).map((row: any) => row.id);
+
+      // Fetch admin app ids
       const adminAppsRes = await db.execute(sql`
         SELECT app_id FROM forge_app_admins WHERE user_id = ${session.id}
       `);
       const adminAppsRows = (adminAppsRes.rows || adminAppsRes) as any[];
       const adminAppIds = (adminAppsRows || []).map((row: any) => row.app_id);
 
-      if (adminAppIds.length > 0) {
-        query = sql`
-          SELECT 
-            r.id, 
-            r.app_id as "appId", 
-            a.name as "appName", 
-            r.requester_id as "requesterId", 
-            u.name as "requesterName", 
-            r.reason, 
-            r.scope, 
-            r.target_entity_id as "targetEntityId", 
-            r.status, 
-            r.created_at as "createdAt"
-          FROM forge_app_access_requests r
-          INNER JOIN forge_apps a ON r.app_id = a.id
-          INNER JOIN users u ON r.requester_id = u.id
-          WHERE (r.requester_id = ${session.id} OR r.app_id = ANY(${adminAppIds}))
-            AND (${filter} != 'pending' OR r.status IN ('pending_app_admin', 'pending_super_admin'))
-          ORDER BY r.created_at DESC
-        `;
-      } else {
-        query = sql`
-          SELECT 
-            r.id, 
-            r.app_id as "appId", 
-            a.name as "appName", 
-            r.requester_id as "requesterId", 
-            u.name as "requesterName", 
-            r.reason, 
-            r.scope, 
-            r.target_entity_id as "targetEntityId", 
-            r.status, 
-            r.created_at as "createdAt"
-          FROM forge_app_access_requests r
-          INNER JOIN forge_apps a ON r.app_id = a.id
-          INNER JOIN users u ON r.requester_id = u.id
-          WHERE r.requester_id = ${session.id}
-            AND (${filter} != 'pending' OR r.status IN ('pending_app_admin', 'pending_super_admin'))
-          ORDER BY r.created_at DESC
-        `;
+      let conditions = [];
+      conditions.push(sql`r.requester_id = ${session.id}`);
+      if (reportUserIds.length > 0) {
+        conditions.push(sql`r.requester_id = ANY(${reportUserIds})`);
       }
+      if (adminAppIds.length > 0) {
+        conditions.push(sql`r.app_id = ANY(${adminAppIds})`);
+      }
+      
+      const orClause = sql.join(conditions, sql` OR `);
+
+      query = sql`
+        SELECT 
+          r.id, 
+          r.app_id as "appId", 
+          a.name as "appName", 
+          r.requester_id as "requesterId", 
+          u.name as "requesterName", 
+          u.manager_id as "managerId",
+          r.reason, 
+          r.scope, 
+          r.target_entity_id as "targetEntityId", 
+          r.status, 
+          r.created_at as "createdAt",
+          r.manager_notes as "managerNotes",
+          r.app_admin_notes as "appAdminNotes",
+          r.super_admin_notes as "superAdminNotes"
+        FROM forge_app_access_requests r
+        INNER JOIN forge_apps a ON r.app_id = a.id
+        INNER JOIN users u ON r.requester_id = u.id
+        WHERE (${orClause})
+          AND (${filter} != 'pending' OR r.status IN ('pending_manager', 'pending_app_admin', 'pending_super_admin'))
+        ORDER BY r.created_at DESC
+      `;
     }
 
     const result = await db.execute(query);

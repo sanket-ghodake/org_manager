@@ -230,7 +230,9 @@ export const forgeAppAccessRequests = pgTable('forge_app_access_requests', {
   reason: text('reason').notNull(),
   scope: varchar('scope', { length: 30 }).default('individual').notNull(), // 'individual' | 'org_node' | 'project'
   targetEntityId: uuid('target_entity_id'),
-  status: varchar('status', { length: 30 }).default('pending_app_admin').notNull(), // 'pending_app_admin' | 'pending_super_admin' | 'approved' | 'rejected'
+  status: varchar('status', { length: 30 }).default('pending_app_admin').notNull(), // 'pending_manager' | 'pending_app_admin' | 'pending_super_admin' | 'approved' | 'rejected'
+  managerReviewedBy: uuid('manager_reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+  managerNotes: text('manager_notes'),
   appAdminReviewedBy: uuid('app_admin_reviewed_by').references(() => users.id, { onDelete: 'set null' }),
   appAdminNotes: text('app_admin_notes'),
   superAdminReviewedBy: uuid('super_admin_reviewed_by').references(() => users.id, { onDelete: 'set null' }),
@@ -238,5 +240,14 @@ export const forgeAppAccessRequests = pgTable('forge_app_access_requests', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+export const forgeAppAccessRequestMessages = pgTable('forge_app_access_request_messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  requestId: uuid('request_id').references(() => forgeAppAccessRequests.id, { onDelete: 'cascade' }).notNull(),
+  senderId: uuid('sender_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 
 
