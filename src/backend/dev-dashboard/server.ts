@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { spawn } from 'child_process';
 
 const PORT = 3002;
-const AUTH_PASSWORD = 'Sunil@01';
+const AUTH_PASSWORD = 'password123';
 const COOKIE_NAME = 'dev_session';
 const COOKIE_VALUE = 'authenticated_sunil_dev';
 
@@ -19,10 +19,22 @@ function isAuthenticated(req: Request): boolean {
   return cookieHeader.includes(`${COOKIE_NAME}=${COOKIE_VALUE}`);
 }
 
-const server = Bun.serve({
-  port: PORT,
-  async fetch(req) {
+export async function handleRequest(req: Request): Promise<Response> {
     const url = new URL(req.url);
+
+    // Serve static dashboard CSS/JS assets before auth checks
+    if (url.pathname === '/dashboard.css') {
+      const file = Bun.file(import.meta.dir + '/dashboard.css');
+      return new Response(file, {
+        headers: { 'Content-Type': 'text/css' },
+      });
+    }
+    if (url.pathname === '/dashboard.js') {
+      const file = Bun.file(import.meta.dir + '/dashboard.js');
+      return new Response(file, {
+        headers: { 'Content-Type': 'application/javascript' },
+      });
+    }
 
     // 1. POST /api/auth - Login Handler
     if (req.method === 'POST' && url.pathname === '/api/auth') {
@@ -325,7 +337,12 @@ const server = Bun.serve({
 
     // Fallback: 404 Not Found
     return new Response('Not Found', { status: 404 });
-  },
-});
+}
 
-console.log(`🚀 Developer Dashboard Server active at http://localhost:${PORT}`);
+if (import.meta.main) {
+  const server = Bun.serve({
+    port: PORT,
+    fetch: handleRequest,
+  });
+  console.log(`🚀 Developer Dashboard Server active at http://localhost:${PORT}`);
+}
