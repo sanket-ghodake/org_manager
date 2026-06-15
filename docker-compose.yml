@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: sgforge-db
+    environment:
+      POSTGRES_USER: lifeos
+      POSTGRES_PASSWORD: change_me_db_password
+      POSTGRES_DB: org_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifeos -d org_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sgforge-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
+      - DATABASE_READONLY_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
+      - PORTAL_URL=http://localhost:3001
+      - PORT=3001
+    ports:
+      - "3001:3001"
+      - "3002:3002"
+      - "8085:8085"
+      - "8086:8086"
+      - "8087:8087"
+    restart: always
+
+volumes:
+  pgdata:

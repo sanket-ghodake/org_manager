@@ -156,7 +156,7 @@ describe("Forge Portal Security Integration Tests", () => {
       const res = await queryHandler(req);
       expect(res.status).toBe(403);
       const body = await res.json();
-      expect(body.error).toContain("Only super_admin can execute raw SQL queries");
+      expect(body.error).toContain("Only administrative roles can execute raw SQL queries");
     });
 
     test("Query Endpoint: Super Admin user gets 200 OK", async () => {

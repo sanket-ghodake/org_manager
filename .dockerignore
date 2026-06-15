@@ -1,0 +1,36 @@
+# Exclude git directory
+.git
+.github
+.agents
+
+# Exclude dependencies and build outputs recursively
+**/node_modules
+**/dist
+**/.next
+**/out
+**/build
+**/.cache
+**/.sass-cache
+**/coverage
+
+# Exclude environment files
+.env
+.env.*
+!.env.example
+
+# Exclude graphify output
+graphify-out
+
+# Exclude portables (large local runtimes)
+portables
+
+# Exclude other specific files/logs
+currently_working.md
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+bun-debug.log*
+.DS_Store
+Thumbs.db
