@@ -16,19 +16,25 @@ export async function GET(request: Request) {
     let query;
     if (session.role === 'super_admin') {
       query = sql`
-        SELECT id, slug, name, entry_url as "entryUrl", is_enabled as "isEnabled",
-               status, last_seen as "lastSeen", health_check_url as "healthCheckUrl",
-               is_isolated_lifecycle as "isIsolatedLifecycle", scopes, target_rules as "targetRules"
-        FROM forge_apps
-        ORDER BY name ASC
+        SELECT a.id, a.slug, a.name, a.entry_url as "entryUrl", a.is_enabled as "isEnabled",
+               a.status, a.last_seen as "lastSeen", a.health_check_url as "healthCheckUrl",
+               a.is_isolated_lifecycle as "isIsolatedLifecycle", a.scopes, a.target_rules as "targetRules",
+               a.client_id as "clientId", a.client_secret as "clientSecret",
+               s.custom_schema_namespace as "schemaName"
+        FROM forge_apps a
+        LEFT JOIN forge_app_storage s ON a.id = s.app_id
+        ORDER BY a.name ASC
       `;
     } else {
       query = sql`
         SELECT a.id, a.slug, a.name, a.entry_url as "entryUrl", a.is_enabled as "isEnabled",
                a.status, a.last_seen as "lastSeen", a.health_check_url as "healthCheckUrl",
-               a.is_isolated_lifecycle as "isIsolatedLifecycle", a.scopes, a.target_rules as "targetRules"
+               a.is_isolated_lifecycle as "isIsolatedLifecycle", a.scopes, a.target_rules as "targetRules",
+               a.client_id as "clientId", a.client_secret as "clientSecret",
+               s.custom_schema_namespace as "schemaName"
         FROM forge_apps a
         INNER JOIN forge_app_admins adm ON a.id = adm.app_id
+        LEFT JOIN forge_app_storage s ON a.id = s.app_id
         WHERE adm.user_id = ${session.id}
         ORDER BY a.name ASC
       `;

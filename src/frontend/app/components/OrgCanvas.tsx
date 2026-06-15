@@ -13,6 +13,11 @@ export interface OrgCanvasRef {
 }
 
 export const OrgCanvas = forwardRef<OrgCanvasRef, OrgCanvasProps>(({ users, metadata, session }, ref) => {
+  // Filter out admins/super admins from corporate hierarchy
+  const displayUsers = React.useMemo(() => {
+    return users.filter(u => u.role === 'user');
+  }, [users]);
+
   // Canvas States
   const [zoom, setZoom] = useState(1.0);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -31,7 +36,7 @@ export const OrgCanvas = forwardRef<OrgCanvasRef, OrgCanvasProps>(({ users, meta
     const childrenMap: { [key: string]: string[] } = {};
 
     // Group children by manager
-    users.forEach(u => {
+    displayUsers.forEach(u => {
       if (u.manager_id) {
         if (!childrenMap[u.manager_id]) childrenMap[u.manager_id] = [];
         childrenMap[u.manager_id].push(u.id);
@@ -39,7 +44,7 @@ export const OrgCanvas = forwardRef<OrgCanvasRef, OrgCanvasProps>(({ users, meta
     });
 
     // Roots are users whose manager_id is null or not in the user list
-    const roots = users.filter(u => !u.manager_id || !users.some(parent => parent.id === u.manager_id));
+    const roots = displayUsers.filter(u => !u.manager_id || !displayUsers.some(parent => parent.id === u.manager_id));
 
     let nextX = 0;
 
@@ -82,7 +87,7 @@ export const OrgCanvas = forwardRef<OrgCanvasRef, OrgCanvasProps>(({ users, meta
     
     while (currentId) {
       path.push(currentId);
-      const currentUser = users.find(u => u.id === currentId);
+      const currentUser = displayUsers.find(u => u.id === currentId);
       currentId = currentUser ? currentUser.manager_id : null;
     }
     setHighlightedUserPath(path);
@@ -111,7 +116,7 @@ export const OrgCanvas = forwardRef<OrgCanvasRef, OrgCanvasProps>(({ users, meta
 
   const handleWhereAmI = () => {
     if (session) {
-      const currentUser = users.find(u => u.email.toLowerCase() === session.email.toLowerCase());
+      const currentUser = displayUsers.find(u => u.email.toLowerCase() === session.email.toLowerCase());
       if (currentUser) {
         centerCanvasOnNode(currentUser.id);
       }
@@ -216,7 +221,7 @@ export const OrgCanvas = forwardRef<OrgCanvasRef, OrgCanvasProps>(({ users, meta
                 </filter>
               </defs>
               
-              {users.map(u => {
+              {displayUsers.map(u => {
                 if (!u.manager_id || !nodePositions[u.id] || !nodePositions[u.manager_id]) return null;
                 const from = nodePositions[u.manager_id];
                 const to = nodePositions[u.id];
@@ -250,7 +255,7 @@ export const OrgCanvas = forwardRef<OrgCanvasRef, OrgCanvasProps>(({ users, meta
           {zoom < 0.8 && (
             <div className="absolute grid grid-cols-2 gap-12 p-24 w-[1200px]" style={{ left: 100, top: 100 }}>
               {metadata.filter(m => m.type === 'vertical').map(v => {
-                const deptUsers = users.filter(u => u.vertical_id === v.id);
+                const deptUsers = displayUsers.filter(u => u.vertical_id === v.id);
                 return (
                   <div
                     key={v.id}
@@ -288,7 +293,7 @@ export const OrgCanvas = forwardRef<OrgCanvasRef, OrgCanvasProps>(({ users, meta
           {/* ZOOM LEVEL 2: MESO VIEW */}
           {zoom >= 0.8 && zoom < 1.4 && (
             <div className="absolute" style={{ left: 0, top: 0 }}>
-              {users.map(u => {
+              {displayUsers.map(u => {
                 const pos = nodePositions[u.id];
                 if (!pos) return null;
 
@@ -323,7 +328,7 @@ export const OrgCanvas = forwardRef<OrgCanvasRef, OrgCanvasProps>(({ users, meta
           {/* ZOOM LEVEL 3: MICRO VIEW */}
           {zoom >= 1.4 && (
             <div className="absolute" style={{ left: 0, top: 0 }}>
-              {users.map(u => {
+              {displayUsers.map(u => {
                 const pos = nodePositions[u.id];
                 if (!pos) return null;
 

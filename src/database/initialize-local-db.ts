@@ -729,6 +729,7 @@ async function main() {
 
   // 3. User Org Nodes membership (Primary teams and managers/leads)
   for (const emp of mockData.employees) {
+    if (emp.role !== 'user') continue;
     const userId = userEidToIdMap.get(emp.eid);
     if (!userId) continue;
 

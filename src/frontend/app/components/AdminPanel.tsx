@@ -169,6 +169,12 @@ export default function AdminPanel({
   const [appsList, setAppsList] = useState<any[]>([]);
   const [isAppsLoading, setIsAppsLoading] = useState(false);
   const [revealedSecrets, setRevealedSecrets] = useState<Record<string, boolean>>({});
+  const [manifestText, setManifestText] = useState('');
+  const [moduleFlags, setModuleFlags] = useState<Record<string, boolean>>({
+    'Living Architecture Health Map': true,
+    'Internal Performance Evaluator': false,
+    'Compliance Monitoring Suite': false,
+  });
 
   // Marketplace Admin states
   const [appManagementView, setAppManagementView] = useState<'registry' | 'requests' | 'entitlements'>('registry');
@@ -513,6 +519,39 @@ export default function AdminPanel({
       showToast('Network error fetching apps', 'error');
     } finally {
       setIsAppsLoading(false);
+    }
+  };
+
+  const handleManifestUpload = async () => {
+    if (!manifestText.trim()) return;
+    try {
+      let parsed;
+      try {
+        parsed = JSON.parse(manifestText);
+      } catch (e) {
+        showToast('Invalid JSON format', 'error');
+        return;
+      }
+
+      const res = await fetch('/api/apps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
+      });
+
+      if (res.ok) {
+        showToast('Extension registered successfully', 'success');
+        setManifestText('');
+        fetchApps();
+        if (loadWorkspaceData) {
+          await loadWorkspaceData();
+        }
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed to register extension', 'error');
+      }
+    } catch {
+      showToast('Network error during registration', 'error');
     }
   };
 
@@ -2714,134 +2753,228 @@ export default function AdminPanel({
             </div>
 
             {appManagementView === 'registry' && !selectedAppForAccess && (
-              isAppsLoading && appsList.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                  <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-xs text-text-secondary">Loading registered applications...</p>
-                </div>
-              ) : (
-                <div className="bg-surface-card border border-border-accent rounded-3xl shadow-lg overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-border-accent bg-surface-card/10 text-text-tertiary font-bold uppercase tracking-wider">
-                          <th className="p-4">Application Details</th>
-                          <th className="p-4">Entry / Schema</th>
-                          <th className="p-4">OAuth Credentials</th>
-                          <th className="p-4">Health Status</th>
-                          <th className="p-4 text-right">Lifecycle Controls</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border-accent/40">
-                        {appsList.map(app => {
-                          const isSecretRevealed = revealedSecrets[app.id] || false;
-                          
-                          return (
-                            <tr key={app.id} className="hover:bg-surface-card/20 transition-colors">
-                              {/* Application Details */}
-                              <td className="p-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-9 w-9 rounded-xl bg-surface-elevated text-lg flex items-center justify-center border border-border-accent/30 shadow-sm">
-                                    {getAppIcon(app.icon)}
-                                  </div>
-                                  <div>
-                                    <h3 className="font-black text-text-primary text-sm leading-tight">{app.name}</h3>
-                                    <span className="text-[10px] text-text-secondary mt-0.5 block">{app.description}</span>
-                                    <span className="inline-block mt-1.5 px-1.5 py-0.5 rounded bg-background-portal text-text-secondary border border-border-accent text-[9px] font-bold uppercase">
-                                      {app.id}
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-
-                              {/* Entry / Schema */}
-                              <td className="p-4 font-mono text-[10px] text-text-secondary">
-                                <div>Path: <span className="text-text-primary font-bold">{app.filePath}</span></div>
-                                <div className="mt-1">Slug: <span className="text-brand-accent font-black">{app.slug}</span></div>
-                              </td>
-
-                              {/* OAuth Credentials */}
-                              <td className="p-4 font-mono text-[10px] space-y-1">
-                                <div>Client ID: <span className="text-text-primary font-bold">{app.clientId}</span></div>
-                                <div className="flex items-center gap-1.5">
-                                  <span>Client Secret:</span>
-                                  <span className="font-bold text-text-secondary">
-                                    {isSecretRevealed ? app.clientSecret : '••••••••••••••••'}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setRevealedSecrets(prev => ({ ...prev, [app.id]: !isSecretRevealed }))}
-                                    className="text-[9px] font-sans font-black uppercase text-brand-accent hover:underline ml-1"
-                                  >
-                                    {isSecretRevealed ? 'Hide' : 'Reveal'}
-                                  </button>
-                                </div>
-                              </td>
-
-                              {/* Health Status */}
-                              <td className="p-4">
-                                <div className="flex items-center gap-2">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-success animate-pulse"></span>
-                                  <div>
-                                    <span className="text-[10px] font-bold text-success uppercase block">Active / Ready</span>
-                                    <span className="text-[9px] text-text-tertiary">Verified successfully</span>
-                                  </div>
-                                </div>
-                              </td>
-
-                              {/* Enable/Disable & Actions */}
-                              <td className="p-4 text-right">
-                                <div className="flex items-center justify-end gap-3">
-                                  {/* Toggle enable */}
-                                  <label className="relative inline-flex items-center cursor-pointer select-none">
-                                    <input
-                                      type="checkbox"
-                                      checked={app.isEnabled}
-                                      onChange={() => toggleAppEnable(app.id, app.isEnabled)}
-                                      className="sr-only peer"
-                                    />
-                                    <div className="w-9 h-5 bg-background-portal border border-border-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-secondary peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-success peer-checked:border-success"></div>
-                                    <span className="ml-2 text-[10px] font-bold text-text-secondary hidden sm:inline">
-                                      {app.isEnabled ? 'Enabled' : 'Disabled'}
-                                    </span>
-                                  </label>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      fetchAppAccessDetails(app.id);
-                                      fetchAppAdminDelegation(app.id);
-                                    }}
-                                    className="px-2.5 py-1.5 bg-brand-muted hover:bg-brand-accent/20 text-brand-accent border border-brand-accent/20 hover:border-brand-accent/35 rounded-xl font-bold transition-all text-[11px] cursor-pointer"
-                                  >
-                                    ⚙️ Manage Access
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => removeApp(app.id)}
-                                    className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/35 rounded-xl font-bold transition-all text-[11px] cursor-pointer"
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              </td>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                {/* Apps Table Column */}
+                <div className="xl:col-span-2 space-y-4">
+                  {isAppsLoading && appsList.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 space-y-4 bg-surface-card border border-border-accent rounded-3xl shadow-lg">
+                      <div className="w-8 h-8 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-xs text-text-secondary">Loading registered applications...</p>
+                    </div>
+                  ) : (
+                    <div className="bg-surface-card border border-border-accent rounded-3xl shadow-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-border-accent bg-surface-card/10 text-text-tertiary font-bold uppercase tracking-wider">
+                              <th className="p-4">Application Details</th>
+                              <th className="p-4">Entry URL / Slug</th>
+                              <th className="p-4">OAuth Credentials</th>
+                              <th className="p-4">Health Status</th>
+                              <th className="p-4 text-right">Lifecycle Controls</th>
                             </tr>
-                          );
-                        })}
-                        
-                        {appsList.length === 0 && (
-                          <tr>
-                            <td colSpan={5} className="p-8 text-center text-text-secondary italic">
-                              No applications currently registered. Click Scan to discover apps.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                          </thead>
+                          <tbody className="divide-y divide-border-accent/40">
+                            {appsList.map(app => {
+                              const isSecretRevealed = revealedSecrets[app.id] || false;
+                              
+                              return (
+                                <tr key={app.id} className="hover:bg-surface-card/20 transition-colors">
+                                  {/* Application Details */}
+                                  <td className="p-4">
+                                    <div className="flex items-start gap-3">
+                                      <div className="h-9 w-9 rounded-xl bg-surface-elevated text-lg flex items-center justify-center border border-border-accent/30 shadow-sm flex-shrink-0 mt-0.5">
+                                        {getAppIcon(app.icon)}
+                                      </div>
+                                      <div className="space-y-1">
+                                        <h3 className="font-black text-text-primary text-sm leading-tight">{app.name}</h3>
+                                        <span className="text-[10px] text-text-secondary block leading-normal">{app.description}</span>
+                                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                          <span className="px-1.5 py-0.5 rounded bg-background-portal text-text-secondary border border-border-accent text-[9px] font-bold uppercase">
+                                            ID: {app.id}
+                                          </span>
+                                          <span className={`px-1.5 py-0.5 rounded border text-[9px] font-black uppercase ${
+                                            app.isIsolatedLifecycle 
+                                              ? 'bg-warning/10 text-warning-text border-warning/25' 
+                                              : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/25'
+                                          }`}>
+                                            {app.isIsolatedLifecycle ? 'Isolated DB' : 'Shared DB'}
+                                          </span>
+                                          {app.isIsolatedLifecycle && app.schemaName && (
+                                            <span className="px-1.5 py-0.5 bg-background-portal text-text-secondary border border-border-accent rounded text-[9px] font-mono">
+                                              Schema: {app.schemaName}
+                                            </span>
+                                          )}
+                                          {app.targetRules?.minJobLevel !== undefined && (
+                                            <span className="px-1.5 py-0.5 bg-background-portal text-text-secondary border border-border-accent rounded text-[9px] font-bold">
+                                              Min Level: L{app.targetRules.minJobLevel}
+                                            </span>
+                                          )}
+                                          {app.targetRules?.verticals?.map((v: string) => (
+                                            <span key={v} className="px-1.5 py-0.5 bg-background-portal text-text-secondary border border-border-accent rounded text-[9px] font-bold">
+                                              {v === 'core-tech-uuid-placeholder' ? 'Engineering' : v === 'exec-uuid-placeholder' ? 'Executive' : v}
+                                            </span>
+                                          ))}
+                                          {(!app.targetRules?.verticals || app.targetRules.verticals.length === 0) && (
+                                            <span className="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[9px] font-black uppercase">
+                                              Global Release
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  {/* Entry / Schema */}
+                                  <td className="p-4 font-mono text-[10px] text-text-secondary">
+                                    <div>Url: <a href={app.entryUrl} target="_blank" rel="noreferrer" className="text-brand-accent hover:underline font-bold">{app.entryUrl}</a></div>
+                                    <div className="mt-1">Slug: <span className="text-text-primary font-bold">{app.slug}</span></div>
+                                  </td>
+
+                                  {/* OAuth Credentials */}
+                                  <td className="p-4 font-mono text-[10px] space-y-1">
+                                    <div>Client ID: <span className="text-text-primary font-bold">{app.clientId}</span></div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span>Client Secret:</span>
+                                      <span className="font-bold text-text-secondary">
+                                        {isSecretRevealed ? app.clientSecret : '••••••••••••••••'}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setRevealedSecrets(prev => ({ ...prev, [app.id]: !isSecretRevealed }))}
+                                        className="text-[9px] font-sans font-black uppercase text-brand-accent hover:underline ml-1 cursor-pointer"
+                                      >
+                                        {isSecretRevealed ? 'Hide' : 'Reveal'}
+                                      </button>
+                                    </div>
+                                  </td>
+
+                                  {/* Health Status */}
+                                  <td className="p-4">
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-2.5 h-2.5 rounded-full bg-success animate-pulse"></span>
+                                      <div>
+                                        <span className="text-[10px] font-bold text-success uppercase block">Active / Ready</span>
+                                        <span className="text-[9px] text-text-tertiary">Verified successfully</span>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  {/* Enable/Disable & Actions */}
+                                  <td className="p-4 text-right">
+                                    <div className="flex items-center justify-end gap-3">
+                                      {/* Toggle enable */}
+                                      <label className="relative inline-flex items-center cursor-pointer select-none">
+                                        <input
+                                          type="checkbox"
+                                          checked={app.isEnabled}
+                                          onChange={() => toggleAppEnable(app.id, app.isEnabled)}
+                                          className="sr-only peer"
+                                        />
+                                        <div className="w-9 h-5 bg-background-portal border border-border-accent peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-secondary peer-checked:after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-success peer-checked:border-success"></div>
+                                        <span className="ml-2 text-[10px] font-bold text-text-secondary hidden sm:inline">
+                                          {app.isEnabled ? 'Enabled' : 'Disabled'}
+                                        </span>
+                                      </label>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          fetchAppAccessDetails(app.id);
+                                          fetchAppAdminDelegation(app.id);
+                                        }}
+                                        className="px-2.5 py-1.5 bg-brand-muted hover:bg-brand-accent/20 text-brand-accent border border-brand-accent/20 hover:border-brand-accent/35 rounded-xl font-bold transition-all text-[11px] cursor-pointer"
+                                      >
+                                        ⚙️ Manage Access
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => removeApp(app.id)}
+                                        className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/35 rounded-xl font-bold transition-all text-[11px] cursor-pointer"
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            
+                            {appsList.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="p-8 text-center text-text-secondary italic">
+                                  No applications currently registered. Click Scan to discover apps.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Manifest Upload & Extension Modules Column */}
+                <div className="xl:col-span-1 space-y-6">
+                  {/* Register Manifest Card */}
+                  <div className="bg-surface-card border border-border-accent rounded-3xl p-6 shadow-lg space-y-4 flex flex-col">
+                    <div>
+                      <h3 className="text-sm font-black text-text-primary uppercase tracking-wider">Register New Manifest</h3>
+                      <p className="text-[10px] text-text-secondary mt-1">
+                        Paste a new extension's <code className="font-mono text-brand-accent bg-background-portal px-1 py-0.5 rounded">app.json</code> contents below to dynamically parse and register the manifest.
+                      </p>
+                    </div>
+                    <div className="flex-1 min-h-[220px]">
+                      <textarea
+                        value={manifestText}
+                        onChange={e => setManifestText(e.target.value)}
+                        className="w-full h-full min-h-[220px] p-3.5 bg-background-portal border border-border-accent rounded-2xl text-[11px] font-mono text-text-primary focus:outline-none focus:border-brand-accent resize-none focus:ring-1 focus:ring-brand-accent/30 placeholder-text-tertiary"
+                        placeholder={`{\n  "id": "new-app-slug",\n  "name": "New App Name",\n  "description": "...",\n  "entryPoint": "http://192.168.1.100:5000",\n  "routingMode": "iframe",\n  "database": {\n    "requiresIsolatedSchema": true,\n    "schemaName": "forge_new_app"\n  },\n  "targetRules": {\n    "verticals": ["exec-uuid-placeholder"],\n    "minJobLevel": 2\n  }\n}`}
+                      />
+                    </div>
+                    <button
+                      onClick={handleManifestUpload}
+                      disabled={!manifestText.trim()}
+                      className={`w-full py-3 rounded-2xl text-xs font-black transition-all cursor-pointer ${
+                        manifestText.trim() 
+                          ? 'bg-brand-accent text-white hover:bg-brand-hover shadow-lg shadow-brand-accent/20' 
+                          : 'bg-border-accent text-text-tertiary cursor-not-allowed border border-transparent'
+                      }`}
+                    >
+                      Register Extension Manifest
+                    </button>
+                  </div>
+
+                  {/* Modular App Ecosystem (Extensions Manager) Card */}
+                  <div className="bg-surface-card border border-border-accent rounded-3xl p-6 shadow-lg space-y-4">
+                    <div>
+                      <h3 className="text-sm font-black text-text-primary uppercase tracking-wider">Modular App Ecosystem</h3>
+                      <p className="text-[10px] text-text-secondary mt-1">
+                        Toggle sub-applications and extension modules detected in the workspace.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3 pt-2">
+                      {Object.entries(moduleFlags).map(([name, active]) => (
+                        <div key={name} className="flex items-center justify-between p-3.5 rounded-2xl bg-background-portal border border-border-accent hover:border-brand-accent/30 transition-all">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-2.5 w-2.5 rounded-full ${active ? 'bg-success shadow shadow-success' : 'bg-text-tertiary'}`} />
+                            <div>
+                              <p className="text-xs font-bold text-text-primary leading-tight">{name}</p>
+                              <p className="text-[9px] text-text-secondary mt-0.5">{active ? 'Active' : 'Disabled'}</p>
+                            </div>
+                          </div>
+                          <button onClick={() => setModuleFlags(prev => ({ ...prev, [name]: !prev[name] }))}
+                            className={`relative w-9 h-5 rounded-full transition-all ${active ? 'bg-brand-accent' : 'bg-border-accent'}`}>
+                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${active ? 'left-[18px]' : 'left-0.5'}`} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              )
+              </div>
             )}
 
             {appManagementView === 'registry' && selectedAppForAccess && (

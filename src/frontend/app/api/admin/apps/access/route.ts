@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 3. Fetch all users in organization with designation & vertical info
+    // 3. Fetch all users in organization with designation & vertical info (exclude admins from org hierarchy)
     const usersResult = await db.execute(sql`
       SELECT 
         u.id, 
@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
       FROM users u
       LEFT JOIN structural_metadata dm ON u.designation_id = dm.id
       LEFT JOIN structural_metadata vm ON u.vertical_id = vm.id
+      WHERE u.role = 'user'
       ORDER BY u.name ASC
     `);
     const users = (usersResult.rows || usersResult) as any[];

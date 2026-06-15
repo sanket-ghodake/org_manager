@@ -18,69 +18,11 @@ interface SettingsPanelProps {
 export default function SettingsPanel({
   session, users, metadata, theme, setTheme, density, setDensity, simulatedRole, loadWorkspaceData, font, setFont,
 }: SettingsPanelProps) {
-  const [tab, setTab] = useState<'appearance' | 'security' | 'profile' | 'sessions' | 'platform' | 'modules' | 'sandbox' | 'extensions'>('appearance');
+  const [tab, setTab] = useState<'appearance' | 'security' | 'profile' | 'sessions' | 'platform' | 'sandbox'>('appearance');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
-  };
-
-  const [apps, setApps] = useState<any[]>([]);
-  const [appsLoading, setAppsLoading] = useState(false);
-  const [manifestText, setManifestText] = useState('');
-
-  const fetchApps = async () => {
-    setAppsLoading(true);
-    try {
-      const res = await fetch('/api/apps');
-      const data = await res.json();
-      if (data.apps) {
-        setApps(data.apps);
-      }
-    } catch (err) {
-      showToast('Failed to fetch extensions', 'error');
-    } finally {
-      setAppsLoading(false);
-    }
-  };
-
-  React.useEffect(() => {
-    if (tab === 'extensions') {
-      fetchApps();
-    }
-  }, [tab]);
-
-  const handleManifestUpload = async () => {
-    if (!manifestText.trim()) return;
-    try {
-      let parsed;
-      try {
-        parsed = JSON.parse(manifestText);
-      } catch (e) {
-        showToast('Invalid JSON format', 'error');
-        return;
-      }
-
-      const res = await fetch('/api/apps', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(parsed),
-      });
-
-      if (res.ok) {
-        showToast('Extension registered successfully', 'success');
-        setManifestText('');
-        fetchApps();
-        if (loadWorkspaceData) {
-          await loadWorkspaceData();
-        }
-      } else {
-        const err = await res.json();
-        showToast(err.error || 'Failed to register extension', 'error');
-      }
-    } catch {
-      showToast('Network error during registration', 'error');
-    }
   };
 
   // Password state
@@ -250,8 +192,6 @@ export default function SettingsPanel({
 
   const adminTabs = isAdmin ? [
     ...(isSuperAdmin ? [{ id: 'platform', label: 'Platform Branding', icon: '🏢' }] : []),
-    { id: 'modules', label: 'App Modules', icon: '🔌' },
-    { id: 'extensions', label: 'Extensions Manager', icon: '🛠️' },
     { id: 'sandbox', label: 'Sandbox Tools', icon: '🧪' },
   ] : [];
 
@@ -682,140 +622,7 @@ export default function SettingsPanel({
           </div>
         )}
 
-        {/* ── APP MODULES (Admin) ── */}
-        {tab === 'modules' && isSuperAdmin && (
-          <div className="space-y-8 max-w-xl">
-            <div>
-              <h1 className="text-lg font-black text-text-primary">Modular App Ecosystem</h1>
-              <p className="text-xs text-text-secondary mt-0.5">Toggle sub-applications detected in /src/apps/*</p>
-            </div>
 
-            <div className="space-y-3">
-              {Object.entries(moduleFlags).map(([name, active]) => (
-                <div key={name} className="flex items-center justify-between p-4 rounded-2xl bg-surface-card border border-border-accent hover:border-brand-accent/30 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-2.5 w-2.5 rounded-full ${active ? 'bg-success shadow shadow-success' : 'bg-text-tertiary'}`} />
-                    <div>
-                      <p className="text-xs font-bold text-text-primary">{name}</p>
-                      <p className="text-[10px] text-text-secondary">{active ? 'Active' : 'Disabled'}</p>
-                    </div>
-                  </div>
-                  <button onClick={() => setModuleFlags(prev => ({ ...prev, [name]: !prev[name] }))}
-                    className={`relative w-11 h-6 rounded-full transition-all ${active ? 'bg-brand-accent' : 'bg-border-accent'}`}>
-                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${active ? 'left-[22px]' : 'left-0.5'}`} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── EXTENSIONS MANAGER (Admin) ── */}
-        {tab === 'extensions' && isAdmin && (
-          <div className="space-y-8 max-w-4xl">
-            <div>
-              <h1 className="text-lg font-black text-text-primary">Extensions Manager</h1>
-              <p className="text-xs text-text-secondary mt-0.5">Manage, review, and register custom organization workspace extensions</p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Manifest List */}
-              <div className="lg:col-span-2 space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-wider text-text-secondary">Registered Extensions</h3>
-                {appsLoading ? (
-                  <div className="p-8 text-center bg-surface-card border border-border-accent rounded-2xl animate-pulse">
-                    <p className="text-xs text-text-secondary font-bold">Scanning extension directory...</p>
-                  </div>
-                ) : apps.length === 0 ? (
-                  <div className="p-8 text-center bg-surface-card border border-border-accent rounded-2xl">
-                    <p className="text-xs text-text-secondary font-bold">No custom extensions detected</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {apps.map(app => (
-                      <div key={app.id} className="p-5 rounded-2xl bg-surface-card border border-border-accent hover:border-brand-accent/30 transition-all space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-accent to-indigo-600 flex items-center justify-center text-white text-xs font-black shadow-md">
-                              🔌
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-black text-text-primary">{app.name}</h4>
-                              <p className="text-[10px] text-text-secondary font-mono">Slug: {app.id}</p>
-                            </div>
-                          </div>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${
-                            app.database?.requiresIsolatedSchema 
-                              ? 'bg-warning/10 text-warning-text border-warning/25' 
-                              : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/25'
-                          }`}>
-                            {app.database?.requiresIsolatedSchema ? 'Isolated DB' : 'Shared DB'}
-                          </span>
-                        </div>
-
-                        {app.database?.requiresIsolatedSchema && (
-                          <div className="p-3 bg-background-portal/50 rounded-xl border border-border-accent flex items-center justify-between text-[10px]">
-                            <span className="font-bold text-text-secondary font-mono">Schema Namespace:</span>
-                            <span className="font-black text-warning-text font-mono">{app.database.schemaName || `forge_${app.id}`}</span>
-                          </div>
-                        )}
-
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-black uppercase tracking-wider text-text-secondary">Target rules</p>
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            {app.targetRules?.verticals?.map((v: string) => (
-                              <span key={v} className="px-2 py-0.5 bg-white/5 rounded-md text-[9px] font-bold text-text-secondary">
-                                Vertical: {v === 'core-tech-uuid-placeholder' ? 'Engineering' : v === 'exec-uuid-placeholder' ? 'Executive' : v}
-                              </span>
-                            ))}
-                            {app.targetRules?.minJobLevel !== undefined && (
-                              <span className="px-2 py-0.5 bg-white/5 rounded-md text-[9px] font-bold text-text-secondary">
-                                Min Job Level: {app.targetRules.minJobLevel}
-                              </span>
-                            )}
-                            {(!app.targetRules?.verticals || app.targetRules?.verticals?.length === 0) && (
-                              <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/10 rounded-md text-[9px] font-black uppercase">
-                                Global Release (All Staff)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Upload Manifest form */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-wider text-text-secondary">Register New Manifest</h3>
-                <div className="p-5 rounded-2xl bg-surface-card border border-border-accent space-y-4">
-                  <p className="text-[10px] text-text-secondary">Paste a new extension's <code>app.json</code> contents below to dynamically parse and register the manifest.</p>
-                  <div>
-                    <textarea
-                      value={manifestText}
-                      onChange={e => setManifestText(e.target.value)}
-                      rows={12}
-                      className="w-full p-3 bg-input-bg border border-input-border rounded-xl text-[10px] font-mono text-text-primary focus:outline-none focus:border-brand-accent resize-none"
-                      placeholder={`{\n  "id": "new-app-slug",\n  "name": "New App Name",\n  "description": "...",\n  "entryPoint": "http://192.168.1.100:5000",\n  "routingMode": "iframe",\n  "database": {\n    "requiresIsolatedSchema": true,\n    "schemaName": "forge_new_app"\n  },\n  "targetRules": {\n    "verticals": ["exec-uuid-placeholder"],\n    "minJobLevel": 2\n  }\n}`}
-                    />
-                  </div>
-                  <button
-                    onClick={handleManifestUpload}
-                    disabled={!manifestText.trim()}
-                    className={`w-full py-2.5 rounded-xl text-xs font-black transition-all ${
-                      manifestText.trim() 
-                        ? 'bg-brand-accent text-white hover:bg-brand-hover shadow-lg shadow-brand-accent/20' 
-                        : 'bg-border-accent text-text-tertiary cursor-not-allowed'
-                    }`}
-                  >
-                    Register Extension Manifest
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ── SANDBOX (Admin) ── */}
         {tab === 'sandbox' && isSuperAdmin && (
