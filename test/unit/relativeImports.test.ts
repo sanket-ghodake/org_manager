@@ -32,12 +32,13 @@ describe("Relative Import Enforcer", () => {
       files.push(...getFiles(dirPath));
     }
 
-    // Filter for TypeScript/JavaScript files, excluding this test file itself and declaration files (.d.ts)
+    // Filter for TypeScript/JavaScript files, excluding this test file itself, declaration files (.d.ts), and the bundled dashboard.js
     const targetFiles = files.filter((file) => {
       const isCodeFile = file.endsWith(".ts") || file.endsWith(".tsx") || file.endsWith(".js") || file.endsWith(".jsx");
       const isDts = file.endsWith(".d.ts");
       const isSelf = file === __filename;
-      return isCodeFile && !isDts && !isSelf;
+      const isBundledAsset = file.endsWith("dev-dashboard/dashboard.js");
+      return isCodeFile && !isDts && !isSelf && !isBundledAsset;
     });
 
     // Match imports, exports and requires using relative paths
