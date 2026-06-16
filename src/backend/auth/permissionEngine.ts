@@ -168,34 +168,56 @@ async function computeAppAccess(
 ): Promise<boolean> {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  // 1. If user ID is a valid UUID, evaluate explicit entitlements first
+  // 1. Phase 1: Explicit Overrides (using user_id, active org nodes + parent paths, and assigned roles)
   if (uuidRegex.test(userId)) {
-    const userContextResult = await db.execute(sql`
-      SELECT 
-        u.id AS "userId",
-        u.designation_id AS "designationId",
-        ARRAY_AGG(DISTINCT ut.team_id) FILTER (WHERE ut.team_id IS NOT NULL) AS "teamIds",
-        ARRAY_AGG(DISTINCT pm.project_id) FILTER (WHERE pm.project_id IS NOT NULL) AS "projectIds",
-        ARRAY_AGG(DISTINCT ug.group_id) FILTER (WHERE ug.group_id IS NOT NULL) AS "groupIds",
-        ARRAY_AGG(DISTINCT uon.org_node_id) FILTER (WHERE uon.org_node_id IS NOT NULL) AS "orgNodeIds"
-      FROM users u
-      LEFT JOIN user_teams ut ON ut.user_id = u.id
-      LEFT JOIN project_members pm ON pm.user_id = u.id
-      LEFT JOIN user_groups ug ON ug.user_id = u.id
-      LEFT JOIN user_org_nodes uon ON uon.user_id = u.id
-      WHERE u.id = ${userId}
-      GROUP BY u.id, u.designation_id
-    `);
+    try {
+      // Fetch user's direct teams, projects, groups, designation
+      const userContextResult = await db.execute(sql`
+        SELECT 
+          u.id AS "userId",
+          u.designation_id AS "designationId",
+          ARRAY_AGG(DISTINCT ut.team_id) FILTER (WHERE ut.team_id IS NOT NULL) AS "teamIds",
+          ARRAY_AGG(DISTINCT pm.project_id) FILTER (WHERE pm.project_id IS NOT NULL) AS "projectIds",
+          ARRAY_AGG(DISTINCT ug.group_id) FILTER (WHERE ug.group_id IS NOT NULL) AS "groupIds"
+        FROM users u
+        LEFT JOIN user_teams ut ON ut.user_id = u.id
+        LEFT JOIN project_members pm ON pm.user_id = u.id
+        LEFT JOIN user_groups ug ON ug.user_id = u.id
+        WHERE u.id = ${userId}
+        GROUP BY u.id, u.designation_id
+      `);
 
-    const contextRows = userContextResult.rows || userContextResult;
-    if (contextRows && contextRows.length > 0) {
-      const context = contextRows[0] as any;
-      const teamIds = (context.teamIds || []) as string[];
-      const projectIds = (context.projectIds || []) as string[];
-      const groupIds = (context.groupIds || []) as string[];
-      const orgNodeIds = (context.orgNodeIds || []) as string[];
-      const designationId = context.designationId as string;
+      const contextRows = userContextResult.rows || userContextResult;
+      let teamIds: string[] = [];
+      let projectIds: string[] = [];
+      let groupIds: string[] = [];
+      let designationId: string | null = null;
+      
+      if (contextRows && contextRows.length > 0) {
+        const ctx = contextRows[0] as any;
+        teamIds = (ctx.teamIds || []) as string[];
+        projectIds = (ctx.projectIds || []) as string[];
+        groupIds = (ctx.groupIds || []) as string[];
+        designationId = ctx.designationId as string;
+      }
 
+      // Fetch all active org nodes (including parent paths) using ltree ancestor operator @>
+      const activeNodesResult = await db.execute(sql`
+        SELECT DISTINCT ancestor.id
+        FROM org_nodes ancestor
+        JOIN org_nodes direct ON ancestor.path @> direct.path
+        JOIN user_org_nodes uon ON uon.node_id = direct.id
+        WHERE uon.user_id = ${userId}
+      `);
+      const activeOrgNodeIds = (activeNodesResult.rows || activeNodesResult).map((n: any) => n.id as string);
+
+      // Fetch user's assigned roles
+      const rolesResult = await db.execute(sql`
+        SELECT role_id FROM user_roles WHERE user_id = ${userId}
+      `);
+      const roleIds = (rolesResult.rows || rolesResult).map((r: any) => r.role_id as string);
+
+      // Fetch active entitlements for the app
       const entitlementsResult = await db.execute(sql`
         SELECT subject_type as "subjectType", subject_id as "subjectId", access_type as "accessType"
         FROM forge_app_entitlements
@@ -209,39 +231,31 @@ async function computeAppAccess(
       const matchingPolicies = policies.filter(p => {
         const sId = p.subjectId;
         if (p.subjectType === 'user' && sId === userId) return true;
-        if (p.subjectType === 'org_node' && (orgNodeIds.includes(sId) || teamIds.includes(sId))) return true;
+        if (p.subjectType === 'org_node' && (activeOrgNodeIds.includes(sId) || teamIds.includes(sId))) return true;
+        if (p.subjectType === 'role' && roleIds.includes(sId)) return true;
         if (p.subjectType === 'project' && projectIds.includes(sId)) return true;
         if (p.subjectType === 'group' && groupIds.includes(sId)) return true;
         if (p.subjectType === 'designation' && sId === designationId) return true;
         return false;
       });
 
-      // Precedence scores: lower is higher priority.
-      // Deny policies are grouped first so that Deny always overrides Grant globally.
-      const getPrecedenceScore = (p: any) => {
-        if (p.subjectType === 'user' && p.accessType === 'deny') return 2;
-        if (['org_node', 'project', 'group'].includes(p.subjectType) && p.accessType === 'deny') return 3;
-        if (p.subjectType === 'designation' && p.accessType === 'deny') return 4;
-        if (p.subjectType === 'user' && p.accessType === 'grant') return 5;
-        if (['org_node', 'project', 'group'].includes(p.subjectType) && p.accessType === 'grant') return 6;
-        if (p.subjectType === 'designation' && p.accessType === 'grant') return 7;
-        return 99;
-      };
-
+      // Deny overrides grant logic
       if (matchingPolicies.length > 0) {
-        matchingPolicies.sort((a, b) => getPrecedenceScore(a) - getPrecedenceScore(b));
-        const primaryPolicy = matchingPolicies[0];
-        if (primaryPolicy.accessType === 'deny') {
+        const hasDeny = matchingPolicies.some(p => p.accessType === 'deny');
+        if (hasDeny) {
           return false;
         }
-        if (primaryPolicy.accessType === 'grant') {
+        const hasGrant = matchingPolicies.some(p => p.accessType === 'grant');
+        if (hasGrant) {
           return true;
         }
       }
+    } catch (err) {
+      console.error('Error in explicit overrides phase:', err);
     }
   }
 
-  // 2. Default Fallback to targetRules evaluation
+  // 2. Phase 2: Default Fallback to targetRules evaluation
   const appResult = await db.execute(sql`
     SELECT id, slug, is_enabled as "isEnabled", target_rules as "targetRules"
     FROM forge_apps
@@ -256,10 +270,10 @@ async function computeAppAccess(
     return false;
   }
 
-  let uDetails = user;
+  let uDetails = user as any;
   if (!uDetails && uuidRegex.test(userId)) {
     const userDetailsResult = await db.execute(sql`
-      SELECT u.vertical_id as "verticalId", u.designation_id as "designationId", dm.name as designation
+      SELECT u.vertical_id as "verticalId", u.designation_id as "designationId", u.job_level as "jobLevel", dm.name as designation
       FROM users u
       LEFT JOIN structural_metadata dm ON u.designation_id = dm.id
       WHERE u.id = ${userId}
@@ -276,6 +290,23 @@ async function computeAppAccess(
 
   const rules = (app.targetRules || {}) as any;
 
+  // job_level check
+  const minJobLevel = rules.minJobLevel !== undefined ? Number(rules.minJobLevel) : 1;
+  let resolvedJobLevel = uDetails.jobLevel !== undefined ? Number(uDetails.jobLevel) : undefined;
+  if (resolvedJobLevel === undefined && uDetails.designation) {
+    const dName = String(uDetails.designation).toLowerCase();
+    if (dName.includes('ceo')) resolvedJobLevel = 5;
+    else if (dName.includes('vp') || dName.includes('cfo')) resolvedJobLevel = 4;
+    else if (dName.includes('manager')) resolvedJobLevel = 3;
+    else if (dName.includes('senior') || dName.includes('sr')) resolvedJobLevel = 2;
+    else resolvedJobLevel = 1;
+  }
+  const userJobLevel = resolvedJobLevel !== undefined ? resolvedJobLevel : 1;
+  if (userJobLevel < minJobLevel) {
+    return false;
+  }
+
+  // verticals check
   if (rules.verticals && rules.verticals.length > 0) {
     if (!rules.verticals.includes('all')) {
       const targetVerticals = rules.verticals.map((v: string) => {
@@ -289,25 +320,13 @@ async function computeAppAccess(
     }
   }
 
+  // designations check
   if (rules.designations && rules.designations.length > 0) {
     if (!rules.designations.includes(uDetails.designationId)) {
       return false;
     }
   }
 
-  const getJobLevelByName = (name: string): number => {
-    const n = name.toLowerCase();
-    if (n.includes('ceo')) return 5;
-    if (n.includes('vp') || n.includes('cfo')) return 4;
-    if (n.includes('manager')) return 3;
-    if (n.includes('senior') || n.includes('sr')) return 2;
-    return 1;
-  };
-  const userJobLevel = getJobLevelByName(uDetails.designation || 'Staff Member');
-  const minJobLevel = rules.minJobLevel !== undefined ? Number(rules.minJobLevel) : 1;
-  if (userJobLevel < minJobLevel) {
-    return false;
-  }
   return true;
 }
 

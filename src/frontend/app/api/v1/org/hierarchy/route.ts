@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         n.name, 
         n.parent_id as "parentId", 
         n.node_type_id as "nodeTypeId",
+        n.path,
         t.name as "type"
       FROM org_nodes n
       INNER JOIN org_node_types t ON n.node_type_id = t.id
@@ -33,8 +34,8 @@ export async function GET(request: NextRequest) {
     // Fetch all members mapping
     const membersResult = await db.execute(sql`
       SELECT 
-        uon.org_node_id as "orgNodeId", 
-        uon.relationship,
+        uon.node_id as "orgNodeId", 
+        uon.role_type as "relationship",
         uon.is_primary as "isPrimary",
         u.id as "userId",
         u.name as "userName",

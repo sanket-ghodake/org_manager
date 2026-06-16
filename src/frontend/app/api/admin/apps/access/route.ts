@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
         ARRAY_AGG(DISTINCT ut.team_id) FILTER (WHERE ut.team_id IS NOT NULL) AS "teamIds",
         ARRAY_AGG(DISTINCT pm.project_id) FILTER (WHERE pm.project_id IS NOT NULL) AS "projectIds",
         ARRAY_AGG(DISTINCT ug.group_id) FILTER (WHERE ug.group_id IS NOT NULL) AS "groupIds",
-        ARRAY_AGG(DISTINCT uon.org_node_id) FILTER (WHERE uon.org_node_id IS NOT NULL) AS "orgNodeIds"
+        ARRAY_AGG(DISTINCT uon.node_id) FILTER (WHERE uon.node_id IS NOT NULL) AS "orgNodeIds"
       FROM users u
       LEFT JOIN user_teams ut ON ut.user_id = u.id
       LEFT JOIN project_members pm ON pm.user_id = u.id

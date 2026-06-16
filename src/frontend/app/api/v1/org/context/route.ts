@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     const primaryNodeResult = await db.execute(sql`
       SELECT n.id, n.name, t.name as "type"
       FROM user_org_nodes uon
-      INNER JOIN org_nodes n ON uon.org_node_id = n.id
+      INNER JOIN org_nodes n ON uon.node_id = n.id
       INNER JOIN org_node_types t ON n.node_type_id = t.id
       WHERE uon.user_id = ${userId} AND uon.is_primary = true
       LIMIT 1
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     const teamsResult = await db.execute(sql`
       SELECT n.name
       FROM user_org_nodes uon
-      INNER JOIN org_nodes n ON uon.org_node_id = n.id
+      INNER JOIN org_nodes n ON uon.node_id = n.id
       INNER JOIN org_node_types t ON n.node_type_id = t.id
       WHERE uon.user_id = ${userId} AND t.name = 'team'
     `);
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     const orgRoleResult = await db.execute(sql`
       SELECT 1 
       FROM user_org_nodes 
-      WHERE user_id = ${userId} AND relationship IN ('manager', 'lead')
+      WHERE user_id = ${userId} AND role_type IN ('manager', 'lead')
       LIMIT 1
     `);
     const orgRoleRows = orgRoleResult.rows || orgRoleResult;

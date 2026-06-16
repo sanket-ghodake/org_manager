@@ -68,6 +68,7 @@ async function main() {
       designation_id UUID REFERENCES structural_metadata(id),
       vertical_id UUID REFERENCES structural_metadata(id),
       manager_id UUID,
+      job_level INTEGER DEFAULT 1 NOT NULL,
       created_at TIMESTAMP DEFAULT NOW() NOT NULL,
       updated_at TIMESTAMP DEFAULT NOW() NOT NULL
     );
@@ -149,9 +150,9 @@ async function main() {
   // Create user_roles table
   await db.execute(sql`
     CREATE TABLE user_roles (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-      role_id UUID REFERENCES roles(id) ON DELETE CASCADE NOT NULL
+      role_id UUID REFERENCES roles(id) ON DELETE CASCADE NOT NULL,
+      PRIMARY KEY (user_id, role_id)
     );
   `);
 
@@ -275,9 +276,16 @@ async function main() {
     const designationId = designationIdMap.get(emp.designation) || null;
     const verticalId = verticalIdMap.get(emp.vertical) || null;
     
+    let jobLevel = 1;
+    const desName = emp.designation.toLowerCase();
+    if (desName.includes('ceo')) jobLevel = 5;
+    else if (desName.includes('vp')) jobLevel = 4;
+    else if (desName.includes('director') || desName.includes('manager')) jobLevel = 3;
+    else if (desName.includes('senior')) jobLevel = 2;
+    
     const result = await db.execute(sql`
-      INSERT INTO users (eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id)
-      VALUES (${emp.eid}, ${emp.name}, ${emp.email}, ${adminPasswordHash}, false, ${emp.role}, ${designationId}, ${verticalId}, NULL)
+      INSERT INTO users (eid, name, email, password_hash, is_password_changed, role, designation_id, vertical_id, manager_id, job_level)
+      VALUES (${emp.eid}, ${emp.name}, ${emp.email}, ${adminPasswordHash}, false, ${emp.role}, ${designationId}, ${verticalId}, NULL, ${jobLevel})
       RETURNING id;
     `);
     const id = (result.rows || result)[0].id;
@@ -403,6 +411,8 @@ async function main() {
   `);
 
   console.log('Creating Org Node Hierarchy and Marketplace tables...');
+  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS ltree;`);
+
   await db.execute(sql`
     CREATE TABLE org_node_types (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -414,26 +424,26 @@ async function main() {
   await db.execute(sql`
     CREATE TABLE org_nodes (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      node_type_id UUID NOT NULL REFERENCES org_node_types(id),
       name VARCHAR(255) NOT NULL,
-      parent_id UUID REFERENCES org_nodes(id) ON DELETE RESTRICT,
+      node_type_id UUID REFERENCES org_node_types(id),
+      parent_id UUID REFERENCES org_nodes(id) ON DELETE SET NULL,
+      path ltree NOT NULL,
       metadata JSONB DEFAULT '{}'::jsonb NOT NULL,
       created_at TIMESTAMP DEFAULT NOW() NOT NULL,
       updated_at TIMESTAMP DEFAULT NOW() NOT NULL
     );
   `);
 
-  await db.execute(sql`CREATE INDEX idx_org_nodes_parent ON org_nodes(parent_id);`);
+  await db.execute(sql`CREATE INDEX idx_org_nodes_path ON org_nodes USING gist(path);`);
 
   await db.execute(sql`
     CREATE TABLE user_org_nodes (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-      org_node_id UUID REFERENCES org_nodes(id) ON DELETE CASCADE,
-      relationship VARCHAR(50) DEFAULT 'member' NOT NULL,
-      is_primary BOOLEAN DEFAULT true NOT NULL,
+      node_id UUID REFERENCES org_nodes(id) ON DELETE CASCADE,
+      role_type VARCHAR(50) DEFAULT 'member',
+      is_primary BOOLEAN DEFAULT true,
       created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-      UNIQUE(user_id, org_node_id)
+      PRIMARY KEY (user_id, node_id)
     );
   `);
 
@@ -768,19 +778,21 @@ async function main() {
   `);
 
   console.log('Seeding root org node...');
+  const sanitizeLtreeLabel = (name: string) => name.replace(/[^a-zA-Z0-9_]/g, '_');
   const rootNodeId = crypto.randomUUID();
   await db.execute(sql`
-    INSERT INTO org_nodes (id, node_type_id, name, parent_id, metadata)
-    VALUES (${rootNodeId}, ${companyTypeId}, 'SG Forge Root', NULL, '{}'::jsonb);
+    INSERT INTO org_nodes (id, node_type_id, name, parent_id, path, metadata)
+    VALUES (${rootNodeId}, ${companyTypeId}, 'SG Forge Root', NULL, 'Top', '{}'::jsonb);
   `);
 
   // 1. Create Division nodes for each Vertical
   const verticalToNodeIdMap = new Map<string, string>();
   for (const vName of mockData.verticals.map((v: any) => v.name)) {
     const divisionNodeId = crypto.randomUUID();
+    const divisionPath = 'Top.' + sanitizeLtreeLabel(vName);
     await db.execute(sql`
-      INSERT INTO org_nodes (id, node_type_id, name, parent_id)
-      VALUES (${divisionNodeId}, ${divisionTypeId}, ${vName + " Division"}, ${rootNodeId});
+      INSERT INTO org_nodes (id, node_type_id, name, parent_id, path)
+      VALUES (${divisionNodeId}, ${divisionTypeId}, ${vName + " Division"}, ${rootNodeId}, ${divisionPath});
     `);
     verticalToNodeIdMap.set(vName, divisionNodeId);
   }
@@ -792,9 +804,10 @@ async function main() {
     if (divisionNodeId) {
       for (const tName of tNames) {
         const teamNodeId = crypto.randomUUID();
+        const teamPath = 'Top.' + sanitizeLtreeLabel(vName) + '.' + sanitizeLtreeLabel(tName);
         await db.execute(sql`
-          INSERT INTO org_nodes (id, node_type_id, name, parent_id)
-          VALUES (${teamNodeId}, ${teamTypeId}, ${tName}, ${divisionNodeId});
+          INSERT INTO org_nodes (id, node_type_id, name, parent_id, path)
+          VALUES (${teamNodeId}, ${teamTypeId}, ${tName}, ${divisionNodeId}, ${teamPath});
         `);
         teamToNodeIdMap.set(tName, teamNodeId);
       }
@@ -807,15 +820,15 @@ async function main() {
     const userId = userEidToIdMap.get(emp.eid);
     if (!userId) continue;
 
-    const relationship = emp.designation.includes('CEO') ? 'manager' :
-                         emp.designation.includes('VP') ? 'manager' :
-                         emp.designation.includes('Director') ? 'manager' :
-                         emp.designation.includes('Manager') ? 'lead' : 'member';
+    const roleType = emp.designation.includes('CEO') ? 'manager' :
+                     emp.designation.includes('VP') ? 'manager' :
+                     emp.designation.includes('Director') ? 'manager' :
+                     emp.designation.includes('Manager') ? 'lead' : 'member';
 
     // If CEO, place them in the root node as 'manager'
     if (emp.designation.includes('CEO')) {
       await db.execute(sql`
-        INSERT INTO user_org_nodes (user_id, org_node_id, relationship, is_primary)
+        INSERT INTO user_org_nodes (user_id, node_id, role_type, is_primary)
         VALUES (${userId}, ${rootNodeId}, 'manager', true);
       `);
       continue;
@@ -826,8 +839,8 @@ async function main() {
       const divisionNodeId = verticalToNodeIdMap.get(emp.vertical);
       if (divisionNodeId) {
         await db.execute(sql`
-          INSERT INTO user_org_nodes (user_id, org_node_id, relationship, is_primary)
-          VALUES (${userId}, ${divisionNodeId}, ${relationship}, true);
+          INSERT INTO user_org_nodes (user_id, node_id, role_type, is_primary)
+          VALUES (${userId}, ${divisionNodeId}, ${roleType}, true);
         `);
       }
       continue;
@@ -841,8 +854,8 @@ async function main() {
       const teamNodeId = teamToNodeIdMap.get(selectedTeamName);
       if (teamNodeId) {
         await db.execute(sql`
-          INSERT INTO user_org_nodes (user_id, org_node_id, relationship, is_primary)
-          VALUES (${userId}, ${teamNodeId}, ${relationship}, true);
+          INSERT INTO user_org_nodes (user_id, node_id, role_type, is_primary)
+          VALUES (${userId}, ${teamNodeId}, ${roleType}, true);
         `);
       }
     }

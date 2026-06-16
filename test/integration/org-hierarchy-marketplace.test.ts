@@ -113,22 +113,22 @@ describe("Enterprise Hierarchy, Circular Loops, Entitlements & Marketplace Tests
     nodeTypeId = (typeRes.rows || typeRes)[0].id;
 
     const nARes = await db.execute(sql`
-      INSERT INTO org_nodes (node_type_id, name, parent_id)
-      VALUES (${nodeTypeId}, 'Parent Node A', NULL)
+      INSERT INTO org_nodes (node_type_id, name, parent_id, path)
+      VALUES (${nodeTypeId}, 'Parent Node A', NULL, 'Top.ParentA')
       RETURNING id;
     `);
     nodeAId = (nARes.rows || nARes)[0].id;
 
     const nBRes = await db.execute(sql`
-      INSERT INTO org_nodes (node_type_id, name, parent_id)
-      VALUES (${nodeTypeId}, 'Child Node B', ${nodeAId})
+      INSERT INTO org_nodes (node_type_id, name, parent_id, path)
+      VALUES (${nodeTypeId}, 'Child Node B', ${nodeAId}, 'Top.ParentA.ChildB')
       RETURNING id;
     `);
     nodeBId = (nBRes.rows || nBRes)[0].id;
 
     const nCRes = await db.execute(sql`
-      INSERT INTO org_nodes (node_type_id, name, parent_id)
-      VALUES (${nodeTypeId}, 'Grandchild Node C', ${nodeBId})
+      INSERT INTO org_nodes (node_type_id, name, parent_id, path)
+      VALUES (${nodeTypeId}, 'Grandchild Node C', ${nodeBId}, 'Top.ParentA.ChildB.GrandchildC')
       RETURNING id;
     `);
     nodeCId = (nCRes.rows || nCRes)[0].id;
@@ -308,7 +308,7 @@ describe("Enterprise Hierarchy, Circular Loops, Entitlements & Marketplace Tests
     // Insert explicit deny at org node level
     // Assign userAId to Child Node B
     await db.execute(sql`
-      INSERT INTO user_org_nodes (user_id, org_node_id, relationship, is_primary)
+      INSERT INTO user_org_nodes (user_id, node_id, role_type, is_primary)
       VALUES (${userAId}, ${nodeBId}, 'member', true);
     `);
 

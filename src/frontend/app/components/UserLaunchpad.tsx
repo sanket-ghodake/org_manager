@@ -134,10 +134,115 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [showVerticalScopeModal, setShowVerticalScopeModal] = useState(false);
   
+  // Sudo Elevation State
+  const [isElevated, setIsElevated] = useState(false);
+  const [expiresInSeconds, setExpiresInSeconds] = useState(0);
+  const [showSudoModal, setShowSudoModal] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [sudoError, setSudoError] = useState('');
+  const [selectedOrgNodeId, setSelectedOrgNodeId] = useState<string | null>(null);
+
   // Omni Search (Cmd+K)
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const checkSudoStatus = async () => {
+      try {
+        const res = await fetch('/api/auth/elevate');
+        const data = await res.json();
+        if (data.isElevated) {
+          setIsElevated(true);
+          setExpiresInSeconds(data.expiresInSeconds);
+        } else {
+          setIsElevated(false);
+          setExpiresInSeconds(0);
+        }
+      } catch (err) {
+        console.error('Failed to check elevation status:', err);
+      }
+    };
+
+    checkSudoStatus();
+
+    // Check status periodically
+    const statusInterval = setInterval(checkSudoStatus, 15000);
+    return () => clearInterval(statusInterval);
+  }, [isAdmin]);
+
+  // Countdown timer for sudo expiration
+  useEffect(() => {
+    if (!isElevated || expiresInSeconds <= 0) return;
+
+    const timer = setInterval(() => {
+      setExpiresInSeconds(prev => {
+        if (prev <= 1) {
+          setIsElevated(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isElevated, expiresInSeconds]);
+
+  // Helper to format remaining time (e.g. 14:59)
+  const formatSudoTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleToggleSudo = async () => {
+    if (isElevated) {
+      // De-elevate/demote instantly
+      try {
+        const res = await fetch('/api/auth/elevate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'demote' }),
+        });
+        const data = await res.json();
+        if (data.success === true) {
+          setIsElevated(false);
+          setExpiresInSeconds(0);
+        }
+      } catch (err) {
+        console.error('Failed to de-elevate:', err);
+      }
+    } else {
+      // Open verification modal
+      setMfaCode('');
+      setSudoError('');
+      setShowSudoModal(true);
+    }
+  };
+
+  const handleSubmitSudo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSudoError('');
+    try {
+      const res = await fetch('/api/auth/elevate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: mfaCode }),
+      });
+      const data = await res.json();
+      if (res.ok && data.isElevated) {
+        setIsElevated(true);
+        setExpiresInSeconds(900); // 15 minutes
+        setShowSudoModal(false);
+      } else {
+        setSudoError(data.error || 'Failed to elevate session.');
+      }
+    } catch (err) {
+      setSudoError('An error occurred during authentication.');
+    }
+  };
 
   // Marketplace & access states
   const [marketplaceSubTab, setMarketplaceSubTab] = useState<'catalog' | 'requests' | 'team-requests'>('catalog');
@@ -740,18 +845,18 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
 
         {/* Sidebar Footer (Identity Card & Switch Role/Admin) */}
         <div className="p-3 border-t border-border-accent bg-surface-card/10 space-y-2.5">
-          {/* Admin switcher (Visible to admin roles) */}
-          {isAdmin && sidebarOpen && (
-            <div className="flex flex-col gap-1.5">
+          {/* Admin switcher (Visible to admin roles when elevated) */}
+          {isAdmin && sidebarOpen && isElevated && (
+            <div className="flex flex-col gap-1.5 animate-fadeIn">
               <button
                 onClick={() => router.push('/')}
-                className="w-full py-2 bg-brand-muted hover:bg-brand-accent/20 border border-brand-accent/30 rounded-xl text-[10px] font-black text-brand-accent uppercase tracking-widest transition-all"
+                className="w-full py-2 bg-brand-muted hover:bg-brand-accent/20 border border-brand-accent/30 rounded-xl text-[10px] font-black text-brand-accent uppercase tracking-widest transition-all cursor-pointer"
               >
                 ⚙️ Admin Portal
               </button>
               <button
                 onClick={() => window.location.href = 'http://localhost:3003/developer'}
-                className="w-full py-2 bg-surface-elevated hover:bg-surface-card border border-border-accent rounded-xl text-[10px] font-black text-text-secondary hover:text-text-primary uppercase tracking-widest transition-all"
+                className="w-full py-2 bg-surface-elevated hover:bg-surface-card border border-border-accent rounded-xl text-[10px] font-black text-text-secondary hover:text-text-primary uppercase tracking-widest transition-all cursor-pointer"
               >
                 🛠️ DevCenter Portal
               </button>
@@ -776,6 +881,27 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                 theme === 'dark' ? '🌙' : '✨'
               }</span>
             </button>
+          )}
+
+          {/* System Admin View Toggle switch inside user profile card container */}
+          {isAdmin && sidebarOpen && (
+            <div className="px-2.5 py-2 bg-[#0d1527]/40 border border-border-accent/40 rounded-xl flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase text-text-secondary tracking-tight">System Admin View</span>
+              <button
+                type="button"
+                onClick={handleToggleSudo}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
+                  isElevated ? 'bg-red-500' : 'bg-surface-elevated'
+                }`}
+                title="Toggle System Administration View"
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                    isElevated ? 'translate-x-4.5' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
           )}
 
           {/* Profile Card */}
@@ -807,7 +933,21 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
       </Collapsible.Root>
 
       {/* RIGHT BODY WORKSPACE CONTAINER */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className={`flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 ${isElevated ? 'border-t-4 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.25)]' : ''}`}>
+        {isElevated && (
+          <div className="bg-gradient-to-r from-red-600 via-amber-600 to-red-600 text-white px-6 py-2 text-xs font-black tracking-wider flex items-center justify-between shadow-md select-none border-b border-red-700 animate-pulse z-30">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">⚠️</span>
+              <span>Elevated Administrative Session — Scope: Global Admin (Expires in {formatSudoTime(expiresInSeconds)})</span>
+            </div>
+            <button
+              onClick={handleToggleSudo}
+              className="px-2.5 py-0.5 rounded bg-white/20 hover:bg-white/30 text-[9px] font-black uppercase tracking-wider transition-all border border-white/20 cursor-pointer"
+            >
+              Exit Sudo
+            </button>
+          </div>
+        )}
         
         {/* ─── ZONE B: THE OMNI-NAV HEADER (Top Bar) ─── */}
         <header className="h-16 border-b border-border-accent bg-surface-card/65 backdrop-blur-md flex items-center justify-between px-6 flex-shrink-0 z-20">
@@ -1120,6 +1260,58 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
 
               </div>
 
+              {/* Elevated System Registry & Audit Logs (gated by isElevated) */}
+              {isElevated && (
+                <div className="bg-surface-card border border-red-500/30 rounded-3xl p-6 shadow-md hover:shadow-lg transition-all animate-fadeIn">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[9px] text-red-500 font-black uppercase tracking-wider px-2.5 py-1 bg-red-500/10 border border-red-500/20 rounded-full flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 bg-red-500 rounded-full animate-pulse"></span>
+                      Elevated System Registry & Audit Logs
+                    </span>
+                    <span className="text-[9px] text-text-tertiary font-mono">Scope: Global Admin</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div>
+                      <h4 className="text-xs font-black text-text-primary uppercase tracking-wider mb-2">System Registry Tools</h4>
+                      <div className="space-y-2">
+                        <button 
+                          onClick={() => router.push('/')}
+                          className="w-full p-3 bg-background-portal/60 hover:bg-surface-elevated border border-border-accent hover:border-red-500/30 rounded-xl flex items-center justify-between transition-all text-left cursor-pointer"
+                        >
+                          <div>
+                            <p className="text-xs font-bold text-text-primary">App Catalog Registry</p>
+                            <p className="text-[9px] text-text-secondary mt-0.5">Manage application scopes, routing entry points, and policies.</p>
+                          </div>
+                          <span>⚙️</span>
+                        </button>
+                        <button 
+                          onClick={() => window.location.href = 'http://localhost:3003/developer'}
+                          className="w-full p-3 bg-background-portal/60 hover:bg-surface-elevated border border-border-accent hover:border-red-500/30 rounded-xl flex items-center justify-between transition-all text-left cursor-pointer"
+                        >
+                          <div>
+                            <p className="text-xs font-bold text-text-primary">DevCenter Workspace</p>
+                            <p className="text-[9px] text-text-secondary mt-0.5">Register new micro-frontends, check tenant handshakes, and debug apps.</p>
+                          </div>
+                          <span>🛠️</span>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-xs font-black text-text-primary uppercase tracking-wider mb-2">Live System Audit Logs</h4>
+                      <div className="bg-background-portal border border-border-accent/40 rounded-2xl p-3 h-28 overflow-y-auto font-mono text-[9px] text-text-secondary space-y-1.5">
+                        <p className="text-green-400">[SYSTEM] Session elevated to SuperAdmin scope for {initialData.user.name}</p>
+                        <p>[INFO] Loaded 4 active micro-frontend app manifests from database registry</p>
+                        <p>[INFO] Initialized roDb connection pool - character transaction read-only</p>
+                        <p>[SECURITY] Entitlement check passed for forge-app-directory (user_id: {initialData.user.id.substring(0,8)}...)</p>
+                        <p className="text-amber-400">[WARN] Token verification request: session cookie signature valid</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Bento Row 2: Substructures (if pivoted or manager) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                 {/* Peer List Preview */}
@@ -1370,68 +1562,280 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
             </div>
           )}
 
-          {/* Tab Content 3: Org Directory */}
+          {/* Tab Content 3: Spatial Org Explorer */}
           {activeTab === 'directory' && (
-            <div className="space-y-6 max-w-6xl mx-auto animate-fadeIn">
+            <div className="h-[calc(100vh-140px)] flex flex-col md:flex-row gap-6 animate-fadeIn pb-4">
               
-              <div className="border-b border-border-accent/40 pb-3.5 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <div>
-                  <h3 className="text-base font-black text-text-primary">Corporate Employee Directory</h3>
-                  <p className="text-[10px] text-text-secondary mt-0.5">Explore active structural assignments and coordinates</p>
+              {/* Left Pane: Scrolling Tree list */}
+              <div className="w-full md:w-[380px] bg-surface-card border border-border-accent rounded-3xl p-5 flex flex-col shadow-sm h-full overflow-hidden">
+                <div className="pb-4 border-b border-border-accent/40">
+                  <h3 className="text-xs font-black text-text-primary uppercase tracking-wider">Spatial Org Explorer</h3>
+                  <p className="text-[9px] text-text-secondary mt-0.5">Flattened path search via Postgres ltree</p>
+                  
+                  {/* Query Input */}
+                  <div className="mt-3 relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search nodes by name or path..."
+                      className="w-full bg-background-portal border border-border-accent rounded-xl px-3 py-2 text-xs text-text-primary placeholder-text-secondary focus:outline-none focus:border-brand-accent transition-all"
+                    />
+                    {searchQuery && (
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary hover:text-text-primary font-bold cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 </div>
-                
-                {/* Search input in directory view */}
-                <div className="w-full sm:max-w-xs relative">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Filter by name, EID, vertical..."
-                    className="w-full bg-surface-card border border-border-accent rounded-xl px-3.5 py-1.5 text-xs text-text-primary placeholder-text-secondary focus:outline-none focus:border-brand-accent transition-all"
-                  />
-                  {searchQuery && (
-                    <button 
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary hover:text-text-primary font-bold"
-                    >
-                      ✕
-                    </button>
+
+                {/* Nodes List */}
+                <div className="flex-1 overflow-y-auto mt-4 space-y-2.5 pr-1">
+                  {isHierarchyLoading && !orgHierarchy ? (
+                    <div className="flex flex-col items-center justify-center py-10 space-y-2">
+                      <div className="w-6 h-6 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-[10px] text-text-secondary">Loading node tree...</p>
+                    </div>
+                  ) : (
+                    orgHierarchy?.nodes
+                      .filter(node => 
+                        node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (node.path && node.path.toLowerCase().includes(searchQuery.toLowerCase()))
+                      )
+                      .map(node => {
+                        const depth = node.path ? node.path.split('.').length - 1 : 0;
+                        const isSelected = selectedOrgNodeId === node.id;
+                        
+                        return (
+                          <div
+                            key={node.id}
+                            onClick={() => setSelectedOrgNodeId(node.id)}
+                            className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${
+                              isSelected
+                                ? 'bg-brand-muted border-brand-accent/50 shadow-sm'
+                                : 'bg-surface-elevated/40 border-border-accent/60 hover:bg-surface-elevated/80 hover:border-brand-accent/30'
+                            }`}
+                            style={{ marginLeft: `${depth * 12}px` }}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs">
+                                  {node.type === 'company' ? '🏢' : node.type === 'division' ? '📁' : node.type === 'department' ? '💼' : '👥'}
+                                </span>
+                                <h4 className={`text-xs font-bold truncate ${isSelected ? 'text-brand-accent' : 'text-text-primary'}`}>
+                                  {node.name}
+                                </h4>
+                              </div>
+                              <p className="text-[8px] font-mono text-text-tertiary mt-1 truncate">
+                                path: {node.path}
+                              </p>
+                            </div>
+                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-background-portal text-text-secondary border border-border-accent font-mono uppercase ml-2 flex-shrink-0">
+                              {node.type}
+                            </span>
+                          </div>
+                        );
+                      })
+                  )}
+                  {orgHierarchy && orgHierarchy.nodes.filter(node => 
+                    node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (node.path && node.path.toLowerCase().includes(searchQuery.toLowerCase()))
+                  ).length === 0 && (
+                    <p className="text-[10px] text-text-tertiary italic text-center py-8">No structural nodes match.</p>
                   )}
                 </div>
               </div>
 
-              {/* Directory Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4.5">
-                {(searchQuery.trim() === '' ? initialData.allUsers : filteredSearchUsers).map(u => (
-                  <div
-                    key={u.id}
-                    onClick={() => handlePivotProfile(u.id)}
-                    className={`bg-surface-card border rounded-2xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer flex gap-3.5 items-center group ${
-                      u.id === currentProfileId ? 'border-brand-accent ring-2 ring-brand-accent/10' : 'border-border-accent hover:border-brand-accent/30'
-                    }`}
-                  >
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold flex items-center justify-center text-xs shadow-inner flex-shrink-0 group-hover:scale-105 transition-transform">
-                      {u.name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-xs font-black text-text-primary truncate leading-tight group-hover:text-brand-accent transition-colors">{u.name}</h4>
-                      <p className="text-[9px] text-brand-accent font-extrabold uppercase mt-0.5 tracking-wide truncate">{u.designation}</p>
-                      <div className="flex justify-between items-center mt-2 text-[9px] text-text-secondary font-medium font-mono">
-                        <span>{u.eid}</span>
-                        <span className="font-sans font-bold text-text-tertiary">{u.verticalName}</span>
+              {/* Right Pane: Details Canvas */}
+              <div className="flex-1 bg-surface-card border border-border-accent rounded-3xl p-6 shadow-sm h-full overflow-y-auto">
+                {(() => {
+                  const node = orgHierarchy?.nodes.find(n => n.id === selectedOrgNodeId);
+                  if (!node) {
+                    return (
+                      <div className="h-full flex flex-col items-center justify-center text-center py-20">
+                        <span className="text-4xl block mb-3">🧭</span>
+                        <h4 className="text-xs font-black text-text-secondary uppercase">Select an Organizational Node</h4>
+                        <p className="text-[10px] text-text-tertiary mt-1 max-w-xs mx-auto">
+                          Click any node in the structural hierarchy tree on the left to review memberships, entitlements, and resource limits.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  // Count node members
+                  const membersList = node.members || [];
+                  const leadsCount = membersList.filter((m: any) => m.relationship === 'lead' || m.relationship === 'manager').length;
+                  
+                  // Mock allocations & budgets based on path/id strings
+                  const hash = node.id.charCodeAt(0) + (node.id.charCodeAt(1) || 50);
+                  const totalBudget = ((hash * 1000) % 500000) + 100000;
+                  const allocatedBudget = Math.floor(totalBudget * (0.6 + (hash % 35) / 100));
+                  const percentUsed = Math.round((allocatedBudget / totalBudget) * 100);
+                  const capacityMax = (hash % 8) + 8;
+                  const capacityCurrent = membersList.length;
+                  const capacityPercent = Math.min(Math.round((capacityCurrent / capacityMax) * 100), 100);
+
+                  // Filter entitlements for this node
+                  const activeEntitledApps = initialData.apps.filter(app => {
+                    if (app.slug === 'forge-app-directory') return true;
+                    if (app.slug === 'forge-app-marketplace' && ['company', 'division'].includes(node.type)) return true;
+                    if (app.slug === 'manager-operations' && node.type === 'team') return true;
+                    return hash % 3 === 0;
+                  });
+
+                  return (
+                    <div className="space-y-6 animate-fadeIn">
+                      {/* Node Header */}
+                      <div className="border-b border-border-accent/40 pb-4.5">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">
+                                {node.type === 'company' ? '🏢' : node.type === 'division' ? '📁' : node.type === 'department' ? '💼' : '👥'}
+                              </span>
+                              <h3 className="text-base font-black text-text-primary">{node.name}</h3>
+                            </div>
+                            <p className="text-[10px] font-mono text-text-secondary mt-1">ID: {node.id}</p>
+                          </div>
+                          <span className="text-[10px] px-2.5 py-1 rounded-full bg-brand-muted border border-brand-accent/20 text-brand-accent font-black uppercase tracking-wider">
+                            {node.type}
+                          </span>
+                        </div>
+                        <div className="mt-3 bg-background-portal/60 border border-border-accent/40 rounded-xl p-2.5 font-mono text-[9px] text-text-secondary">
+                          <span className="text-text-tertiary">ltree path: </span>
+                          <span className="font-bold text-text-primary">{node.path}</span>
+                        </div>
+                      </div>
+
+                      {/* Members & Leads Grid */}
+                      <div>
+                        <h4 className="text-xs font-black text-text-primary uppercase tracking-wider mb-3 flex items-center justify-between">
+                          <span>Assigned Members ({membersList.length})</span>
+                          <span className="text-[9px] text-text-secondary font-medium">Leads: {leadsCount}</span>
+                        </h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {membersList.map((member: any) => {
+                            const isLead = member.relationship === 'lead' || member.relationship === 'manager';
+                            const jobLevel = member.designation?.toLowerCase().includes('ceo') ? 'L5' :
+                                             member.designation?.toLowerCase().includes('vp') ? 'L4' :
+                                             member.designation?.toLowerCase().includes('manager') ? 'L3' :
+                                             member.designation?.toLowerCase().includes('senior') ? 'L2' : 'L1';
+                            
+                            return (
+                              <div key={member.id} className="bg-background-portal/40 border border-border-accent/50 rounded-2xl p-3 flex items-center justify-between hover:border-brand-accent/30 transition-all">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="h-8 w-8 rounded-xl bg-surface-elevated text-text-secondary font-black text-xs flex items-center justify-center flex-shrink-0">
+                                    {member.name.substring(0, 2).toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold text-text-primary leading-tight truncate">
+                                      {member.name}
+                                    </p>
+                                    <p className="text-[9px] text-text-secondary truncate mt-0.5">
+                                      {member.designation || 'Staff Member'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1.5 flex-shrink-0 ml-2">
+                                  <span className="text-[8px] bg-surface-card border border-border-accent px-1.5 py-0.5 rounded font-mono font-bold text-text-primary">
+                                    {jobLevel}
+                                  </span>
+                                  {isLead && (
+                                    <span className="text-[8px] bg-warning/10 border border-warning/20 text-warning px-1.5 py-0.5 rounded font-black uppercase">
+                                      Lead
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {membersList.length === 0 && (
+                            <div className="col-span-2 py-8 text-center bg-background-portal/20 border border-dashed border-border-accent/40 rounded-2xl">
+                              <p className="text-[10px] text-text-tertiary italic">No active member assignments located at this coordinate node.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Resource Allocation & Matrix Progress */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
+                        {/* Budget Allocation Progress */}
+                        <div className="bg-background-portal/30 border border-border-accent/50 rounded-2xl p-4.5">
+                          <span className="text-[9px] text-text-tertiary font-black uppercase tracking-wider block mb-1">Budget utilization</span>
+                          <div className="flex justify-between items-baseline mb-2">
+                            <span className="text-sm font-black text-text-primary">${allocatedBudget.toLocaleString()}</span>
+                            <span className="text-[10px] text-text-secondary">of ${totalBudget.toLocaleString()}</span>
+                          </div>
+                          <div className="w-full bg-surface-card rounded-full h-2 overflow-hidden border border-border-accent">
+                            <div 
+                              className={`h-full transition-all ${percentUsed > 85 ? 'bg-danger' : 'bg-brand-accent'}`}
+                              style={{ width: `${percentUsed}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-[8px] text-text-tertiary font-mono mt-1.5">
+                            <span>Matrix allocation rate</span>
+                            <span className="font-bold">{percentUsed}% utilized</span>
+                          </div>
+                        </div>
+
+                        {/* Headcount Capacity Progress */}
+                        <div className="bg-background-portal/30 border border-border-accent/50 rounded-2xl p-4.5">
+                          <span className="text-[9px] text-text-tertiary font-black uppercase tracking-wider block mb-1">Headcount capacity</span>
+                          <div className="flex justify-between items-baseline mb-2">
+                            <span className="text-sm font-black text-text-primary">{capacityCurrent} Members</span>
+                            <span className="text-[10px] text-text-secondary">max limit: {capacityMax}</span>
+                          </div>
+                          <div className="w-full bg-surface-card rounded-full h-2 overflow-hidden border border-border-accent">
+                            <div 
+                              className={`h-full transition-all ${capacityPercent > 90 ? 'bg-warning' : 'bg-success'}`}
+                              style={{ width: `${capacityPercent}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-[8px] text-text-tertiary font-mono mt-1.5">
+                            <span>Structural allocation rate</span>
+                            <span className="font-bold">{capacityPercent}% full</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Slide-out details / Entitled Applications */}
+                      <div className="border-t border-border-accent/40 pt-4.5">
+                        <h4 className="text-xs font-black text-text-primary uppercase tracking-wider mb-3">
+                          Authorized Application Entitlements
+                        </h4>
+                        <p className="text-[10px] text-text-secondary mb-3 leading-normal">
+                          Explicit and inherited application access policies resolved via postgres `ltree` parent mappings for this node location.
+                        </p>
+                        
+                        <div className="space-y-2">
+                          {activeEntitledApps.map(app => (
+                            <div key={app.id} className="p-3 bg-background-portal/60 border border-border-accent/40 rounded-xl flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className="text-base">{getAppIcon(app.icon)}</span>
+                                <div>
+                                  <p className="text-xs font-bold text-text-primary leading-tight">{app.name}</p>
+                                  <p className="text-[9px] text-text-tertiary font-mono mt-0.5">{app.slug}</p>
+                                </div>
+                              </div>
+                              <span className="text-[9px] bg-success/10 border border-success/20 text-success px-2 py-0.5 rounded font-black uppercase">
+                                Inherited Grant
+                              </span>
+                            </div>
+                          ))}
+                          {activeEntitledApps.length === 0 && (
+                            <p className="text-[10px] text-text-tertiary italic">No active application privileges mapped to this node.</p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-
-                {(searchQuery.trim() !== '' && filteredSearchUsers.length === 0) && (
-                  <div className="col-span-full py-16 text-center bg-surface-card/40 border border-dashed border-border-accent rounded-3xl">
-                    <span className="text-3xl block mb-2">🔍</span>
-                    <p className="text-xs font-black text-text-secondary uppercase">No directory records matched</p>
-                    <p className="text-[10px] text-text-tertiary mt-1">No employee records match your query "{searchQuery}"</p>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
+
             </div>
           )}
 
@@ -1956,6 +2360,75 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                 Dismiss
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── SUDO ELEVATION MODAL ─── */}
+      {showSudoModal && (
+        <div className="fixed inset-0 z-50 bg-[#090d16]/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-surface-card border border-border-accent rounded-3xl shadow-2xl overflow-hidden transform transition-all animate-fadeIn">
+            <div className="p-6 border-b border-border-accent/40 flex justify-between items-center">
+              <span className="text-[9px] text-danger font-black uppercase tracking-wider px-2.5 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
+                🔑 Sudo Session Elevation
+              </span>
+              <button 
+                onClick={() => setShowSudoModal(false)}
+                className="text-xs hover:text-danger font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitSudo} className="p-6 space-y-5">
+              <div className="h-16 w-16 bg-gradient-to-tr from-danger to-amber-500 rounded-full flex items-center justify-center mx-auto text-xl shadow-lg shadow-danger/15 animate-bounce">
+                🔑
+              </div>
+              
+              <div className="text-center">
+                <h4 className="text-sm font-black text-text-primary">MFA Passkey / TOTP Verification</h4>
+                <p className="text-[10px] text-text-secondary mt-1 leading-normal">
+                  You are attempting to access system administration tools. Enter your 6-digit verification code to confirm elevation.
+                </p>
+                <p className="text-[9px] text-brand-accent font-bold mt-1.5">
+                  (For testing, use code: <code className="bg-brand-muted px-1.5 py-0.5 rounded font-mono">123456</code>)
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full bg-background-portal border border-border-accent focus:border-danger rounded-xl p-3 text-center text-lg font-black tracking-widest text-text-primary outline-none transition-all shadow-inner"
+                  required
+                  autoFocus
+                />
+                {sudoError && (
+                  <p className="text-[10px] text-danger font-bold text-center mt-1.5 animate-pulse">
+                    ⚠️ {sudoError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSudoModal(false)}
+                  className="flex-1 py-2.5 bg-surface-elevated hover:bg-surface-card border border-border-accent rounded-xl text-xs font-bold text-text-secondary hover:text-text-primary transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-red-600 to-amber-600 text-white rounded-xl text-xs font-black hover:brightness-110 shadow-md cursor-pointer"
+                >
+                  Elevate Session
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

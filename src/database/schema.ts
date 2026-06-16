@@ -1,4 +1,12 @@
-import { pgTable, uuid, varchar, boolean, timestamp, jsonb, integer, text, date } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, boolean, timestamp, jsonb, integer, text, date, customType, primaryKey } from 'drizzle-orm/pg-core';
+
+// Custom ltree type definition for PostgreSQL ltree extension
+export const ltree = customType<{ data: string }>({
+  dataType() {
+    return 'ltree';
+  },
+});
+
 
 // Core User Account Profiles
 export const users = pgTable('users', {
@@ -12,6 +20,7 @@ export const users = pgTable('users', {
   designationId: uuid('designation_id').references(() => structuralMetadata.id),
   verticalId: uuid('vertical_id').references(() => structuralMetadata.id),
   managerId: uuid('manager_id'), // Relational self-reference to immediate upline user id
+  jobLevel: integer('job_level').default(1).notNull(), // (1 = Staff, 2 = Senior, 3 = Manager, 4 = VP, 5 = C-Suite)
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -95,10 +104,11 @@ export const rolePermissions = pgTable('role_permissions', {
 });
 
 export const userRoles = pgTable('user_roles', {
-  id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   roleId: uuid('role_id').references(() => roles.id, { onDelete: 'cascade' }).notNull(),
-});
+}, (t) => ({
+  pk: primaryKey({ columns: [t.userId, t.roleId] }),
+}));
 
 // Handshake & Auth Handshake exchange flows
 export const forgeAuthCodes = pgTable('forge_auth_codes', {
@@ -164,22 +174,24 @@ export const orgNodeTypes = pgTable('org_node_types', {
 
 export const orgNodes = pgTable('org_nodes', {
   id: uuid('id').defaultRandom().primaryKey(),
-  nodeTypeId: uuid('node_type_id').references(() => orgNodeTypes.id).notNull(),
   name: varchar('name', { length: 255 }).notNull(),
-  parentId: uuid('parent_id').references((): any => orgNodes.id, { onDelete: 'restrict' }),
+  nodeTypeId: uuid('node_type_id').references(() => orgNodeTypes.id),
+  parentId: uuid('parent_id').references((): any => orgNodes.id, { onDelete: 'set null' }),
+  path: ltree('path').notNull(),
   metadata: jsonb('metadata').default({}).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const userOrgNodes = pgTable('user_org_nodes', {
-  id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  orgNodeId: uuid('org_node_id').references(() => orgNodes.id, { onDelete: 'cascade' }).notNull(),
-  relationship: varchar('relationship', { length: 50 }).default('member').notNull(), // 'member' | 'lead' | 'manager'
+  nodeId: uuid('node_id').references(() => orgNodes.id, { onDelete: 'cascade' }).notNull(),
+  roleType: varchar('role_type', { length: 50 }).default('member').notNull(), // 'member', 'lead', 'manager'
   isPrimary: boolean('is_primary').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+}, (t) => ({
+  pk: primaryKey({ columns: [t.userId, t.nodeId] }),
+}));
 
 // Horizontal Matrix Projects
 export const projects = pgTable('projects', {

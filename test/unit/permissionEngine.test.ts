@@ -12,22 +12,38 @@ afterEach(() => {
 const VALID_USER_ID = "10000000-0000-0000-0000-000000000099";
 const VALID_APP_ID = "20000000-0000-0000-0000-000000000099";
 
+function getQueryText(sqlObj: any): string {
+  if (!sqlObj) return "";
+  if (typeof sqlObj === "string") return sqlObj;
+  if (sqlObj.queryChunks) {
+    return sqlObj.queryChunks
+      .map((c: any) => (Array.isArray(c.value) ? c.value.join(" ") : String(c.value || "")))
+      .join(" ");
+  }
+  return JSON.stringify(sqlObj);
+}
+
 describe("Application Authorization & Entitlements Engine", () => {
 
   test("Should deny access if the application is globally disabled", async () => {
-    // 1st call: app slug lookup (resolved ID)
-    // 2nd call: user context query for entitlements
-    // 3rd call: app details fetch (isEnabled = false)
-    let callCount = 0;
     mockDbExecute.mockImplementation(async (sqlObj: any) => {
-      callCount++;
-      if (callCount === 1) {
+      const q = getQueryText(sqlObj);
+      if (q.includes("forge_apps WHERE slug") || q.includes("FROM forge_apps WHERE slug")) {
         return { rows: [{ id: VALID_APP_ID }], rowCount: 1 };
       }
-      if (callCount === 2) {
-        return { rows: [{ userId: VALID_USER_ID, designationId: "desig-123", teamIds: [], projectIds: [], groupIds: [], orgNodeIds: [] }], rowCount: 1 };
+      if (q.includes("ARRAY_AGG") && q.includes("FROM users")) {
+        return { rows: [{ userId: VALID_USER_ID, designationId: "desig-123", teamIds: [], projectIds: [], groupIds: [] }], rowCount: 1 };
       }
-      if (callCount === 3) {
+      if (q.includes("ancestor.path @> direct.path")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("FROM user_roles")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("FROM forge_app_entitlements")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("SELECT id, slug, is_enabled as \"isEnabled\"") && q.includes("FROM forge_apps")) {
         return { rows: [{ id: VALID_APP_ID, isEnabled: false, targetRules: { minJobLevel: 1 } }], rowCount: 1 };
       }
       return { rows: [], rowCount: 0 };
@@ -38,28 +54,28 @@ describe("Application Authorization & Entitlements Engine", () => {
   });
 
   test("Should allow access based on minJobLevel targeting rules if no entitlements exist", async () => {
-    // Test case: manager (job level 3) trying to access app targeting minJobLevel 3
-    let callCount = 0;
     mockDbExecute.mockImplementation(async (sqlObj: any) => {
-      callCount++;
-      if (callCount === 1) {
+      const q = getQueryText(sqlObj);
+      if (q.includes("forge_apps WHERE slug") || q.includes("FROM forge_apps WHERE slug")) {
         return { rows: [{ id: VALID_APP_ID }], rowCount: 1 };
       }
-      if (callCount === 2) {
-        // user context query
-        return { rows: [{ userId: VALID_USER_ID, designationId: "desig-123", teamIds: [], projectIds: [], groupIds: [], orgNodeIds: [] }], rowCount: 1 };
+      if (q.includes("ARRAY_AGG") && q.includes("FROM users")) {
+        return { rows: [{ userId: VALID_USER_ID, designationId: "desig-123", teamIds: [], projectIds: [], groupIds: [] }], rowCount: 1 };
       }
-      if (callCount === 3) {
-        // entitlements query (no matching rows returned)
+      if (q.includes("ancestor.path @> direct.path")) {
         return { rows: [], rowCount: 0 };
       }
-      if (callCount === 4) {
-        // app details fetch (isEnabled = true, minJobLevel = 3)
+      if (q.includes("FROM user_roles")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("FROM forge_app_entitlements")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("SELECT id, slug, is_enabled as \"isEnabled\"") && q.includes("FROM forge_apps")) {
         return { rows: [{ id: VALID_APP_ID, isEnabled: true, targetRules: { minJobLevel: 3 } }], rowCount: 1 };
       }
-      if (callCount === 5) {
-        // user details query (Designation: Manager)
-        return { rows: [{ designation: "Manager Operations", designationId: "desig-123", verticalId: "vert-123" }], rowCount: 1 };
+      if (q.includes("SELECT u.vertical_id as \"verticalId\"")) {
+        return { rows: [{ verticalId: "vert-123", designationId: "desig-123", jobLevel: 3, designation: "Manager Operations" }], rowCount: 1 };
       }
       return { rows: [], rowCount: 0 };
     });
@@ -69,25 +85,28 @@ describe("Application Authorization & Entitlements Engine", () => {
   });
 
   test("Should block access based on minJobLevel targeting rules if job level is too low", async () => {
-    // Test case: staff (job level 1) trying to access app targeting minJobLevel 3
-    let callCount = 0;
     mockDbExecute.mockImplementation(async (sqlObj: any) => {
-      callCount++;
-      if (callCount === 1) {
+      const q = getQueryText(sqlObj);
+      if (q.includes("forge_apps WHERE slug") || q.includes("FROM forge_apps WHERE slug")) {
         return { rows: [{ id: VALID_APP_ID }], rowCount: 1 };
       }
-      if (callCount === 2) {
-        return { rows: [{ userId: VALID_USER_ID, designationId: "desig-123", teamIds: [], projectIds: [], groupIds: [], orgNodeIds: [] }], rowCount: 1 };
+      if (q.includes("ARRAY_AGG") && q.includes("FROM users")) {
+        return { rows: [{ userId: VALID_USER_ID, designationId: "desig-123", teamIds: [], projectIds: [], groupIds: [] }], rowCount: 1 };
       }
-      if (callCount === 3) {
+      if (q.includes("ancestor.path @> direct.path")) {
         return { rows: [], rowCount: 0 };
       }
-      if (callCount === 4) {
+      if (q.includes("FROM user_roles")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("FROM forge_app_entitlements")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("SELECT id, slug, is_enabled as \"isEnabled\"") && q.includes("FROM forge_apps")) {
         return { rows: [{ id: VALID_APP_ID, isEnabled: true, targetRules: { minJobLevel: 3 } }], rowCount: 1 };
       }
-      if (callCount === 5) {
-        // user details query (Designation: Staff Member, level 1)
-        return { rows: [{ designation: "Staff Member", designationId: "desig-123", verticalId: "vert-123" }], rowCount: 1 };
+      if (q.includes("SELECT u.vertical_id as \"verticalId\"")) {
+        return { rows: [{ verticalId: "vert-123", designationId: "desig-123", jobLevel: 1, designation: "Staff Member" }], rowCount: 1 };
       }
       return { rows: [], rowCount: 0 };
     });
@@ -97,18 +116,21 @@ describe("Application Authorization & Entitlements Engine", () => {
   });
 
   test("Explicit user-level GRANT entitlement should override targeting rules and permit access", async () => {
-    // Test case: staff (level 1) accessing level 3 app, but has explicit user-level grant
-    let callCount = 0;
     mockDbExecute.mockImplementation(async (sqlObj: any) => {
-      callCount++;
-      if (callCount === 1) {
+      const q = getQueryText(sqlObj);
+      if (q.includes("forge_apps WHERE slug") || q.includes("FROM forge_apps WHERE slug")) {
         return { rows: [{ id: VALID_APP_ID }], rowCount: 1 };
       }
-      if (callCount === 2) {
-        return { rows: [{ userId: VALID_USER_ID, designationId: "desig-123", teamIds: [], projectIds: [], groupIds: [], orgNodeIds: [] }], rowCount: 1 };
+      if (q.includes("ARRAY_AGG") && q.includes("FROM users")) {
+        return { rows: [{ userId: VALID_USER_ID, designationId: "desig-123", teamIds: [], projectIds: [], groupIds: [] }], rowCount: 1 };
       }
-      if (callCount === 3) {
-        // matching user-level grant entitlement is returned
+      if (q.includes("ancestor.path @> direct.path")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("FROM user_roles")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("FROM forge_app_entitlements")) {
         return { rows: [{ subjectType: "user", subjectId: VALID_USER_ID, accessType: "grant" }], rowCount: 1 };
       }
       return { rows: [], rowCount: 0 };
@@ -119,18 +141,21 @@ describe("Application Authorization & Entitlements Engine", () => {
   });
 
   test("Explicit user-level DENY entitlement should override targeting rules and block access", async () => {
-    // Test case: manager (level 3) accessing level 3 app, but has explicit user-level deny
-    let callCount = 0;
     mockDbExecute.mockImplementation(async (sqlObj: any) => {
-      callCount++;
-      if (callCount === 1) {
+      const q = getQueryText(sqlObj);
+      if (q.includes("forge_apps WHERE slug") || q.includes("FROM forge_apps WHERE slug")) {
         return { rows: [{ id: VALID_APP_ID }], rowCount: 1 };
       }
-      if (callCount === 2) {
-        return { rows: [{ userId: VALID_USER_ID, designationId: "desig-123", teamIds: [], projectIds: [], groupIds: [], orgNodeIds: [] }], rowCount: 1 };
+      if (q.includes("ARRAY_AGG") && q.includes("FROM users")) {
+        return { rows: [{ userId: VALID_USER_ID, designationId: "desig-123", teamIds: [], projectIds: [], groupIds: [] }], rowCount: 1 };
       }
-      if (callCount === 3) {
-        // matching user-level deny entitlement is returned
+      if (q.includes("ancestor.path @> direct.path")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("FROM user_roles")) {
+        return { rows: [], rowCount: 0 };
+      }
+      if (q.includes("FROM forge_app_entitlements")) {
         return { rows: [{ subjectType: "user", subjectId: VALID_USER_ID, accessType: "deny" }], rowCount: 1 };
       }
       return { rows: [], rowCount: 0 };
