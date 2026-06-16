@@ -77,7 +77,7 @@ async function handleProxy(
       : undefined;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for Dev/Turbopack
 
     const response = await fetch(targetUrl, {
       method: request.method,
@@ -94,7 +94,8 @@ async function handleProxy(
       responseHeaders.set(key, value);
     });
 
-    responseHeaders.set('Access-Control-Allow-Origin', '*');
+    const origin = request.headers.get('origin') || '*';
+    responseHeaders.set('Access-Control-Allow-Origin', origin);
 
     const responseBody = await response.arrayBuffer();
     return new NextResponse(responseBody, {
@@ -103,7 +104,21 @@ async function handleProxy(
       headers: responseHeaders,
     });
   } catch (error: any) {
-    console.warn(`Proxy offline for ${slug} to ${targetUrl}. Serving simulated sandbox fallback UI.`, error.message);
+    console.warn(`Proxy offline for ${slug} to ${targetUrl}. Handling proxy failure.`, error.message);
+
+    const isApi = pathStr.startsWith('api') || pathStr.includes('/api');
+    if (isApi) {
+      const origin = request.headers.get('origin') || '*';
+      return NextResponse.json({
+        success: false,
+        error: `Proxy request failed: ${error.message || 'Gateway Timeout'}`
+      }, {
+        status: 504,
+        headers: {
+          'Access-Control-Allow-Origin': origin
+        }
+      });
+    }
     
     // Resolve the manifest configuration to render mock details
     let config: any = {
@@ -396,11 +411,12 @@ async function handleProxy(
 </body>
 </html>`;
 
+    const origin = request.headers.get('origin') || '*';
     return new NextResponse(fallbackHtml, {
       status: 200,
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': origin
       }
     });
   }
@@ -420,4 +436,17 @@ export async function PUT(request: NextRequest, context: any) {
 
 export async function DELETE(request: NextRequest, context: any) {
   return handleProxy(request, context);
+}
+
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': origin || '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }

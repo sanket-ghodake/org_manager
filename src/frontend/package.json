@@ -20,6 +20,8 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@jridgewell/resolve-uri": "^3.1.2",
+    "@jridgewell/trace-mapping": "^0.3.25",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

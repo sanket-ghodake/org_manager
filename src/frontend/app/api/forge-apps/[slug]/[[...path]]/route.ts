@@ -76,7 +76,8 @@ async function handleProxy(
       responseHeaders.set(key, value);
     });
 
-    responseHeaders.set('Access-Control-Allow-Origin', '*');
+    const origin = request.headers.get('origin') || '*';
+    responseHeaders.set('Access-Control-Allow-Origin', origin);
 
     const responseBody = await response.arrayBuffer();
     return new NextResponse(responseBody, {
@@ -86,6 +87,7 @@ async function handleProxy(
     });
   } catch (error: any) {
     console.warn(`API proxy offline for ${slug} to ${targetUrl}. Serving simulated JSON fallback.`, error.message);
+    const origin = request.headers.get('origin') || '*';
     return NextResponse.json({
       success: true,
       simulated: true,
@@ -94,7 +96,7 @@ async function handleProxy(
     }, {
       status: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': origin
       }
     });
   }
@@ -114,4 +116,17 @@ export async function PUT(request: NextRequest, context: any) {
 
 export async function DELETE(request: NextRequest, context: any) {
   return handleProxy(request, context);
+}
+
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': origin || '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }

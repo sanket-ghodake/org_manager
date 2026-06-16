@@ -17,6 +17,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - sgforge-network
 
   app:
     build:
@@ -46,6 +48,13 @@ services:
       - /app/src/frontend/node_modules
       - /app/src/frontend/.next
     restart: always
+    networks:
+      - sgforge-network
+
+networks:
+  sgforge-network:
+    name: sgforge-network
+    external: true
 
 volumes:
   pgdata:

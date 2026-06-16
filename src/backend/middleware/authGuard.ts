@@ -6,6 +6,24 @@ import { getSession } from '@backend/auth/sessionManager';
 export async function middleware(request: any, event?: any) {
   const path = request.nextUrl.pathname;
 
+  // Bypass authentication checks for OPTIONS preflight requests to allow CORS checks to succeed
+  if (request.method === 'OPTIONS') {
+    return NextResponse.next();
+  }
+
+  // Bypass session checks for isolated app API endpoints (since they authenticate via Bearer token in the child sandbox)
+  if (
+    (path.startsWith('/forge-apps/') || path.startsWith('/api/forge-apps/')) && 
+    path.includes('/api/')
+  ) {
+    return NextResponse.next();
+  }
+
+  // Bypass session checks for Forge Platform APIs (v1) since they use token-based validation
+  if (path.startsWith('/api/v1/')) {
+    return NextResponse.next();
+  }
+
   // 1. Check if the request is for the developer portal
   if (path.startsWith('/developer')) {
     const isFromProxy = request.headers.get('x-from-developer-proxy') === 'true';

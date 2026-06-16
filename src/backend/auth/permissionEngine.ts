@@ -138,9 +138,11 @@ export async function hasAppAccess(
       resolvedAppId = lookupRows[0].id as string;
     }
 
-    // Cache lookup using resolved UUIDs (bypass if mocked or in test environment)
     const cacheKey = `${userId}:${resolvedAppId}`;
-    const skipCache = isMocked || process.env.NODE_ENV === 'test';
+    const skipCache =
+      isMocked ||
+      process.env.NODE_ENV === 'test' ||
+      process.argv.some(arg => arg.includes('/test/') || arg.includes('.test.'));
     if (!skipCache) {
       const cached = permissionCache.get(cacheKey);
       if (cached && cached.expiresAt > Date.now()) {

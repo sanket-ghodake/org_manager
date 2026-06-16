@@ -66,7 +66,7 @@ export default function AppContainerPage() {
       try {
         const res = await fetch('/api/apps');
         const data = await res.json();
-        const config = data.apps?.find((a: any) => a.id === appId);
+        const config = data.apps?.find((a: any) => a.id === appId || a.slug === appId || a.dbId === appId);
         
         if (!config) {
           setError(`Application "${appId}" not found in local registries.`);

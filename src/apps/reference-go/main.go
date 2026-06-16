@@ -543,11 +543,7 @@ const htmlTemplate = `<!DOCTYPE html>
         body.innerHTML = '';
         tasks.forEach(t => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${t.title}</td>
-            <td>${t.user_name}</td>
-            <td><span class="badge">${t.status}</span></td>
-          `;
+          tr.innerHTML = '<td>' + t.title + '</td><td>' + t.user_name + '</td><td><span class="badge">' + t.status + '</span></td>';
           body.appendChild(tr);
         });
       }

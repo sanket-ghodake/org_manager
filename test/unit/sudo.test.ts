@@ -1,17 +1,56 @@
 import { expect, test, describe, mock } from "bun:test";
+import { SignJWT, jwtVerify } from "jose";
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'fallback-super-secret-key-that-is-at-least-32-characters-long'
+);
+
+async function decryptSession(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET, {
+      algorithms: ['HS256'],
+    });
+    return payload;
+  } catch (error: any) {
+    return null;
+  }
+}
 
 // Mock @backend/auth/sessionManager
 mock.module("@backend/auth/sessionManager", () => {
   return {
-    getSession: async () => {
-      return {
-        id: "admin-id",
-        role: "admin",
-        email: "admin@acmecorp.com"
-      };
+    getSession: async (request: any) => {
+      const url = request?.url || '';
+      const tokenCookie = request?.cookies?.get?.('session_token');
+      
+      if (tokenCookie) {
+        const val = typeof tokenCookie === 'string' ? tokenCookie : tokenCookie.value;
+        if (val) {
+          const decrypted = await decryptSession(val);
+          if (decrypted) return decrypted;
+        }
+        return null;
+      }
+      
+      // Only mock when targeting the elevate api route
+      if (url.includes('/api/auth/elevate') || url.includes('/elevate')) {
+        return {
+          id: "d3b07384-d113-4ec5-a5ae-be86064be485", // Valid UUID shape for mock admin
+          role: "admin",
+          email: "admin@acmecorp.com",
+          name: "Arthur Pendragon",
+          isPasswordChanged: true
+        };
+      }
+      
+      return null;
     },
     encryptSession: async (session: any) => {
-      return "mocked-encrypted-session-token";
+      return await new SignJWT({ ...session })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('2h')
+        .sign(JWT_SECRET);
     }
   };
 });

@@ -21,6 +21,16 @@ export async function GET() {
       return NextResponse.json({ apps: [] });
     }
 
+    // Retrieve database mappings to resolve database UUIDs (for lookup by UUID)
+    const dbAppsResult = await db.execute(sql`
+      SELECT id, slug FROM forge_apps
+    `);
+    const dbAppsRows = dbAppsResult.rows || dbAppsResult;
+    const dbAppsMap = new Map<string, string>();
+    for (const row of dbAppsRows) {
+      dbAppsMap.set(row.slug, row.id);
+    }
+
     const items = fs.readdirSync(appsDir);
     const discoveredApps = [];
 
@@ -36,8 +46,10 @@ export async function GET() {
             // Validate manifest
             const validation = validateManifest(config, item);
             if (validation.isValid) {
+              const dbId = dbAppsMap.get(config.slug || config.id);
               discoveredApps.push({
                 ...config,
+                dbId: dbId || null,
                 directoryName: item,
               });
             } else {
