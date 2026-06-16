@@ -242,6 +242,18 @@
         apiToken = data.token;
         userData = data.user;
 
+        // Clean URL path and query parameters
+        try {
+          const cleanUrl = window.location.origin + window.location.pathname.replace('/callback', '');
+          window.history.replaceState({}, document.title, cleanUrl);
+        } catch (e) {
+          console.error('Failed to clean URL:', e);
+        }
+
+        // Cache session locally
+        sessionStorage.setItem('forge_api_token', apiToken);
+        sessionStorage.setItem('forge_user_data', JSON.stringify(userData));
+
         // Render UI
         document.getElementById('user-name').textContent = userData.name;
         document.getElementById('user-role').textContent = userData.role.replace('_', ' ');
@@ -262,13 +274,82 @@
       }
     }
 
-    // Direct check: URL query parameter handshake fallback
-    const urlParams = new URLSearchParams(window.location.search);
-    const codeFromUrl = urlParams.get('code');
-    if (codeFromUrl) {
-      console.log('Found auth code in URL query parameters, executing handshake exchange immediately...', codeFromUrl);
-      exchangeCodeForToken(codeFromUrl);
+    async function redirectToSSO() {
+      try {
+        const res = await fetch(`${apiPrefix}/config`);
+        if (!res.ok) {
+          throw new Error('Failed to retrieve application SSO configurations.');
+        }
+        const config = await res.json();
+        
+        const state = 'sso_state_' + Math.random().toString(36).substring(2, 15);
+        const redirectUri = window.location.origin + '/callback';
+        
+        const authorizeUrl = new URL(config.portalSsoUrl);
+        authorizeUrl.searchParams.set('client_id', config.clientId);
+        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+        authorizeUrl.searchParams.set('state', state);
+        authorizeUrl.searchParams.set('response_type', 'code');
+        
+        window.location.href = authorizeUrl.toString();
+      } catch (err) {
+        console.error('SSO Redirect failed:', err);
+        showAuthError('Federated Sign-On failed to initialize: ' + err.message);
+      }
     }
+
+    async function initSession() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const codeFromUrl = urlParams.get('code');
+      
+      if (codeFromUrl) {
+        console.log('Found auth code in URL query parameters, executing handshake exchange immediately...', codeFromUrl);
+        await exchangeCodeForToken(codeFromUrl);
+        return;
+      }
+      
+      const storedToken = sessionStorage.getItem('forge_api_token');
+      const storedUser = sessionStorage.getItem('forge_user_data');
+      
+      if (storedToken && storedUser) {
+        console.log('Found existing session token. Verifying validity...');
+        try {
+          const res = await fetch(`${apiPrefix}/user`, {
+            headers: { 'Authorization': `Bearer ${storedToken}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            apiToken = storedToken;
+            userData = data.user || JSON.parse(storedUser);
+            
+            // Render UI
+            document.getElementById('user-name').textContent = userData.name;
+            document.getElementById('user-role').textContent = userData.role.replace('_', ' ');
+            const avatar = userData.name.split(' ').map(n => n[0]).join('');
+            document.getElementById('user-avatar').textContent = avatar;
+
+            // Fade in main dashboard and remove loading screen
+            document.getElementById('auth-overlay').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('opacity-0');
+
+            // Fetch data
+            loadRecords();
+            return;
+          }
+        } catch (err) {
+          console.warn('Session verification check failed:', err);
+        }
+        // If we reach here, session is stale/invalid
+        sessionStorage.removeItem('forge_api_token');
+        sessionStorage.removeItem('forge_user_data');
+      }
+      
+      console.log('No active session. Redirecting to Portal for SSO...');
+      await redirectToSSO();
+    }
+
+    // Execute session initialization
+    initSession();
 
     function showAuthError(message) {
       document.getElementById('auth-overlay').innerHTML = `
@@ -276,7 +357,7 @@
           <span class="text-3xl block mb-2">⚠️</span>
           <h3 class="font-bold text-red-400 text-sm">Authentication Failed</h3>
           <p class="text-[11px] text-[var(--text-secondary)] mt-2">${message}</p>
-          <p class="text-[10px] text-gray-500 mt-4">Please launch this app inside the SG Forge Portal canvas.</p>
+          <p class="text-[10px] text-gray-500 mt-4">Please launch this app inside the SG Forge Portal canvas or authenticate via Portal SSO.</p>
         </div>
       `;
     }

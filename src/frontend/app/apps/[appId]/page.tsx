@@ -77,7 +77,7 @@ export default function AppContainerPage() {
           } else {
             setAppConfig(config);
             // If it's an iframe routing mode, verify network connectivity
-            if (config.routingMode === 'iframe' || config.entryPoint?.startsWith('http')) {
+            if (config.routingMode === 'iframe' || (config.routingMode !== 'standalone' && config.entryPoint?.startsWith('http'))) {
               setIframeLoading(true);
               try {
                 // Generate secure handshake authorization code
@@ -220,7 +220,8 @@ export default function AppContainerPage() {
     }
   };
 
-  const isIframe = appConfig?.routingMode === 'iframe' || appConfig?.entryPoint?.startsWith('http');
+  const isStandalone = appConfig?.routingMode === 'standalone';
+  const isIframe = !isStandalone && (appConfig?.routingMode === 'iframe' || appConfig?.entryPoint?.startsWith('http'));
 
   // Dynamically import the app entrypoint only if it's a local react component.
   const DynamicApp = (appConfig && !isIframe) ? dynamic<any>(() => import(`@apps/${appConfig.directoryName}/index.tsx`), {
@@ -357,7 +358,36 @@ export default function AppContainerPage() {
           </div>
         ) : (
           <div className="p-6 rounded-2xl bg-surface-card border border-border-accent shadow-md">
-            {isIframe ? (
+            {isStandalone ? (
+              <div className="p-8 text-center space-y-6 max-w-xl mx-auto my-12 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
+                <div className="p-4 bg-brand-accent/20 text-brand-accent rounded-full w-fit mx-auto shadow-lg shadow-brand-accent/15">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-extrabold text-xl text-text-primary">Standalone Application</h3>
+                  <p className="text-sm text-text-secondary">
+                    &quot;{appConfig.name}&quot; runs in an independent browser context to enable full screen operations, bookmarking, and local resource sharing.
+                  </p>
+                </div>
+                <div className="pt-4">
+                  <a
+                    href={`/api/v1/auth/authorize?client_id=${appConfig.clientId}&redirect_uri=${encodeURIComponent(
+                      appConfig.redirectUri || 
+                      (appConfig.sandboxEntryPoint ? `${appConfig.sandboxEntryPoint.replace(/\/$/, '')}/callback` : '') ||
+                      (appConfig.entryPoint ? `${appConfig.entryPoint.replace(/\/$/, '')}/callback` : '') ||
+                      (appConfig.entryUrl ? `${appConfig.entryUrl.replace(/\/$/, '')}/callback` : '')
+                    )}&state=sso_state_launch&response_type=code`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-8 py-3.5 bg-gradient-to-r from-brand-accent to-[#00ffcc] hover:from-brand-hover hover:to-[#55ffd8] text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-brand-accent/25 transition-all duration-200 transform hover:scale-[1.03] active:scale-[0.98] inline-block cursor-pointer"
+                  >
+                    Launch In New Tab
+                  </a>
+                </div>
+              </div>
+            ) : isIframe ? (
               iframeOffline ? (
                 <div className="p-8 rounded-2xl bg-warning/10 border border-warning/20 text-center space-y-4 max-w-xl mx-auto my-12">
                   <div className="p-3 bg-warning/20 text-warning-text rounded-full w-fit mx-auto">

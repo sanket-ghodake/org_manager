@@ -42,9 +42,14 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectBack = searchParams.get('redirect_back') || searchParams.get('next') || '';
+
         // Use replace so back button doesn't loop back to login
         if (data.user && data.user.isPasswordChanged === false) {
-          router.replace('/force-reset');
+          router.replace('/force-reset' + (redirectBack ? `?redirect_back=${encodeURIComponent(redirectBack)}` : ''));
+        } else if (redirectBack) {
+          router.replace(redirectBack);
         } else {
           router.replace('/');
         }

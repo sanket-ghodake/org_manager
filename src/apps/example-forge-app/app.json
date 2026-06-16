@@ -8,7 +8,7 @@
   "entryPoint": "http://example-forge-app:8090/",
   "sandboxEntryPoint": "http://localhost:8090/",
   "icon": "cpu",
-  "routingMode": "iframe",
+  "routingMode": "standalone",
   "clientId": "client_example_forge_app",
   "clientSecret": "secret_example_forge_app",
   "database": {

@@ -9,6 +9,7 @@ import { POST as handshakeHandler } from "@frontend/app/api/apps/handshake/route
 import { POST as exchangeHandler } from "@frontend/app/api/v1/auth/exchange/route";
 import { GET as userHandler } from "@frontend/app/api/v1/user/route";
 import { POST as adminAppsPostHandler } from "@frontend/app/api/admin/apps/route";
+import { GET as authorizeHandler } from "@frontend/app/api/v1/auth/authorize/route";
 
 function mockRequest(options: {
   method: string;
@@ -154,5 +155,31 @@ describe("SG Forge Example App Integration Tests", () => {
     const userBody = await userRes.json();
     expect(userBody.user.eid).toBe("E0007");
     expect(userBody.user.name).toBe(devName);
+  });
+
+  test("4. SSO Authorize Endpoint: Redirect to Login when Unauthenticated", async () => {
+    const req = mockRequest({
+      method: "GET",
+      url: "http://localhost/api/v1/auth/authorize?client_id=client_example_forge_app&redirect_uri=http://localhost:8090/callback&state=sso_test_state&response_type=code"
+    });
+    const response = await authorizeHandler(req);
+    expect(response.status).toBe(307);
+    const location = response.headers.get("location");
+    expect(location).toContain("/login");
+    expect(location).toContain("redirect_back");
+  });
+
+  test("5. SSO Authorize Endpoint: Redirect with code when Authenticated & Entitled", async () => {
+    const req = mockRequest({
+      method: "GET",
+      url: "http://localhost/api/v1/auth/authorize?client_id=client_example_forge_app&redirect_uri=http://localhost:8090/callback&state=sso_test_state&response_type=code",
+      cookies: { session_token: devSessionToken }
+    });
+    const response = await authorizeHandler(req);
+    expect(response.status).toBe(307);
+    const location = response.headers.get("location");
+    expect(location).toContain("http://localhost:8090/callback");
+    expect(location).toContain("code=auth_code_");
+    expect(location).toContain("state=sso_test_state");
   });
 });

@@ -6,6 +6,7 @@ const PORT = process.env.PORT || 8090;
 const PORTAL_INTERNAL_URL = process.env.PORTAL_INTERNAL_URL || 'http://app:3001';
 const CLIENT_ID = process.env.CLIENT_ID || 'client_example_forge_app';
 const CLIENT_SECRET = process.env.CLIENT_SECRET || 'secret_example_forge_app';
+const PORTAL_SSO_URL = process.env.PORTAL_SSO_URL || 'http://localhost:3001/api/v1/auth/authorize';
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://app_user:app_password@example-forge-app-db:5432/example_forge_db';
 
 // Setup database connection pool
@@ -104,6 +105,13 @@ const authenticateToken = (req: express.Request, res: express.Response, next: ex
   (req as any).user = session;
   next();
 };
+
+app.get('/api/config', (req, res) => {
+  res.json({
+    clientId: CLIENT_ID,
+    portalSsoUrl: PORTAL_SSO_URL
+  });
+});
 
 // 3. Authenticated APIs
 app.get('/api/user', authenticateToken, (req, res) => {

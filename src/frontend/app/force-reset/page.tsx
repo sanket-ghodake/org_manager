@@ -37,7 +37,9 @@ export default function ForceResetPage() {
         }
         setSession(parsed);
       } catch (err) {
-        router.replace('/login');
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectBack = searchParams.get('redirect_back') || searchParams.get('next') || '';
+        router.replace('/login' + (redirectBack ? `?redirect_back=${encodeURIComponent(redirectBack)}` : ''));
       }
     };
 
@@ -98,8 +100,14 @@ export default function ForceResetPage() {
       if (res.ok) {
         setIsCelebrated(true);
         // Smooth celebratory fade-out micro-transition before dashboard routing
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectBack = searchParams.get('redirect_back') || searchParams.get('next') || '';
         setTimeout(() => {
-          router.replace('/');
+          if (redirectBack) {
+            router.replace(redirectBack);
+          } else {
+            router.replace('/');
+          }
         }, 1800);
       } else {
         setError(data.error || 'Password update failed.');
