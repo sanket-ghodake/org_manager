@@ -1,0 +1,8 @@
+{
+  "name": "@packages/sdk",
+  "version": "1.0.0",
+  "description": "Forge SDK v1 for parent postMessage communications and REST client gateways",
+  "main": "forge-sdk.ts",
+  "types": "forge-sdk.ts",
+  "dependencies": {}
+}

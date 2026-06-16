@@ -1,0 +1,55 @@
+site_name: SG Forge Platform
+site_url: https://github.com/sanket-ghodake/org_manager
+site_description: Comprehensive documentation for the SG Forge Organization Manager monorepo platform.
+site_author: Sanket Ghodake
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Overview:
+      - Introduction: overview/introduction.md
+      - Project Vision & Decisions: overview/vision.md
+      - Repository Tree: overview/tree.md
+  - Guides:
+      - Installation & Setup: guides/installation.md
+      - Docker Environment: guides/docker.md
+      - Docker Optimization: guides/docker_optimization.md
+      - WSL Setup: guides/wsl.md
+      - App Developer Guide: guides/app-developer.md
+  - Architecture & Design:
+      - Platform Architecture: architecture/system.md
+      - Forge SDK Rules & Contract: architecture/sdk-contract.md
+      - Org Hierarchy & Marketplace: architecture/hierarchy-marketplace.md
+      - Auth & Security Blueprint: architecture/security.md

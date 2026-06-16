@@ -1,59 +1,76 @@
 # SG Forge (Modular Corporate Portal Engine) - v0.1.0
 
-SG Forge is an installable, understandable, stable, and extensible organizational workspace portal and secure sandboxing engine. It enables organizations to orchestrate internal micro-frontends (Forge Apps) written in any language (Go, Python, TypeScript) under strict sandbox boundaries and unified, stateless authentication.
+SG Forge is an installable, stable, and extensible organizational workspace portal and secure sandboxing engine. It enables organizations to orchestrate internal micro-frontends (Forge Apps) written in any language (Go, Python, TypeScript) under strict sandbox boundaries and unified, stateless authentication.
 
 ---
 
-## ⚡ Quick Start
+## 🚀 Orchestrator & Quick Start
 
-### 1. Docker (Zero-dependency Setup)
-Run the entire platform, its database, and all test reference applications with a single command:
-```bash
-docker-compose up --build
-```
-Access the services:
-* **Host Portal UI:** [http://localhost:3001](http://localhost:3001)
-* **Dev Dashboard / SQL Workbench:** [http://localhost:3002](http://localhost:3002)
+All execution targets, environments, and validation checkers are run via the central orchestrator script in the repository root: **`./run.sh`**.
 
-For detailed docker instructions, see [Docker Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/DOCKER.md).
+### 🐳 1. Docker Setup (Zero-dependency Runtime)
+Run the entire platform, its PostgreSQL database, and all microservices fully containerized. No runtime dependencies (such as Node, Bun, Python, or Go) are required on your host machine.
 
-### 2. Local Installation (Linux & WSL)
-Prerequisites: Postgres instance running locally. Then execute:
-```bash
-# Setup environment and database structure
-bun run setup
+*   **Development Mode (Hot-Reloading & Live Loading)**:
+    ```bash
+    ./run.sh docker dev
+    ```
+*   **Production Sandbox Mode (Statically Compiled & Isolated)**:
+    ```bash
+    ./run.sh docker sandbox
+    ```
 
-# Launch Next.js portal and micro-apps in development mode
-bun run run-dev
-```
-For detailed steps, see [Installation Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/INSTALLATION.md).
+For details on configuration and commands, see the [Docker Optimization Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/docker_optimization.md) and [Docker Environment Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/docker.md).
 
 ---
 
-## 📁 Project Directory Map
-Detailed guides are available in the `docs` folder:
-* **[Project Vision](file:///home/sanket/Desktop/Sanket/org_website/docs/PROJECT_VISION.md):** Core philosophies and long-term strategic roadmap.
-* **[System Architecture](file:///home/sanket/Desktop/Sanket/org_website/docs/ARCHITECTURE.md):** Topology diagrams, authentication sequence, and database schemas.
-* **[App Developer Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/APP_DEVELOPER_GUIDE.md):** Designing apps, manifest JSON fields, and SDK helpers.
-* **[Security Guidelines](file:///home/sanket/Desktop/Sanket/org_website/docs/SECURITY.md):** Threat modeling, iframe sandboxing, and connection locks.
-* **[WSL Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/WSL.md):** Service management and networking configurations in WSL/WSL2.
-* **[Release Notes v0.1.0](file:///home/sanket/Desktop/Sanket/org_website/docs/RELEASE_NOTES_v0.1.0.md):** Highlights and runtime dependency matrix.
-* **[Forge App Security Rules](file:///home/sanket/Desktop/Sanket/org_website/FORGE_APP_SECURITY_RULES.md):** Global platform security policies.
+### 💻 2. Portable Setup (Local Host Runtime)
+Runs application services natively on your host machine. Runtimes are localized inside the workspace directory (using an isolated `bun` download) to avoid system-wide dependency pollutions.
+
+*   **One-Time Initialization**:
+    ```bash
+    # Downloads local bun, installs npm/bun workspaces, seeds DB schema
+    bun run setup
+    ```
+*   **Start Local Dev Servers**:
+    ```bash
+    ./run.sh portable dev
+    ```
+
+For detailed instructions, see the [Installation & Setup Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/installation.md) and the [Orchestration Scripts Guide](file:///home/sanket/Desktop/Sanket/org_website/scripts/README.md).
 
 ---
 
-## 🛠 Features Matrix
+## 🛠 Validation Toolchain
 
-### 1. Stateless Authentication & Secure Handshake
-* **Zero-Cookie Sharing:** Forge Apps run on distinct origins/ports and do not read parent cookies.
-* **Exchange flow:** The portal issues a short-lived authorization code. The app's backend trades it via a secure API request for a JWT access token.
-* **Role Gating:** Hierarchical permissions resolved using recursive CTE queries in PostgreSQL.
+Run tests, security checks, linter suites, and document compilers inside the Dockerized toolchain:
 
-### 2. Strict Iframe Sandboxing
-* **Isolation:** Apps load in iframes with `sandbox="allow-scripts allow-forms"`, blocking access to parent DOM, cookies, and preventing top-level page redirection.
-* **PostMessage SDK:** Real-time parent navigation notifications and theme-syncing capabilities.
+*   **Run All Validation Checks**:
+    ```bash
+    ./run.sh toolchain all
+    ```
+*   **Run Lint & Format Checks**:
+    ```bash
+    ./run.sh toolchain lint
+    ```
+*   **Execute Test Suite with Coverage**:
+    ```bash
+    ./run.sh toolchain test
+    ```
+*   **Build the Documentation Site (MkDocs)**:
+    ```bash
+    ./run.sh toolchain docs
+    ```
 
-### 3. Administrative SQL Workbench
-* **Privilege Guard:** Restricts workbench execution to administrative roles (`super_admin`, `admin`, `read_only_admin`).
-* **Command Filter:** Blocks destructive queries (`DROP`, `DELETE`, `ALTER`) on read-only profiles.
-* **Read-Only Connection Pool:** Restricts write transactions at the PostgreSQL driver layer.
+---
+
+## 📁 Project Documentation & Architecture
+
+Active design specifications and setup documentations are organized in the `docs/` folder:
+
+*   **[Installation & Setup](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/installation.md)**: Bootstrapping host databases and runtime engines.
+*   **[Docker Architecture](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/docker.md)**: Container services overview and ports mapping.
+*   **[Docker Optimization](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/docker_optimization.md)**: Multi-stage environment builds and parity structures.
+*   **[WSL Setup Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/wsl.md)**: Port forwarding and systemd networking inside WSL2.
+*   **[App Developer Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/app-developer.md)**: Creating micro-apps, declaring manifest scopes, and utilizing parent communication SDKs.
+*   **[Script Folders Overview](file:///home/sanket/Desktop/Sanket/org_website/scripts/README.md)**: List of convenience scripts and utility functions.

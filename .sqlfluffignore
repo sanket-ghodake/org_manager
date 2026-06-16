@@ -1,0 +1,2 @@
+# Ignore Drizzle migrations
+core/src/database/migrations/**

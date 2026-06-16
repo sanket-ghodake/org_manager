@@ -1,6 +1,9 @@
 #!/bin/bash
 # Script to run example-forge-app container stack independently
 
+# Always evaluate from the monorepo root context
+cd "$(dirname "$0")/.."
+
 # Ensure target network exists before spawning compose
 if ! docker network inspect sgforge-network >/dev/null 2>&1; then
   echo "Creating shared docker bridge network: sgforge-network..."

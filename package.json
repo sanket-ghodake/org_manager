@@ -4,10 +4,19 @@
   "description": "Modular Corporate Portal Engine",
   "main": "index.js",
   "type": "module",
+  "workspaces": [
+    "core",
+    "packages/*",
+    "sandbox/apps/*"
+  ],
   "scripts": {
-    "setup": "bash scripts/setup.sh",
-    "run-dev": "bash scripts/run.sh",
-    "test": "bun test"
+    "setup": "bash scripts/portable/development/setup.sh",
+    "run-dev": "./run.sh portable dev",
+    "run-docker": "./run.sh docker dev",
+    "test": "bun test test/unit test/integration",
+    "docs:dev": ".venv/bin/mkdocs serve",
+    "docs:build": ".venv/bin/mkdocs build",
+    "prepare": "husky"
   },
   "dependencies": {
     "@types/bcryptjs": "^3.0.0",
@@ -24,6 +33,7 @@
     "@types/pg": "^8.20.0",
     "bun-types": "^1.0.0",
     "drizzle-kit": "^0.20.0",
+    "husky": "^9.1.7",
     "next": "^16.2.9",
     "typescript": "^5.0.0"
   }

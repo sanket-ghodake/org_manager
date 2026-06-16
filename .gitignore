@@ -5,3 +5,6 @@
 .DS_Store
 /test/coverage
 /currently_working.md
+/.venv
+/site
+

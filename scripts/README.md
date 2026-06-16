@@ -1,43 +1,76 @@
-# Orchestration Scripts (`scripts/`)
+# Orchestration & Helper Scripts (`scripts/`)
 
-This directory contains cross-platform convenience wrappers to initialize the development environment and boot the dev server.
+This directory contains convenience wrappers, bootstrappers, and developer utility scripts to set up, run, and maintain the SG Forge Platform.
 
-## Scripts list:
-* **`setup.sh` / `setup.bat`:** Automatically pulls down the local portable Bun binary (version 1.2.0), executes `bun install` for package dependencies, and boots the PostgreSQL database migration/seeding routines.
-* **`run.sh` / `run.bat`:** Exports the portable Bun binary path and launches the frontend Next.js dev server.
+---
 
-## Troubleshooting:
-### Port 3001 is Already in Use (`EADDRINUSE`)
-If the development server fails to start because port 3001 is already in use, you can free the port. Sometimes, child processes or the parent Bun manager process remain alive in the background. Follow these steps to completely tear down the server and bring it back up:
+## 🧭 Portable Setup vs. Docker Setup: Clear Distinction
 
-#### 1. Stop the server completely (Linux/macOS)
-Run the following commands to kill the listening process and clean up any dangling Next.js/Bun process trees:
-```bash
-# Kill process listening on port 3001
-lsof -t -i:3001 | xargs -r kill -9
+The SG Forge Platform supports two execution models. Each has its own dependencies and use cases:
 
-# Terminate any remaining Next/Bun dev server processes
-pkill -f "next dev" || true
-pkill -f "next-server" || true
-```
-Alternatively, you can use `fuser` to kill anything bound to the port:
-```bash
-fuser -k 3001/tcp
-```
+### 1. Portable Setup (Local Host Execution)
+*   **What it is**: Runs the application microservices (Next.js Frontend, Go backend, Python backend, Proxy Gateway) natively on your host machine's runtime. It relies on a local portable version of `bun` to avoid dirtying your system-wide environment.
+*   **When to use**: When you want maximum performance, fast local debugger access, or need to run processes locally without virtualized docker container overhead.
+*   **Dependencies**: Only Docker is needed to host the PostgreSQL database in the background. Runtimes (Bun/Node) are download-isolated to the workspace.
 
-#### 2. Stop the server completely (Windows Command Prompt)
-Run:
-```cmd
-for /f "tokens=5" %a in ('netstat -aon ^| findstr 3001') do taskkill /f /pid %a
-taskkill /f /im node.exe
-```
+### 2. Docker Setup (Fully Containerized Execution)
+*   **What it is**: Runs the entire application stack—both database and all application services—fully containerized.
+*   **When to use**: When you want a 100% reproducible development environment with zero local runtime dependencies.
+*   **Dependencies**: Docker & Docker Compose only. No Go, Node, Bun, Python, or PostgreSQL are required on your host machine.
 
-#### 3. Start the server again
-Once the ports are free, restart the server by running:
-```bash
-bash scripts/run.sh
-```
+---
 
-## Rules to Follow:
-1. **Portable Paths:** Do not add absolute environment pathing in script lines. All relative paths should compute from the project's root folder.
-2. **Cross-Platform Parity:** If you update shell logic inside the `.sh` scripts, verify you replicate the corresponding adjustments in the `.bat` scripts to maintain Windows comparability.
+## 🏃 Setup & Running Instructions
+
+The root orchestrator script `./run.sh` acts as the primary gateway to execute both setups.
+
+### 🛠 Option A: Running the Portable Setup
+
+1.  **Initialize Portable Runtimes & Dependencies**:
+    Execute the local bootstrapper from the project root:
+    ```bash
+    # On Linux/macOS:
+    ./scripts/setup.sh
+
+    # On Windows:
+    scripts\setup.bat
+    ```
+    *This downloads the portable Bun runtime into `portables/bun/`, runs `bun install` locally, and seeds the local database schema.*
+
+2.  **Start the Local Stack**:
+    Use the orchestrator to start the local processes:
+    ```bash
+    ./run.sh portable dev
+    ```
+    *This spins up PostgreSQL in a background Docker container and runs the Next.js portal, Proxy Gateway, and microservices natively on your host machine with live-reloading.*
+
+---
+
+### 🐳 Option B: Running the Docker Setup
+
+No runtime installations are required. Simply boot the stack from the root directory:
+
+1.  **Start Development Environment (with Hot-Reloading)**:
+    ```bash
+    ./run.sh docker dev
+    ```
+    *Spins up all microservices and Next.js under the dev target (`docker/development/`), mounting your host source directory for live-loading.*
+
+2.  **Start Production Sandbox Environment (Statically Compiled)**:
+    ```bash
+    ./run.sh docker sandbox
+    ```
+    *Builds production artifacts through isolated multi-stage Docker builds and runs the optimized production stack.*
+
+---
+
+## 📂 Script Inventory & Purpose
+
+Below is a map of the helper scripts located in this folder:
+
+*   **`setup.sh` / `setup.bat`**: Bootstraps the portable environment, installs local `bun`, and runs local schema seeding.
+*   **`run-dev.sh`**: Natively executes the local dev portal, reference expenses app, and developer proxy gateway concurrently (used by `./run.sh portable dev`).
+*   **`developer-proxy.ts`**: Backchannel routing proxy to bridge portal traffic to individual microservices during development.
+*   **`run-example-app.sh`**: Helper script to run individual micro-apps natively.
+*   **`absolute-import-enforcer.ts`**: Script used by lint checkers to ensure source imports conform to boundary rules.
+*   **`replace-relative-imports.py`**: Utility to automatically rewrite relative import statements into tidy absolute imports.

@@ -24,7 +24,7 @@ function getFiles(dir: string): string[] {
 describe("Relative Import Enforcer", () => {
   test("No code should use relative paths for imports/exports", () => {
     const projectRoot = process.cwd();
-    const searchDirs = ["src", "test"];
+    const searchDirs = ["core/src", "sandbox/apps", "packages/sdk", "test"];
     const files: string[] = [];
 
     for (const dirName of searchDirs) {
