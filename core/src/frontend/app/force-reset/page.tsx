@@ -128,7 +128,7 @@ export default function ForceResetPage() {
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-[#090d16] text-[#f9fafb] relative overflow-hidden font-sans transition-opacity duration-700 ${isCelebrated ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'}`}>
+    <div className={`min-h-screen flex items-center justify-center bg-[#090d16] text-[#f9fafb] relative overflow-hidden font-sans ${isCelebrated ? 'opacity-0 scale-95 pointer-events-none transition-opacity duration-700' : 'opacity-100 scale-100'}`}>
       
       {/* Neo-ambient background glows */}
       <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full bg-brand-accent/15 blur-[160px] pointer-events-none"></div>
