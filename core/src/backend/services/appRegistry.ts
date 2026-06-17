@@ -119,7 +119,7 @@ export async function getMatchedAppsForUser(userId: string, user: any): Promise<
     const hasAccess = await hasAppAccess(userId, appId, user);
     if (!hasAccess) continue;
 
-    const diskApp = discovered.find(a => (a.slug || a.id) === slug);
+    const diskApp = discovered.find(a => (a.slug?.toLowerCase() || a.id?.toLowerCase()) === slug.toLowerCase());
     if (!diskApp) continue;
 
     const rules = (appRow.targetRules || diskApp.targetRules || {}) as any;

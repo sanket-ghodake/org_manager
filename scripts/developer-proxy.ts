@@ -158,6 +158,7 @@ function broadcastTelemetryEvent(event: any) {
 
 serve<{ pathname: string; search: string; upstreamWs?: WebSocket }>({
   port: PORT,
+  hostname: "0.0.0.0",
   async fetch(req, server) {
     const url = new URL(req.url);
 

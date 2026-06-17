@@ -996,6 +996,7 @@ export async function handleRequest(req: Request, server?: any): Promise<Respons
 if (import.meta.main) {
   const server = Bun.serve({
     port: PORT,
+    hostname: '0.0.0.0',
     fetch: handleRequest,
   });
   console.log(`🚀 Developer Dashboard Server active at http://localhost:${PORT}`);

@@ -76,6 +76,10 @@ export interface ManifestValidationResult {
 export function validateManifest(manifest: any, folderName: string): ManifestValidationResult {
   const errors: string[] = [];
 
+  if (manifest && typeof manifest.slug === 'string') {
+    manifest.slug = manifest.slug.toLowerCase();
+  }
+
   if (!folderName || typeof folderName !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(folderName)) {
     errors.push('Invalid app folder name (must be alphanumeric containing only letters, numbers, dashes, or underscores)');
   }

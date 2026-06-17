@@ -452,7 +452,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </html>"""
 
 if __name__ == "__main__":
-    with socketserver.TCPServer(("", PORT), ReferenceAppHandler) as httpd:
+    with socketserver.TCPServer(("0.0.0.0", PORT), ReferenceAppHandler) as httpd:
         print(f"[reference-python] Listening on port {PORT}...")
         try:
             httpd.serve_forever()

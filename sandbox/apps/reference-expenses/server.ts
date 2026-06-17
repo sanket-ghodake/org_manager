@@ -92,6 +92,7 @@ async function validateTokenAndPermissions(accessToken: string, requiredScope?: 
 
 const server = Bun.serve({
   port: PORT,
+  hostname: '0.0.0.0',
   async fetch(req) {
     const url = new URL(req.url);
 
