@@ -40300,6 +40300,8 @@ function App() {
   const [logs, setLogs] = import_react50.useState([]);
   const [logsSearch, setLogsSearch] = import_react50.useState("");
   const [logsSeverity, setLogsSeverity] = import_react50.useState("ALL");
+  const [logsSource, setLogsSource] = import_react50.useState("ALL");
+  const [logsSources, setLogsSources] = import_react50.useState(["ALL", "system", "dashboard", "lifecycle", "telemetry", "watcher", "test-runner", "query-console"]);
   const [logsAutoPoll, setLogsAutoPoll] = import_react50.useState("off");
   const [expandedLogId, setExpandedLogId] = import_react50.useState(null);
   const [logsLoading, setLogsLoading] = import_react50.useState(false);
@@ -40401,7 +40403,7 @@ function App() {
       }
     }, parseInt(logsAutoPoll, 10));
     return () => clearInterval(interval);
-  }, [isAuthenticated, logsAutoPoll, activeTab, logsSearch, logsSeverity]);
+  }, [isAuthenticated, logsAutoPoll, activeTab, logsSearch, logsSeverity, logsSource]);
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -40510,10 +40512,14 @@ function App() {
         url.searchParams.append("search", logsSearch);
       if (logsSeverity !== "ALL")
         url.searchParams.append("severity", logsSeverity);
+      if (logsSource !== "ALL")
+        url.searchParams.append("source", logsSource);
       const res = await fetch(url.toString());
       if (res.status === 200) {
         const data = await res.json();
         setLogs(data.logs || []);
+        if (data.sources)
+          setLogsSources(data.sources);
       }
     } catch (e) {
       console.error(e);
@@ -41856,12 +41862,14 @@ function App() {
       totalApps: apps.length,
       activeApps: apps.filter((a2) => a2.status === "active" || a2.status === "online").length,
       degradedApps: apps.filter((a2) => a2.status === "degraded").length,
-      totalMemory: apps.reduce((sum, app) => {
+      totalMemory: Math.round(apps.reduce((sum, app) => {
         if (app.status === "offline")
           return sum;
+        if (app.mem !== undefined && app.mem !== null)
+          return sum + app.mem;
         const base = app.slug === "reference-python" ? 180 : app.slug === "example-forge-app" ? 110 : 85;
         return sum + base;
-      }, 0)
+      }, 0))
     };
     const handleResizeStart = (col, e) => {
       e.preventDefault();
@@ -41905,14 +41913,16 @@ function App() {
       }
       return points;
     };
-    const renderSparkline = (appSlug, appStatus, type) => {
-      if (appStatus === "offline") {
+    const renderSparkline = (app, type) => {
+      if (app.status === "offline") {
         return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
           className: "text-[10px] text-textMuted font-mono font-medium",
           children: "---"
         }, undefined, false, undefined, this);
       }
-      const values = getSparklinePoints(appSlug, type);
+      const values = (type === "cpu" ? app.cpuHistory : app.memHistory) || getSparklinePoints(app.slug, type);
+      const currentVal = type === "cpu" ? app.cpu : app.mem;
+      const formattedVal = type === "cpu" ? `${(currentVal ?? 0).toFixed(1)}%` : `${(currentVal ?? 0).toFixed(1)} MB`;
       const max2 = Math.max(...values);
       const min2 = Math.min(...values);
       const range3 = max2 - min2 || 1;
@@ -41921,18 +41931,27 @@ function App() {
         const y2 = 20 - (val - min2) / range3 * 16;
         return `${x2},${y2}`;
       }).join(" ");
-      return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("svg", {
-        className: `w-24 h-6 ${type === "cpu" ? "text-indigo-400" : "text-emerald-400"}`,
-        stroke: "currentColor",
-        fill: "none",
-        viewBox: "0 0 100 24",
-        children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("polyline", {
-          strokeWidth: "1.5",
-          strokeLinecap: "round",
-          strokeLinejoin: "round",
-          points: pointsStr
-        }, undefined, false, undefined, this)
-      }, undefined, false, undefined, this);
+      return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+        className: "flex items-center gap-3",
+        children: [
+          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("svg", {
+            className: `w-24 h-6 ${type === "cpu" ? "text-indigo-400" : "text-emerald-400"}`,
+            stroke: "currentColor",
+            fill: "none",
+            viewBox: "0 0 100 24",
+            children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("polyline", {
+              strokeWidth: "1.5",
+              strokeLinecap: "round",
+              strokeLinejoin: "round",
+              points: pointsStr
+            }, undefined, false, undefined, this)
+          }, undefined, false, undefined, this),
+          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+            className: "text-[10px] text-white font-mono font-bold w-12 text-right",
+            children: formattedVal
+          }, undefined, false, undefined, this)
+        ]
+      }, undefined, true, undefined, this);
     };
     const filteredLogs = logs2.filter((log2) => {
       const matchesApp = activeSlug === "" || log2.message.toLowerCase().includes(activeSlug.toLowerCase());
@@ -42123,11 +42142,11 @@ function App() {
                               }, undefined, false, undefined, this),
                               /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
                                 className: "px-4 text-xs",
-                                children: renderSparkline(app.slug, app.status, "cpu")
+                                children: renderSparkline(app, "cpu")
                               }, undefined, false, undefined, this),
                               /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
                                 className: "px-4 text-xs",
-                                children: renderSparkline(app.slug, app.status, "mem")
+                                children: renderSparkline(app, "mem")
                               }, undefined, false, undefined, this)
                             ]
                           }, undefined, true, undefined, this),
@@ -42929,6 +42948,43 @@ function App() {
           ]
         }, undefined, true, undefined, this),
         /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "flex flex-wrap items-center gap-2 bg-bgCard border border-borderColor rounded-xl px-4 py-3 shadow-md",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+              className: "text-[10px] text-textMuted font-bold uppercase tracking-wider mr-1",
+              children: "Source:"
+            }, undefined, false, undefined, this),
+            logsSources.map((src) => {
+              const sourceColors = {
+                ALL: "bg-zinc-700 text-zinc-200",
+                system: "bg-blue-900/50 text-blue-300 border-blue-500/30",
+                dashboard: "bg-violet-900/50 text-violet-300 border-violet-500/30",
+                lifecycle: "bg-cyan-900/50 text-cyan-300 border-cyan-500/30",
+                telemetry: "bg-emerald-900/50 text-emerald-300 border-emerald-500/30",
+                watcher: "bg-amber-900/50 text-amber-300 border-amber-500/30",
+                "test-runner": "bg-pink-900/50 text-pink-300 border-pink-500/30",
+                "query-console": "bg-orange-900/50 text-orange-300 border-orange-500/30"
+              };
+              const isActive = logsSource === src;
+              return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                onClick: () => {
+                  setLogsSource(src);
+                  setTimeout(() => loadTelemetryLogs(), 50);
+                },
+                className: `px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-all cursor-pointer ${isActive ? "ring-1 ring-primary border-primary bg-primaryGlow text-primary-hover" : sourceColors[src] || "bg-zinc-800 text-textMuted border-borderColor"} hover:opacity-90`,
+                children: src === "ALL" ? "\uD83D\uDD17 All Sources" : src
+              }, src, false, undefined, this);
+            }),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+              className: "text-[9px] text-textMuted ml-auto",
+              children: [
+                logs.length,
+                " log entries"
+              ]
+            }, undefined, true, undefined, this)
+          ]
+        }, undefined, true, undefined, this),
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
           className: "bg-bgCard border border-borderColor rounded-xl shadow-lg overflow-hidden flex flex-col min-h-[300px]",
           children: [
             logsLoading && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
@@ -42971,6 +43027,15 @@ function App() {
                   badgeClass = "bg-errorGlow border-error/50 text-error font-bold";
                 else if (log2.severity === "INFO")
                   badgeClass = "bg-successGlow border-success/20 text-success";
+                const sourceBadgeColors = {
+                  system: "bg-blue-900/40 text-blue-300 border-blue-500/20",
+                  dashboard: "bg-violet-900/40 text-violet-300 border-violet-500/20",
+                  lifecycle: "bg-cyan-900/40 text-cyan-300 border-cyan-500/20",
+                  telemetry: "bg-emerald-900/40 text-emerald-300 border-emerald-500/20",
+                  watcher: "bg-amber-900/40 text-amber-300 border-amber-500/20",
+                  "test-runner": "bg-pink-900/40 text-pink-300 border-pink-500/20",
+                  "query-console": "bg-orange-900/40 text-orange-300 border-orange-500/20"
+                };
                 return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
                   className: "flex flex-col transition-all",
                   children: [
@@ -42979,11 +43044,15 @@ function App() {
                       className: "px-5 py-3.5 flex items-center justify-between gap-4 cursor-pointer hover:bg-tableRowHover transition-colors text-xs",
                       children: [
                         /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                          className: "flex items-center gap-3 min-w-0",
+                          className: "flex items-center gap-2.5 min-w-0",
                           children: [
                             /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
                               className: `px-2 py-0.5 rounded border text-[10px] uppercase font-semibold ${badgeClass}`,
                               children: log2.severity
+                            }, undefined, false, undefined, this),
+                            log2.source && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: `px-2 py-0.5 rounded border text-[9px] font-mono font-semibold ${sourceBadgeColors[log2.source] || "bg-zinc-800 text-textMuted border-borderColor"}`,
+                              children: log2.source
                             }, undefined, false, undefined, this),
                             /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
                               className: "text-[10px] text-textMuted font-mono whitespace-nowrap",
@@ -43349,7 +43418,7 @@ function App() {
               }, undefined, false, undefined, this), label: "Forge Apps Ecosystem" },
               { id: "logs", icon: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Terminal, {
                 size: 16
-              }, undefined, false, undefined, this), label: "System Telemetry Logs" }
+              }, undefined, false, undefined, this), label: "Unified Logs Explorer" }
             ].map((item) => {
               const isActive = activeTab === item.id;
               return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {

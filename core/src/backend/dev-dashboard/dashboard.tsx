@@ -104,6 +104,8 @@ function App() {
   const [logs, setLogs] = useState<any[]>([]);
   const [logsSearch, setLogsSearch] = useState('');
   const [logsSeverity, setLogsSeverity] = useState('ALL');
+  const [logsSource, setLogsSource] = useState('ALL');
+  const [logsSources, setLogsSources] = useState<string[]>(['ALL', 'system', 'dashboard', 'lifecycle', 'telemetry', 'watcher', 'test-runner', 'query-console']);
   const [logsAutoPoll, setLogsAutoPoll] = useState('off');
   const [expandedLogId, setExpandedLogId] = useState<any>(null);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -231,7 +233,7 @@ function App() {
     }, parseInt(logsAutoPoll, 10));
 
     return () => clearInterval(interval);
-  }, [isAuthenticated, logsAutoPoll, activeTab, logsSearch, logsSeverity]);
+  }, [isAuthenticated, logsAutoPoll, activeTab, logsSearch, logsSeverity, logsSource]);
 
   // --- Handlers & API Operations ---
 
@@ -344,11 +346,13 @@ function App() {
       const url = new URL('/api/logs', window.location.origin);
       if (logsSearch) url.searchParams.append('search', logsSearch);
       if (logsSeverity !== 'ALL') url.searchParams.append('severity', logsSeverity);
+      if (logsSource !== 'ALL') url.searchParams.append('source', logsSource);
 
       const res = await fetch(url.toString());
       if (res.status === 200) {
         const data = await res.json();
         setLogs(data.logs || []);
+        if (data.sources) setLogsSources(data.sources);
       }
     } catch (e) {
       console.error(e);
@@ -1308,11 +1312,12 @@ function App() {
       totalApps: apps.length,
       activeApps: apps.filter(a => a.status === 'active' || a.status === 'online').length,
       degradedApps: apps.filter(a => a.status === 'degraded').length,
-      totalMemory: apps.reduce((sum, app) => {
+      totalMemory: Math.round(apps.reduce((sum, app) => {
         if (app.status === 'offline') return sum;
+        if (app.mem !== undefined && app.mem !== null) return sum + app.mem;
         const base = app.slug === 'reference-python' ? 180 : app.slug === 'example-forge-app' ? 110 : 85;
         return sum + base;
-      }, 0)
+      }, 0))
     };
 
     // Helper for table column resizing
@@ -1369,26 +1374,35 @@ function App() {
       return points;
     };
 
-    const renderSparkline = (appSlug: string, appStatus: string, type: 'cpu' | 'mem') => {
-      if (appStatus === 'offline') {
+    const renderSparkline = (app: any, type: 'cpu' | 'mem') => {
+      if (app.status === 'offline') {
         return (
           <span className="text-[10px] text-textMuted font-mono font-medium">---</span>
         );
       }
-      const values = getSparklinePoints(appSlug, type);
+      
+      const values = (type === 'cpu' ? app.cpuHistory : app.memHistory) || getSparklinePoints(app.slug, type);
+      const currentVal = type === 'cpu' ? app.cpu : app.mem;
+      const formattedVal = type === 'cpu' 
+        ? `${(currentVal ?? 0.0).toFixed(1)}%` 
+        : `${(currentVal ?? 0.0).toFixed(1)} MB`;
+
       const max = Math.max(...values);
       const min = Math.min(...values);
       const range = max - min || 1;
-      const pointsStr = values.map((val, idx) => {
+      const pointsStr = values.map((val: number, idx: number) => {
         const x = (idx / (values.length - 1)) * 90 + 5;
         const y = 20 - ((val - min) / range) * 16;
         return `${x},${y}`;
       }).join(' ');
 
       return (
-        <svg className={`w-24 h-6 ${type === 'cpu' ? 'text-indigo-400' : 'text-emerald-400'}`} stroke="currentColor" fill="none" viewBox="0 0 100 24">
-          <polyline strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={pointsStr} />
-        </svg>
+        <div className="flex items-center gap-3">
+          <svg className={`w-24 h-6 ${type === 'cpu' ? 'text-indigo-400' : 'text-emerald-400'}`} stroke="currentColor" fill="none" viewBox="0 0 100 24">
+            <polyline strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={pointsStr} />
+          </svg>
+          <span className="text-[10px] text-white font-mono font-bold w-12 text-right">{formattedVal}</span>
+        </div>
       );
     };
 
@@ -1519,10 +1533,10 @@ function App() {
                           {isOffline ? '---' : app.lastSeen ? '99.98% (Online)' : '99.9% (Online)'}
                         </td>
                         <td className="px-4 text-xs">
-                          {renderSparkline(app.slug, app.status, 'cpu')}
+                          {renderSparkline(app, 'cpu')}
                         </td>
                         <td className="px-4 text-xs">
-                          {renderSparkline(app.slug, app.status, 'mem')}
+                          {renderSparkline(app, 'mem')}
                         </td>
                       </tr>
 
@@ -1952,6 +1966,37 @@ function App() {
           </div>
         </div>
 
+        {/* Source Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2 bg-bgCard border border-borderColor rounded-xl px-4 py-3 shadow-md">
+          <span className="text-[10px] text-textMuted font-bold uppercase tracking-wider mr-1">Source:</span>
+          {logsSources.map((src) => {
+            const sourceColors: Record<string, string> = {
+              'ALL': 'bg-zinc-700 text-zinc-200',
+              'system': 'bg-blue-900/50 text-blue-300 border-blue-500/30',
+              'dashboard': 'bg-violet-900/50 text-violet-300 border-violet-500/30',
+              'lifecycle': 'bg-cyan-900/50 text-cyan-300 border-cyan-500/30',
+              'telemetry': 'bg-emerald-900/50 text-emerald-300 border-emerald-500/30',
+              'watcher': 'bg-amber-900/50 text-amber-300 border-amber-500/30',
+              'test-runner': 'bg-pink-900/50 text-pink-300 border-pink-500/30',
+              'query-console': 'bg-orange-900/50 text-orange-300 border-orange-500/30',
+            };
+            const isActive = logsSource === src;
+            return (
+              <button
+                key={src}
+                onClick={() => {
+                  setLogsSource(src);
+                  setTimeout(() => loadTelemetryLogs(), 50);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-all cursor-pointer ${isActive ? 'ring-1 ring-primary border-primary bg-primaryGlow text-primary-hover' : sourceColors[src] || 'bg-zinc-800 text-textMuted border-borderColor'} hover:opacity-90`}
+              >
+                {src === 'ALL' ? '🔗 All Sources' : src}
+              </button>
+            );
+          })}
+          <span className="text-[9px] text-textMuted ml-auto">{logs.length} log entries</span>
+        </div>
+
         {/* Logs Explorer Table list */}
         <div className="bg-bgCard border border-borderColor rounded-xl shadow-lg overflow-hidden flex flex-col min-h-[300px]">
           {logsLoading && (
@@ -1978,6 +2023,16 @@ function App() {
                 else if (log.severity === 'CRITICAL') badgeClass = 'bg-errorGlow border-error/50 text-error font-bold';
                 else if (log.severity === 'INFO') badgeClass = 'bg-successGlow border-success/20 text-success';
 
+                const sourceBadgeColors: Record<string, string> = {
+                  'system': 'bg-blue-900/40 text-blue-300 border-blue-500/20',
+                  'dashboard': 'bg-violet-900/40 text-violet-300 border-violet-500/20',
+                  'lifecycle': 'bg-cyan-900/40 text-cyan-300 border-cyan-500/20',
+                  'telemetry': 'bg-emerald-900/40 text-emerald-300 border-emerald-500/20',
+                  'watcher': 'bg-amber-900/40 text-amber-300 border-amber-500/20',
+                  'test-runner': 'bg-pink-900/40 text-pink-300 border-pink-500/20',
+                  'query-console': 'bg-orange-900/40 text-orange-300 border-orange-500/20',
+                };
+
                 return (
                   <div key={log.id} className="flex flex-col transition-all">
                     {/* Log Row Header */}
@@ -1985,10 +2040,15 @@ function App() {
                       onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
                       className="px-5 py-3.5 flex items-center justify-between gap-4 cursor-pointer hover:bg-tableRowHover transition-colors text-xs"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <span className={`px-2 py-0.5 rounded border text-[10px] uppercase font-semibold ${badgeClass}`}>
                           {log.severity}
                         </span>
+                        {log.source && (
+                          <span className={`px-2 py-0.5 rounded border text-[9px] font-mono font-semibold ${sourceBadgeColors[log.source] || 'bg-zinc-800 text-textMuted border-borderColor'}`}>
+                            {log.source}
+                          </span>
+                        )}
                         <span className="text-[10px] text-textMuted font-mono whitespace-nowrap">{dateText}</span>
                         <span className="text-white font-bold truncate">{log.action}</span>
                       </div>
@@ -2191,7 +2251,7 @@ function App() {
             { id: 'topology', icon: <GitBranch size={16} />, label: 'Monorepo Topology' },
             { id: 'db', icon: <Database size={16} />, label: 'Database Explorer' },
             { id: 'ecosystem', icon: <Cpu size={16} />, label: 'Forge Apps Ecosystem' },
-            { id: 'logs', icon: <Terminal size={16} />, label: 'System Telemetry Logs' }
+            { id: 'logs', icon: <Terminal size={16} />, label: 'Unified Logs Explorer' }
           ].map((item) => {
             const isActive = activeTab === item.id;
             return (
