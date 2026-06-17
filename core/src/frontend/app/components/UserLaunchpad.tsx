@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const EmployeesApp = dynamic<any>(() => import('@apps/employees'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex justify-center items-center py-24">
+      <span className="w-8 h-8 border-4 border-[#2563eb] border-t-transparent rounded-full animate-spin"></span>
+    </div>
+  )
+});
 
 interface AppConfig {
   id: string;
@@ -90,6 +100,82 @@ interface UserLaunchpadProps {
 
 export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadProps) {
   const router = useRouter();
+
+  const runQuery = async (queryStr: string) => {
+    // Intercept read-only directory queries for standard user sessions
+    if (initialData.user?.role === 'user') {
+      const normalizedQuery = queryStr.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (normalizedQuery.includes('select * from users')) {
+        const res = await fetch('/api/directory');
+        if (!res.ok) {
+          throw new Error('Database query failed.');
+        }
+        const data = await res.json();
+        return { rows: data.users || [] };
+      }
+      if (normalizedQuery.includes('select * from structural_metadata')) {
+        const res = await fetch('/api/directory');
+        if (!res.ok) {
+          throw new Error('Database query failed.');
+        }
+        const data = await res.json();
+        return { rows: data.metadata || [] };
+      }
+      if (normalizedQuery.includes('manager_id')) {
+        const res = await fetch('/api/directory');
+        if (!res.ok) {
+          throw new Error('Database query failed.');
+        }
+        const data = await res.json();
+        const users = data.users || [];
+        const metadata = data.metadata || [];
+
+        // Extract manager UUID from query string
+        const managerIdMatch = queryStr.match(/manager_id\s*=\s*['"]([^'"]+)['"]/i);
+        const managerId = managerIdMatch ? managerIdMatch[1] : initialData.user?.id;
+
+        // Filter users by manager_id
+        const directReports = users.filter((u: any) => u.manager_id === managerId);
+
+        // Perform LEFT JOIN dm and vm
+        const rows = directReports.map((u: any) => {
+          const designationMeta = metadata.find((m: any) => m.id === u.designation_id);
+          const verticalMeta = metadata.find((m: any) => m.id === u.vertical_id);
+          return {
+            eid: u.eid,
+            name: u.name,
+            email: u.email,
+            designation: designationMeta ? designationMeta.name : null,
+            vertical: verticalMeta ? verticalMeta.name : null,
+          };
+        });
+
+        // Apply ordering: ORDER BY u.name ASC
+        if (normalizedQuery.includes('order by')) {
+          rows.sort((a: any, b: any) => {
+            const nameA = (a.name || '').toLowerCase();
+            const nameB = (b.name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+        }
+
+        return { rows, rowCount: rows.length };
+      }
+      
+      throw new Error('Forbidden: Access denied. Only administrative roles can execute raw SQL queries.');
+    }
+
+    const res = await fetch('/api/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: queryStr })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Database query failed.');
+    }
+    return data;
+  };
 
   const companyMeta = initialData.allMetadata.find(m => m.type === 'company_name') as any;
   const brandingTitle = companyMeta?.name || 'SG Forge';
@@ -1562,280 +1648,10 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
             </div>
           )}
 
-          {/* Tab Content 3: Spatial Org Explorer */}
+          {/* Tab Content 3: Redesigned Teams Org Directory */}
           {activeTab === 'directory' && (
-            <div className="h-[calc(100vh-140px)] flex flex-col md:flex-row gap-6 animate-fadeIn pb-4">
-              
-              {/* Left Pane: Scrolling Tree list */}
-              <div className="w-full md:w-[380px] bg-surface-card border border-border-accent rounded-3xl p-5 flex flex-col shadow-sm h-full overflow-hidden">
-                <div className="pb-4 border-b border-border-accent/40">
-                  <h3 className="text-xs font-black text-text-primary uppercase tracking-wider">Spatial Org Explorer</h3>
-                  <p className="text-[9px] text-text-secondary mt-0.5">Flattened path search via Postgres ltree</p>
-                  
-                  {/* Query Input */}
-                  <div className="mt-3 relative">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search nodes by name or path..."
-                      className="w-full bg-background-portal border border-border-accent rounded-xl px-3 py-2 text-xs text-text-primary placeholder-text-secondary focus:outline-none focus:border-brand-accent transition-all"
-                    />
-                    {searchQuery && (
-                      <button 
-                        onClick={() => setSearchQuery('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-text-secondary hover:text-text-primary font-bold cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Nodes List */}
-                <div className="flex-1 overflow-y-auto mt-4 space-y-2.5 pr-1">
-                  {isHierarchyLoading && !orgHierarchy ? (
-                    <div className="flex flex-col items-center justify-center py-10 space-y-2">
-                      <div className="w-6 h-6 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-[10px] text-text-secondary">Loading node tree...</p>
-                    </div>
-                  ) : (
-                    orgHierarchy?.nodes
-                      .filter(node => 
-                        node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        (node.path && node.path.toLowerCase().includes(searchQuery.toLowerCase()))
-                      )
-                      .map(node => {
-                        const depth = node.path ? node.path.split('.').length - 1 : 0;
-                        const isSelected = selectedOrgNodeId === node.id;
-                        
-                        return (
-                          <div
-                            key={node.id}
-                            onClick={() => setSelectedOrgNodeId(node.id)}
-                            className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group ${
-                              isSelected
-                                ? 'bg-brand-muted border-brand-accent/50 shadow-sm'
-                                : 'bg-surface-elevated/40 border-border-accent/60 hover:bg-surface-elevated/80 hover:border-brand-accent/30'
-                            }`}
-                            style={{ marginLeft: `${depth * 12}px` }}
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs">
-                                  {node.type === 'company' ? '🏢' : node.type === 'division' ? '📁' : node.type === 'department' ? '💼' : '👥'}
-                                </span>
-                                <h4 className={`text-xs font-bold truncate ${isSelected ? 'text-brand-accent' : 'text-text-primary'}`}>
-                                  {node.name}
-                                </h4>
-                              </div>
-                              <p className="text-[8px] font-mono text-text-tertiary mt-1 truncate">
-                                path: {node.path}
-                              </p>
-                            </div>
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-background-portal text-text-secondary border border-border-accent font-mono uppercase ml-2 flex-shrink-0">
-                              {node.type}
-                            </span>
-                          </div>
-                        );
-                      })
-                  )}
-                  {orgHierarchy && orgHierarchy.nodes.filter(node => 
-                    node.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (node.path && node.path.toLowerCase().includes(searchQuery.toLowerCase()))
-                  ).length === 0 && (
-                    <p className="text-[10px] text-text-tertiary italic text-center py-8">No structural nodes match.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Pane: Details Canvas */}
-              <div className="flex-1 bg-surface-card border border-border-accent rounded-3xl p-6 shadow-sm h-full overflow-y-auto">
-                {(() => {
-                  const node = orgHierarchy?.nodes.find(n => n.id === selectedOrgNodeId);
-                  if (!node) {
-                    return (
-                      <div className="h-full flex flex-col items-center justify-center text-center py-20">
-                        <span className="text-4xl block mb-3">🧭</span>
-                        <h4 className="text-xs font-black text-text-secondary uppercase">Select an Organizational Node</h4>
-                        <p className="text-[10px] text-text-tertiary mt-1 max-w-xs mx-auto">
-                          Click any node in the structural hierarchy tree on the left to review memberships, entitlements, and resource limits.
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  // Count node members
-                  const membersList = node.members || [];
-                  const leadsCount = membersList.filter((m: any) => m.relationship === 'lead' || m.relationship === 'manager').length;
-                  
-                  // Mock allocations & budgets based on path/id strings
-                  const hash = node.id.charCodeAt(0) + (node.id.charCodeAt(1) || 50);
-                  const totalBudget = ((hash * 1000) % 500000) + 100000;
-                  const allocatedBudget = Math.floor(totalBudget * (0.6 + (hash % 35) / 100));
-                  const percentUsed = Math.round((allocatedBudget / totalBudget) * 100);
-                  const capacityMax = (hash % 8) + 8;
-                  const capacityCurrent = membersList.length;
-                  const capacityPercent = Math.min(Math.round((capacityCurrent / capacityMax) * 100), 100);
-
-                  // Filter entitlements for this node
-                  const activeEntitledApps = initialData.apps.filter(app => {
-                    if (app.slug === 'forge-app-directory') return true;
-                    if (app.slug === 'forge-app-marketplace' && ['company', 'division'].includes(node.type)) return true;
-                    if (app.slug === 'manager-operations' && node.type === 'team') return true;
-                    return hash % 3 === 0;
-                  });
-
-                  return (
-                    <div className="space-y-6 animate-fadeIn">
-                      {/* Node Header */}
-                      <div className="border-b border-border-accent/40 pb-4.5">
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">
-                                {node.type === 'company' ? '🏢' : node.type === 'division' ? '📁' : node.type === 'department' ? '💼' : '👥'}
-                              </span>
-                              <h3 className="text-base font-black text-text-primary">{node.name}</h3>
-                            </div>
-                            <p className="text-[10px] font-mono text-text-secondary mt-1">ID: {node.id}</p>
-                          </div>
-                          <span className="text-[10px] px-2.5 py-1 rounded-full bg-brand-muted border border-brand-accent/20 text-brand-accent font-black uppercase tracking-wider">
-                            {node.type}
-                          </span>
-                        </div>
-                        <div className="mt-3 bg-background-portal/60 border border-border-accent/40 rounded-xl p-2.5 font-mono text-[9px] text-text-secondary">
-                          <span className="text-text-tertiary">ltree path: </span>
-                          <span className="font-bold text-text-primary">{node.path}</span>
-                        </div>
-                      </div>
-
-                      {/* Members & Leads Grid */}
-                      <div>
-                        <h4 className="text-xs font-black text-text-primary uppercase tracking-wider mb-3 flex items-center justify-between">
-                          <span>Assigned Members ({membersList.length})</span>
-                          <span className="text-[9px] text-text-secondary font-medium">Leads: {leadsCount}</span>
-                        </h4>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {membersList.map((member: any) => {
-                            const isLead = member.relationship === 'lead' || member.relationship === 'manager';
-                            const jobLevel = member.designation?.toLowerCase().includes('ceo') ? 'L5' :
-                                             member.designation?.toLowerCase().includes('vp') ? 'L4' :
-                                             member.designation?.toLowerCase().includes('manager') ? 'L3' :
-                                             member.designation?.toLowerCase().includes('senior') ? 'L2' : 'L1';
-                            
-                            return (
-                              <div key={member.id} className="bg-background-portal/40 border border-border-accent/50 rounded-2xl p-3 flex items-center justify-between hover:border-brand-accent/30 transition-all">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <div className="h-8 w-8 rounded-xl bg-surface-elevated text-text-secondary font-black text-xs flex items-center justify-center flex-shrink-0">
-                                    {member.name.substring(0, 2).toUpperCase()}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-bold text-text-primary leading-tight truncate">
-                                      {member.name}
-                                    </p>
-                                    <p className="text-[9px] text-text-secondary truncate mt-0.5">
-                                      {member.designation || 'Staff Member'}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex flex-col items-end gap-1.5 flex-shrink-0 ml-2">
-                                  <span className="text-[8px] bg-surface-card border border-border-accent px-1.5 py-0.5 rounded font-mono font-bold text-text-primary">
-                                    {jobLevel}
-                                  </span>
-                                  {isLead && (
-                                    <span className="text-[8px] bg-warning/10 border border-warning/20 text-warning px-1.5 py-0.5 rounded font-black uppercase">
-                                      Lead
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {membersList.length === 0 && (
-                            <div className="col-span-2 py-8 text-center bg-background-portal/20 border border-dashed border-border-accent/40 rounded-2xl">
-                              <p className="text-[10px] text-text-tertiary italic">No active member assignments located at this coordinate node.</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Resource Allocation & Matrix Progress */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
-                        {/* Budget Allocation Progress */}
-                        <div className="bg-background-portal/30 border border-border-accent/50 rounded-2xl p-4.5">
-                          <span className="text-[9px] text-text-tertiary font-black uppercase tracking-wider block mb-1">Budget utilization</span>
-                          <div className="flex justify-between items-baseline mb-2">
-                            <span className="text-sm font-black text-text-primary">${allocatedBudget.toLocaleString()}</span>
-                            <span className="text-[10px] text-text-secondary">of ${totalBudget.toLocaleString()}</span>
-                          </div>
-                          <div className="w-full bg-surface-card rounded-full h-2 overflow-hidden border border-border-accent">
-                            <div 
-                              className={`h-full transition-all ${percentUsed > 85 ? 'bg-danger' : 'bg-brand-accent'}`}
-                              style={{ width: `${percentUsed}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between text-[8px] text-text-tertiary font-mono mt-1.5">
-                            <span>Matrix allocation rate</span>
-                            <span className="font-bold">{percentUsed}% utilized</span>
-                          </div>
-                        </div>
-
-                        {/* Headcount Capacity Progress */}
-                        <div className="bg-background-portal/30 border border-border-accent/50 rounded-2xl p-4.5">
-                          <span className="text-[9px] text-text-tertiary font-black uppercase tracking-wider block mb-1">Headcount capacity</span>
-                          <div className="flex justify-between items-baseline mb-2">
-                            <span className="text-sm font-black text-text-primary">{capacityCurrent} Members</span>
-                            <span className="text-[10px] text-text-secondary">max limit: {capacityMax}</span>
-                          </div>
-                          <div className="w-full bg-surface-card rounded-full h-2 overflow-hidden border border-border-accent">
-                            <div 
-                              className={`h-full transition-all ${capacityPercent > 90 ? 'bg-warning' : 'bg-success'}`}
-                              style={{ width: `${capacityPercent}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between text-[8px] text-text-tertiary font-mono mt-1.5">
-                            <span>Structural allocation rate</span>
-                            <span className="font-bold">{capacityPercent}% full</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Slide-out details / Entitled Applications */}
-                      <div className="border-t border-border-accent/40 pt-4.5">
-                        <h4 className="text-xs font-black text-text-primary uppercase tracking-wider mb-3">
-                          Authorized Application Entitlements
-                        </h4>
-                        <p className="text-[10px] text-text-secondary mb-3 leading-normal">
-                          Explicit and inherited application access policies resolved via postgres `ltree` parent mappings for this node location.
-                        </p>
-                        
-                        <div className="space-y-2">
-                          {activeEntitledApps.map(app => (
-                            <div key={app.id} className="p-3 bg-background-portal/60 border border-border-accent/40 rounded-xl flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <span className="text-base">{getAppIcon(app.icon)}</span>
-                                <div>
-                                  <p className="text-xs font-bold text-text-primary leading-tight">{app.name}</p>
-                                  <p className="text-[9px] text-text-tertiary font-mono mt-0.5">{app.slug}</p>
-                                </div>
-                              </div>
-                              <span className="text-[9px] bg-success/10 border border-success/20 text-success px-2 py-0.5 rounded font-black uppercase">
-                                Inherited Grant
-                              </span>
-                            </div>
-                          ))}
-                          {activeEntitledApps.length === 0 && (
-                            <p className="text-[10px] text-text-tertiary italic">No active application privileges mapped to this node.</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
+            <div className="animate-fadeIn">
+              <EmployeesApp user={initialData.user} runQuery={runQuery} />
             </div>
           )}
 
