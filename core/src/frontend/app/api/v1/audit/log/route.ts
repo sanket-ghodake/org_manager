@@ -1,32 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
+import { verifyToken } from '@backend/auth/tokenVerifier';
 
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Missing or invalid authorization header' }, { status: 401 });
-    }
-    const tokenStr = authHeader.substring(7);
-
-    // 1. Resolve access token
-    const tokenResult = await db.execute(sql`
-      SELECT id, access_token as "accessToken", app_id as "appId", user_id as "userId", expires_at as "expiresAt", scope
-      FROM forge_access_tokens
-      WHERE access_token = ${tokenStr}
-    `);
-    const tokenRows = tokenResult.rows || tokenResult;
-    if (!tokenRows || tokenRows.length === 0) {
-      return NextResponse.json({ error: 'Invalid access token' }, { status: 401 });
-    }
-    const token = tokenRows[0] as any;
-
-    if (new Date(token.expiresAt) < new Date()) {
-      return NextResponse.json({ error: 'Access token expired' }, { status: 401 });
+    let userId: string;
+    let appId: string;
+    let scopes: string[];
+    try {
+      const verified = await verifyToken(authHeader);
+      userId = verified.userId;
+      appId = verified.appId;
+      scopes = verified.scopes;
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Unauthorized' }, { status: 401 });
     }
 
-    const scopes = (token.scope || []) as string[];
     if (!scopes.includes('audit.log.write')) {
       return NextResponse.json({ error: 'Insufficient scopes (audit.log.write required)' }, { status: 403 });
     }
@@ -50,13 +41,13 @@ export async function POST(request: NextRequest) {
     // 4. Inject appId into log payload for accountability
     const enrichedPayload = {
       ...payload,
-      appId: token.appId
+      appId: appId
     };
 
     // 5. Insert into system_logs
     const insertResult = await db.execute(sql`
       INSERT INTO system_logs (user_id, action, severity, payload, ip_address)
-      VALUES (${token.userId}, ${action}, ${severity}, ${JSON.stringify(enrichedPayload)}::jsonb, ${ipAddress})
+      VALUES (${userId}, ${action}, ${severity}, ${JSON.stringify(enrichedPayload)}::jsonb, ${ipAddress})
       RETURNING id
     `);
     const insertRows = insertResult.rows || insertResult;

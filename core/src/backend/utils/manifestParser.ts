@@ -101,19 +101,33 @@ export function validateManifest(manifest: any, folderName: string): ManifestVal
 export function scanAppManifests(): ManifestValidationResult[] {
   const results: ManifestValidationResult[] = [];
   try {
-    let appsDir = path.join(process.cwd(), 'src/apps');
-    if (!fs.existsSync(appsDir)) {
-      appsDir = path.join(process.cwd(), '../sandbox/apps');
-    }
-    if (!fs.existsSync(appsDir)) {
-      appsDir = path.join(process.cwd(), 'sandbox/apps');
-    }
-    if (!fs.existsSync(appsDir)) {
-      appsDir = path.join(process.cwd(), '../apps');
+    let appsDir = '';
+    let currentDir = process.cwd();
+    while (currentDir) {
+      const sandboxApps = path.join(currentDir, 'sandbox/apps');
+      const appsFolder = path.join(currentDir, 'apps');
+      const srcApps = path.join(currentDir, 'src/apps');
+      if (fs.existsSync(sandboxApps)) {
+        appsDir = sandboxApps;
+        break;
+      }
+      if (fs.existsSync(appsFolder)) {
+        appsDir = appsFolder;
+        break;
+      }
+      if (fs.existsSync(srcApps)) {
+        appsDir = srcApps;
+        break;
+      }
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) {
+        break;
+      }
+      currentDir = parentDir;
     }
 
-    if (!fs.existsSync(appsDir)) {
-      console.warn(`Apps directory not found at: ${appsDir}`);
+    if (!appsDir || !fs.existsSync(appsDir)) {
+      console.warn(`Apps directory not found. Process CWD: ${process.cwd()}`);
       return [];
     }
 

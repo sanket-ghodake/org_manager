@@ -19,4 +19,4 @@ This platform houses the core Next.js portal host, identity management layers, a
 
 *   **[Overview](overview/introduction.md)**: Introduction to the platform, project vision & decisions, and the monorepo repository tree.
 *   **[Guides](guides/installation.md)**: Getting started, local installation, Docker environment setup, WSL compatibility configurations, and the App Developer Guide.
-*   **[Architecture & Design](architecture/system.md)**: System topology, shared SDK contract spec, vertical-horizontal access engines, and the core security blueprints.
+*   **[Architecture & Design](architecture/system.md)**: System topology, shared SDK contract spec, vertical-horizontal access engines, core security blueprints, and [timezone resiliency configurations](architecture/timezone-resiliency.md).

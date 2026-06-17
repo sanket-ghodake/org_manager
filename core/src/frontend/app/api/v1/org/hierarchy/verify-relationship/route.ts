@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import { getSession } from '@backend/auth/sessionManager';
+import { verifyToken } from '@backend/auth/tokenVerifier';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,18 +10,11 @@ export async function GET(request: NextRequest) {
     let isAuthorized = false;
     const authHeader = request.headers.get('Authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const tokenStr = authHeader.substring(7);
-      const tokenResult = await db.execute(sql`
-        SELECT user_id as "userId", expires_at as "expiresAt"
-        FROM forge_access_tokens
-        WHERE access_token = ${tokenStr}
-      `);
-      const tokenRows = tokenResult.rows || tokenResult;
-      if (tokenRows && tokenRows.length > 0) {
-        const token = tokenRows[0] as any;
-        if (new Date(token.expiresAt) >= new Date()) {
-          isAuthorized = true;
-        }
+      try {
+        await verifyToken(authHeader);
+        isAuthorized = true;
+      } catch (err: any) {
+        // Fallback to session cookie if bearer token validation fails
       }
     }
 

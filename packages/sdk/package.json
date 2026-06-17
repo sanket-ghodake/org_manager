@@ -4,5 +4,7 @@
   "description": "Forge SDK v1 for parent postMessage communications and REST client gateways",
   "main": "forge-sdk.ts",
   "types": "forge-sdk.ts",
-  "dependencies": {}
+  "dependencies": {
+    "jose": "^5.2.0"
+  }
 }

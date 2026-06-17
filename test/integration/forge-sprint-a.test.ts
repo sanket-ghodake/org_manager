@@ -146,7 +146,7 @@ describe("SG Forge Sprint A Integration Tests", () => {
 
     const body = await response.json();
     expect(body.access_token).toBeDefined();
-    expect(body.access_token.startsWith("access_token_")).toBe(true);
+    expect(body.access_token.startsWith("access_token_") || body.access_token.startsWith("eyJ")).toBe(true);
     expect(body.user.id).toBe(dev.id);
 
     // Replay Protection: Second attempt should fail

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import { getSession } from '@backend/auth/sessionManager';
+import { verifyToken } from '@backend/auth/tokenVerifier';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,24 +12,17 @@ export async function GET(request: NextRequest) {
     // 1. Try bearer token auth
     const authHeader = request.headers.get('Authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const tokenStr = authHeader.substring(7);
-      const tokenResult = await db.execute(sql`
-        SELECT user_id as "userId", expires_at as "expiresAt", scope
-        FROM forge_access_tokens
-        WHERE access_token = ${tokenStr}
-      `);
-      const tokenRows = tokenResult.rows || tokenResult;
-      if (tokenRows && tokenRows.length > 0) {
-        const token = tokenRows[0] as any;
-        if (new Date(token.expiresAt) >= new Date()) {
-          userId = token.userId;
-          scopes = (token.scope || []) as string[];
-          
-          // Enforce scopes if bearer token is used
-          if (!scopes.includes('org.nodes.read') && !scopes.includes('org.users.read') && !scopes.includes('user.profile.read')) {
-            return NextResponse.json({ error: 'Insufficient scopes' }, { status: 403 });
-          }
+      try {
+        const verified = await verifyToken(authHeader);
+        userId = verified.userId;
+        scopes = verified.scopes;
+        
+        // Enforce scopes if bearer token is used
+        if (!scopes.includes('org.nodes.read') && !scopes.includes('org.users.read') && !scopes.includes('user.profile.read')) {
+          return NextResponse.json({ error: 'Insufficient scopes' }, { status: 403 });
         }
+      } catch (err: any) {
+        // Fallback to session cookie if bearer token validation fails
       }
     }
 

@@ -69,3 +69,18 @@ sequenceDiagram
     Note over App: App sets encrypted local session cookie.
     App-->>User: Redirect to App Home (GET /)
 ```
+
+### 🔑 Low-Latency Asymmetric Cryptography SSO (OAuth 2.1 / OIDC)
+
+To optimize SSO handshake latency, prevent heavy database locks, and bypass schema size limits, the platform utilizes **Path B: Asymmetric JWTs**.
+
+#### 🚀 How Low Latency is Achieved
+* **Zero Database Lookups for Verification**: The Portal acts as the Identity Provider (IdP) and cryptographically signs issued JWT tokens using a private RSA key. Sandboxed micro-applications (using the Forge SDK) verify the signature completely offline using the public key, achieving **sub-millisecond (0ms DB query) token verification**.
+* **Decentralized JSON Web Key Sets (JWKS)**: The Portal exposes its active public key at the JWKS endpoint `/api/v1/auth/jwks`. Service providers (micro-apps) call this endpoint once to retrieve and cache the key, verifying all subsequent API requests offline.
+* **No Database Token Storage**: Newly generated JWT access tokens are not written to the `forge_access_tokens` table, avoiding write-locks and eliminating string-too-long limits on database columns.
+
+#### 🛡 Security Safeguards
+* **Short-Lived Access Tokens**: JWTs have a brief lifetime of **15 minutes** (900 seconds) to mitigate the impact of token interception.
+* **Scope Constraints**: App access privileges are restricted strictly to requested OAuth scopes (e.g., `user.profile.read`, `audit.log.write`) encoded in the JWT claims payload.
+* **Backward Compatibility**: If a token does not match the JWT format, the verification engine automatically falls back to a database lookup against the `forge_access_tokens` table. This prevents breaking changes for older, legacy applications.
+

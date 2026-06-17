@@ -3,6 +3,8 @@
  * Provides client-side postMessage utility wrappers and backend REST API helper clients.
  */
 
+import { jwtVerify, createRemoteJWKSet } from 'jose';
+
 // ==========================================
 // 1. Frontend SDK (iframe Client-side)
 // ==========================================
@@ -153,7 +155,19 @@ export class ForgeBackendClient {
       throw new Error(`Failed to exchange authorization code: ${response.status} - ${errorText}`);
     }
 
-    return await response.json();
+    const data: ExchangeResponse = await response.json();
+
+    // Verify the JWT signature locally!
+    try {
+      const JWKS = createRemoteJWKSet(new URL(`${this.baseUrl}/api/v1/auth/jwks`));
+      await jwtVerify(data.access_token, JWKS, {
+        algorithms: ['RS256'],
+      });
+    } catch (err: any) {
+      throw new Error(`JWT Signature verification failed: ${err.message}`);
+    }
+
+    return data;
   }
 
   /**

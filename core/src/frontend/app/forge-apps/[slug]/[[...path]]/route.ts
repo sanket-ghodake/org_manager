@@ -4,6 +4,30 @@ import { sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
+function getAppsDirectory(): string {
+  let currentDir = process.cwd();
+  while (currentDir) {
+    const sandboxApps = path.join(currentDir, 'sandbox/apps');
+    if (fs.existsSync(sandboxApps)) {
+      return sandboxApps;
+    }
+    const appsFolder = path.join(currentDir, 'apps');
+    if (fs.existsSync(appsFolder)) {
+      return appsFolder;
+    }
+    const srcApps = path.join(currentDir, 'src/apps');
+    if (fs.existsSync(srcApps)) {
+      return srcApps;
+    }
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+  return path.join(process.cwd(), 'sandbox/apps');
+}
+
 async function handleProxy(
   request: NextRequest,
   context: any
@@ -26,7 +50,7 @@ async function handleProxy(
     // Fallback: If not found by slug directly (e.g. requested using the manifest ID),
     // resolve the actual database slug by checking local manifest files.
     try {
-      const appsDir = path.join(process.cwd(), 'src/apps');
+      const appsDir = getAppsDirectory();
       if (fs.existsSync(appsDir)) {
         const items = fs.readdirSync(appsDir);
         for (const item of items) {
@@ -130,7 +154,7 @@ async function handleProxy(
     };
 
     try {
-      const configPath = path.join(process.cwd(), 'src/apps', slug, 'app.json');
+      const configPath = path.join(getAppsDirectory(), slug, 'app.json');
       if (fs.existsSync(configPath)) {
         config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       }

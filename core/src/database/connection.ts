@@ -1,6 +1,12 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
 import * as schema from '@database/schema';
+
+// Force node-postgres to parse TIMESTAMP WITHOUT TIME ZONE (OID 1114) as UTC Date objects.
+// This prevents timezone-offset skew bugs when running on host systems in local timezones.
+types.setTypeParser(1114, (stringValue) => {
+  return new Date(stringValue + 'Z');
+});
 
 const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/org_db';
 

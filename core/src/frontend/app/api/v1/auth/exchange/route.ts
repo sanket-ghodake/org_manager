@@ -3,6 +3,9 @@ import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { resolveAppPermissions } from '@backend/auth/permissionEngine';
+import { parseDbTimestamp } from '@backend/utils/date';
+import { SignJWT } from 'jose';
+import { getKeys } from '@backend/auth/keyManager';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authorization code already used' }, { status: 400 });
     }
 
-    if (new Date(authCode.expiresAt) < new Date()) {
+    if (parseDbTimestamp(authCode.expiresAt) < new Date()) {
       return NextResponse.json({ error: 'Authorization code expired' }, { status: 400 });
     }
 
@@ -58,11 +61,7 @@ export async function POST(request: NextRequest) {
       UPDATE forge_auth_codes SET used = true WHERE id = ${authCode.id}
     `);
 
-    // 4. Generate access token
-    const accessToken = 'access_token_' + crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-    // 5. Fetch user profile
+    // 4. Fetch user profile
     const userResult = await db.execute(sql`
       SELECT id, eid, name, email, role FROM users WHERE id = ${authCode.userId}
     `);
@@ -75,16 +74,28 @@ export async function POST(request: NextRequest) {
     // Resolve intersection of app scopes and user permissions
     const authorizedScopes = await resolveAppPermissions(app.id, user.id);
 
-    // 6. Save access token
-    await db.execute(sql`
-      INSERT INTO forge_access_tokens (access_token, app_id, user_id, expires_at, scope)
-      VALUES (${accessToken}, ${app.id}, ${user.id}, ${expiresAt.toISOString()}, ${JSON.stringify(authorizedScopes)}::jsonb)
-    `);
+    // 5. Generate signed JWT access token with 15-minute lifetime
+    const { privateKey } = getKeys();
+    const expiresIn = 900; // 15 minutes
+    const accessToken = await new SignJWT({
+      eid: user.eid,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      scopes: authorizedScopes,
+      scope: authorizedScopes.join(' '),
+    })
+      .setProtectedHeader({ alg: 'RS256', kid: 'forge-portal-key-1' })
+      .setSubject(user.id)
+      .setAudience(app.clientId || app.id)
+      .setIssuedAt()
+      .setExpirationTime('15m')
+      .sign(privateKey);
 
     return NextResponse.json({
       access_token: accessToken,
       token_type: 'Bearer',
-      expires_in: 3600,
+      expires_in: 900,
       user: {
         id: user.id,
         eid: user.eid,

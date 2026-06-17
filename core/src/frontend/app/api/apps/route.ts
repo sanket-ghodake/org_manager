@@ -6,11 +6,27 @@ import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 
 function getAppsDirectory(): string {
-  let appsDir = path.join(process.cwd(), 'src/apps');
-  if (!fs.existsSync(appsDir)) {
-    appsDir = path.join(process.cwd(), '../apps');
+  let currentDir = process.cwd();
+  while (currentDir) {
+    const sandboxApps = path.join(currentDir, 'sandbox/apps');
+    if (fs.existsSync(sandboxApps)) {
+      return sandboxApps;
+    }
+    const appsFolder = path.join(currentDir, 'apps');
+    if (fs.existsSync(appsFolder)) {
+      return appsFolder;
+    }
+    const srcApps = path.join(currentDir, 'src/apps');
+    if (fs.existsSync(srcApps)) {
+      return srcApps;
+    }
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
   }
-  return appsDir;
+  return path.join(process.cwd(), 'sandbox/apps');
 }
 
 export async function GET() {

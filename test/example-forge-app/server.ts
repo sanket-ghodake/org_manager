@@ -56,20 +56,58 @@ app.post('/api/auth', async (req, res) => {
   }
 
   try {
-    console.log(`Exchanging auth code: ${code} with Portal backend at ${PORTAL_INTERNAL_URL}...`);
-    const exchangeRes = await fetch(`${PORTAL_INTERNAL_URL}/api/v1/auth/exchange`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        code: code.toString(),
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET
-      })
-    });
+    const urlsToTry = [
+      `${PORTAL_INTERNAL_URL}/api/v1/auth/exchange`,
+      `http://host.docker.internal:3001/api/v1/auth/exchange`,
+      `http://172.21.0.1:3001/api/v1/auth/exchange`,
+      `http://172.17.0.1:3001/api/v1/auth/exchange`,
+      `http://localhost:3001/api/v1/auth/exchange`
+    ];
+
+    let exchangeRes: Response | null = null;
+    let lastError: any = null;
+
+    for (const url of urlsToTry) {
+      try {
+        console.log(`Exchanging auth code: ${code} with Portal backend at ${url}...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1000);
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: code.toString(),
+            client_id: CLIENT_ID,
+            client_secret: CLIENT_SECRET
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          exchangeRes = res;
+          break;
+        } else {
+          const errText = await res.text();
+          lastError = new Error(`Status ${res.status}: ${errText}`);
+          if (res.status === 400 || res.status === 401) {
+            exchangeRes = res;
+            break;
+          }
+        }
+      } catch (err: any) {
+        lastError = err;
+        console.log(`Failed to connect/auth at ${url}: ${err.message}`);
+      }
+    }
+
+    if (!exchangeRes) {
+      throw lastError || new Error('All auth exchange attempts failed.');
+    }
 
     if (!exchangeRes.ok) {
-      const errText = await exchangeRes.text();
-      throw new Error(`Token exchange failed (${exchangeRes.status}): ${errText}`);
+      throw lastError || new Error(`Token exchange failed (${exchangeRes.status})`);
     }
 
     const tokenData = (await exchangeRes.json()) as any;

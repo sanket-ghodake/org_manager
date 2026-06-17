@@ -2,32 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import { getHierarchyLevel } from '@backend/api/user/portal';
+import { verifyToken } from '@backend/auth/tokenVerifier';
 
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Missing or invalid authorization header' }, { status: 401 });
-    }
-    const tokenStr = authHeader.substring(7);
-
-    // 1. Resolve access token
-    const tokenResult = await db.execute(sql`
-      SELECT id, access_token as "accessToken", app_id as "appId", user_id as "userId", expires_at as "expiresAt", scope
-      FROM forge_access_tokens
-      WHERE access_token = ${tokenStr}
-    `);
-    const tokenRows = tokenResult.rows || tokenResult;
-    if (!tokenRows || tokenRows.length === 0) {
-      return NextResponse.json({ error: 'Invalid access token' }, { status: 401 });
-    }
-    const token = tokenRows[0] as any;
-
-    if (new Date(token.expiresAt) < new Date()) {
-      return NextResponse.json({ error: 'Access token expired' }, { status: 401 });
+    let userId: string;
+    let scopes: string[];
+    try {
+      const verified = await verifyToken(authHeader);
+      userId = verified.userId;
+      scopes = verified.scopes;
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message || 'Unauthorized' }, { status: 401 });
     }
 
-    const scopes = (token.scope || []) as string[];
     if (!scopes.includes('user.profile.read')) {
       return NextResponse.json({ error: 'Insufficient scopes (user.profile.read required)' }, { status: 403 });
     }
@@ -46,14 +35,14 @@ export async function GET(request: NextRequest) {
       FROM users u
       LEFT JOIN structural_metadata dm ON u.designation_id = dm.id
       LEFT JOIN structural_metadata vm ON u.vertical_id = vm.id
-      WHERE u.id = ${token.userId}
+      WHERE u.id = ${userId}
     `);
     const userRows = userResult.rows || userResult;
     if (!userRows || userRows.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     const rawUser = userRows[0] as any;
-    const hierarchyLevel = await getHierarchyLevel(token.userId);
+    const hierarchyLevel = await getHierarchyLevel(userId);
 
     const userProfile: any = {
       id: rawUser.id,
