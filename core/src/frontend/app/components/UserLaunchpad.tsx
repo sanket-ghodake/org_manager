@@ -1064,7 +1064,7 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                       const histUser = initialData.allUsers.find(u => u.id === histId);
                       if (!histUser) return null;
                       return (
-                        <React.Fragment key={histId}>
+                        <React.Fragment key={`${histId}-${idx}`}>
                           <span className="text-text-tertiary">/</span>
                           <button 
                             onClick={() => {

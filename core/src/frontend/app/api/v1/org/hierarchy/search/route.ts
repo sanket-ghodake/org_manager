@@ -28,17 +28,42 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectsResult = await db.execute(sql`
-      SELECT id, name, code, description, status FROM projects ORDER BY name ASC
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q') || '';
+
+    if (!query || query.trim().length < 2) {
+      return NextResponse.json({ success: true, employees: [] });
+    }
+
+    const searchPattern = `%${query.trim()}%`;
+
+    const searchResult = await db.execute(sql`
+      SELECT 
+        u.id, 
+        u.eid, 
+        u.name, 
+        u.email, 
+        u.role,
+        dm.name as designation, 
+        vm.name as "verticalName"
+      FROM users u
+      LEFT JOIN structural_metadata dm ON u.designation_id = dm.id
+      LEFT JOIN structural_metadata vm ON u.vertical_id = vm.id
+      WHERE u.name ILIKE ${searchPattern}
+         OR u.email ILIKE ${searchPattern}
+         OR u.eid ILIKE ${searchPattern}
+      ORDER BY u.name ASC
+      LIMIT 20
     `);
-    const projects = (projectsResult.rows || projectsResult) as any[];
+
+    const employees = (searchResult.rows || searchResult) as any[];
 
     return NextResponse.json({
       success: true,
-      projects
+      employees
     });
   } catch (error: any) {
-    console.error('Projects API error:', error);
+    console.error('Org hierarchy search API error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }

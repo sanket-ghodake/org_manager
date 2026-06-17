@@ -2,11 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import { getSession } from '@backend/auth/sessionManager';
+import { verifyToken } from '@backend/auth/tokenVerifier';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession(request);
-    if (!session) {
+    let isAuthorized = false;
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        await verifyToken(authHeader);
+        isAuthorized = true;
+      } catch (err: any) {
+        // Fallback to session cookie
+      }
+    }
+
+    if (!isAuthorized) {
+      const session = await getSession(request);
+      if (session) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
