@@ -1,10 +1,10 @@
 # Forge Application Integration Guide
 
-This guide provides a comprehensive step-by-step walkthrough for building, connecting, and integrating sandboxed applications (Forge Apps) with the SG Forge Portal.
+This guide provides a comprehensive step-by-step walkthrough for building, connecting, and integrating sandboxed applications (Forge Apps) with the SG Forge Portal. It covers both **Internal (Plug-and-Play)** applications running inside the portal orchestration and **Externally Hosted** applications using our unified OAuth authentication platform.
 
 ---
 
-## 🧭 Architecture Overview
+## 🧭 1. Architecture Overview
 
 Forge Applications are decoupled microservices running inside containerized or local sandbox environments. The host portal renders each app via an **iframe**, isolation is enforced through:
 * **Zero-Trust Identity**: Apps do not share session cookies. Instead, they complete an OAuth-style code exchange for a short-lived JSON Web Token (JWT).
@@ -31,7 +31,26 @@ sequenceDiagram
 
 ---
 
-## 🛠️ Step-by-Step Integration Walkthrough
+## 📦 2. Application Types: Internal vs. Externally Hosted
+
+Developers can integrate custom software into SG Forge via two different models:
+
+### Model A: Internal Sandbox Applications (Plug-and-Play)
+These are application servers written in any language, stored directly inside the repository workspace under `sandbox/apps/`.
+
+* **Dynamic Discovery**: The portal scans `sandbox/apps/` subdirectories on startup. Simply placing your app folder there registers it.
+* **Dynamic Background Spawning**: The dynamic runner (`scripts/dynamic-app-runner.ts`) automatically boots your app server (recognizing `server.ts`, `server.js`, `server.py`, `main.py`, or `main.go`) when you launch `./run.sh`.
+* **Zero Host Port Exposure**: In Docker dev mode, the portal container acts as a reverse proxy. Any web requests to `/forge-apps/<app-slug>` are proxied to `http://localhost:<app-port>` *internally* within the container. **You do not need to expose your app's port in docker-compose.yaml**.
+
+### Model B: Externally Hosted Applications (SSO Integration)
+These are apps hosted on external servers (e.g. `https://custom-app.mycompany.com`) that participate in the SG Forge ecosystem.
+
+* **Repository Footprint**: The developer only adds a folder containing an `app.json` manifest specifying the external `entryPoint`.
+* **OAuth SSO Exchange**: The portal redirects or embeds the external URL, passing `?code=AUTH_CODE`. The external server makes a secure backend HTTPS request to the portal's public URL (`POST https://portal-domain.com/api/v1/auth/exchange`) to authenticate the user and fetch their profile.
+
+---
+
+## 🛠️ 3. Step-by-Step Integration Walkthrough
 
 ### Step 1: Create the Application Directory
 Create a folder for your application inside `sandbox/apps/`:
@@ -47,6 +66,7 @@ Create `sandbox/apps/my-custom-app/app.json`:
 {
   "id": "app_custom_analytics_prod",
   "slug": "custom-analytics",
+  "version": "1.0.0",
   "name": "Custom Analytics Dashboard",
   "description": "Enterprise performance analytics and database matrix monitors.",
   "icon": "TrendingUp",
@@ -58,16 +78,17 @@ Create `sandbox/apps/my-custom-app/app.json`:
     "schemaName": "forge_custom_analytics"
   },
   "targetRules": {
-    "verticals": ["Engineering", "Business Operations"],
-    "designations": ["L2 Software Engineer", "Manager"],
-    "minJobLevel": 2
+    "verticals": ["all"],
+    "designations": [],
+    "minJobLevel": 1
   }
 }
 ```
 
-> [!IMPORTANT]
-> **Slug Case Sensitivity**: Keep your `slug` entirely lowercase. The platform normalizes slugs to ensure case-insensitive matching during lookup and routing.
-> **Schema Constraints**: The `database.schemaName` can contain only alphanumeric characters and underscores (`/^[a-zA-Z0-9_]+$/`). No dashes are allowed.
+> [!NOTE]
+> * **For Internal Apps**: Set `entryPoint` to your local address (e.g. `http://localhost:8089`). The dynamic runner and proxy will resolve this.
+> * **For External Apps**: Set `entryPoint` to the external URL (e.g. `https://custom-app.mycompany.com`).
+> * **Manifest Validation**: Slugs must be entirely lowercase. Database schema names (`database.schemaName`) can contain only alphanumeric characters and underscores.
 
 ---
 
@@ -87,8 +108,8 @@ const PORTAL_URL = process.env.PORTAL_URL || 'http://localhost:3001';
 
 const sdk = new ForgeBackendClient({
   baseUrl: PORTAL_URL,
-  clientId: process.env.CLIENT_ID || 'client_id_from_db',
-  clientSecret: process.env.CLIENT_SECRET || 'client_secret_from_db'
+  clientId: 'client_id_from_db_or_manifest',
+  clientSecret: 'client_secret_from_db_or_manifest'
 });
 
 const server = Bun.serve({
@@ -105,7 +126,7 @@ const server = Bun.serve({
     }
 
     // 2. Main Page Render
-    if (url.pathname === '/') {
+    if (url.pathname === '/' || url.pathname === '/web-ui') {
       const code = url.searchParams.get('code');
       let session = null;
 
@@ -172,7 +193,7 @@ class CustomAppHandler(http.server.BaseHTTPRequestHandler):
             return
 
         # Main Page
-        if parsed_url.path == "/":
+        if parsed_url.path == "/" or parsed_url.path == "/web-ui":
             query_params = urllib.parse.parse_qs(parsed_url.query)
             code = query_params.get("code", [None])[0]
             user_name = "Guest"
@@ -204,7 +225,6 @@ class CustomAppHandler(http.server.BaseHTTPRequestHandler):
         self.send_error(404, "Not Found")
 
 if __name__ == "__main__":
-    # socketserver.TCPServer must bind to 0.0.0.0 explicitly
     with socketserver.TCPServer((HOST, PORT), CustomAppHandler) as httpd:
         print(f"Python Server listening on http://{HOST}:{PORT}")
         httpd.serve_forever()
@@ -242,7 +262,6 @@ func main() {
 		userName := "Guest"
 
 		if code != "" {
-			// Code exchange payload
 			payload, _ := json.Marshal(map[string]string{
 				"code":          code,
 				"client_id":     "app_custom_analytics_prod",
@@ -274,11 +293,11 @@ func main() {
 
 ### Step 4: Add Frontend SDK Controls
 
-To create a premium user experience, synchronize UI themes, and prevent layout jumps:
+To synchronize UI themes and reveal the iframe layout without jumps:
 
 1. **Include the SDK Client**: Mount `@packages/sdk` on the client side.
 2. **Listen to Host Events**: Connect callbacks to react when styling changes.
-3. **Notify Host**: Trigger the `ready` signal so the host portal transitions from the loading state and shows the iframe.
+3. **Notify Host**: Trigger the `ready` signal so the host portal transitions from the loading state.
 
 ```javascript
 import { ForgeClient } from '@packages/sdk';
@@ -297,19 +316,22 @@ client.notifyReady();
 
 ---
 
-## 🧭 Troubleshooting & Best Practices
+## 🔒 4. Security & CORS for Externally Hosted Apps
+
+If your application is hosted externally (`Model B`):
+1. **CORS and Embedding Options**: If you are using `"routingMode": "iframe"`, the external app server must allow being embedded by the portal's domain name:
+   - Ensure the server response does NOT send `X-Frame-Options: DENY`.
+   - Set the appropriate Content Security Policy: `Content-Security-Policy: frame-ancestors 'self' https://your-portal-domain.com`.
+2. **Alternative (Standalone Mode)**: If iframe restrictions prevent direct embedding, set `"routingMode": "standalone"` in `app.json`. The launchpad will perform a full-page redirect to authorize the user and return to your application callback.
+3. **Secret Verification**: Keep your client secret secure and perform the `/auth/exchange` query ONLY server-side.
+
+---
+
+## 🧭 5. Troubleshooting & Diagnostics
 
 | Issue | Typical Cause | Resolution |
 | :--- | :--- | :--- |
 | **App is stuck loading or shows spinning wheel** | The app frontend failed to execute `client.notifyReady()`. | Ensure you are calling `notifyReady()` in your client-side startup logic. |
 | **Connection Refused inside container / sidebar** | The app server is binding to `127.0.0.1`. | Change the server binding option to `0.0.0.0` (all network interfaces). |
-| **"Entrypoint not found" inside Docker** | Windows `\r\n` line endings checked out on a script. | Normalize line endings to `lf` inside `.gitattributes` and re-clone/re-check out. |
 | **App doesn't show in launchpad directory** | The manifest schema validation failed, or the slug is misaligned. | Check the server logs on startup. Keep your slug lowercase and remove dashes in `schemaName`. |
-
----
-
-## 🔒 Security Guidelines
-
-1. **Token Lifetime**: Access tokens retrieved via `/auth/exchange` expire in 1 hour. Do not hardcode or permanently store them on the client browser.
-2. **Verify Audience**: Always verify that the API request source comes from the authorized developer-proxy gateway on port `3003` or standard server routes.
-3. **No Direct Schema Manipulation**: If using isolated database schemas, execute migrations and queries exclusively using credentials provided by the platform DB connection pools.
+| **Auth Exchange fails with certificate error** | Secure SSL mismatch during HTTPS backchannel exchange. | Set up trusted root CA certificates on your external server or disable local SSL checks in non-prod. |

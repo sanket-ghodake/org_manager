@@ -89,4 +89,5 @@ Active design specifications and setup documentations are organized in the `docs
 *   **[Docker Optimization](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/docker_optimization.md)**: Multi-stage environment builds and parity structures.
 *   **[WSL Setup Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/wsl.md)**: Port forwarding and systemd networking inside WSL2.
 *   **[App Developer Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/app-developer.md)**: Creating micro-apps, declaring manifest scopes, and utilizing parent communication SDKs.
+*   **[App Integration Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/app-integration.md)**: Detailed step-by-step tutorial for integrating internal (zero-port-exposure) and externally hosted microservices using OAuth/SSO handshakes.
 *   **[Script Folders Overview](file:///home/sanket/Desktop/Sanket/org_website/scripts/README.md)**: List of convenience scripts and utility functions.
