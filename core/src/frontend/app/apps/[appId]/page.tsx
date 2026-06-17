@@ -115,6 +115,20 @@ export default function AppContainerPage() {
     }
   }, [appId, router]);
 
+  // Automatically redirect if it's a standalone application
+  useEffect(() => {
+    if (!loading && !error && appConfig && appConfig.routingMode === 'standalone') {
+      const redirectUri = appConfig.redirectUri || 
+        (appConfig.sandboxEntryPoint ? `${appConfig.sandboxEntryPoint.replace(/\/$/, '')}/callback` : '') ||
+        (appConfig.entryPoint ? `${appConfig.entryPoint.replace(/\/$/, '')}/callback` : '') ||
+        (appConfig.entryUrl ? `${appConfig.entryUrl.replace(/\/$/, '')}/callback` : '');
+      const targetUrl = `/api/v1/auth/authorize?client_id=${appConfig.clientId}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&state=sso_state_launch&response_type=code`;
+      window.location.href = targetUrl;
+    }
+  }, [loading, error, appConfig]);
+
   // Client-side query runner wrapper
   const runQuery = async (queryStr: string) => {
     // Intercept read-only directory queries for standard user sessions
@@ -376,17 +390,16 @@ export default function AppContainerPage() {
             {isStandalone ? (
               <div className="p-8 text-center space-y-6 max-w-xl mx-auto my-12 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
                 <div className="p-4 bg-brand-accent/20 text-brand-accent rounded-full w-fit mx-auto shadow-lg shadow-brand-accent/15">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
+                  <div className="w-10 h-10 border-4 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-extrabold text-xl text-text-primary">Standalone Application</h3>
+                  <h3 className="font-extrabold text-xl text-text-primary">Redirecting to Standalone Application</h3>
                   <p className="text-sm text-text-secondary">
-                    &quot;{appConfig.name}&quot; runs in an independent browser context to enable full screen operations, bookmarking, and local resource sharing.
+                    Launching &quot;{appConfig.name}&quot; in the current window. Please wait...
                   </p>
                 </div>
-                <div className="pt-4">
+                <div className="text-[10px] text-text-tertiary font-mono">
+                  If you are not redirected automatically,{' '}
                   <a
                     href={`/api/v1/auth/authorize?client_id=${appConfig.clientId}&redirect_uri=${encodeURIComponent(
                       appConfig.redirectUri || 
@@ -394,12 +407,10 @@ export default function AppContainerPage() {
                       (appConfig.entryPoint ? `${appConfig.entryPoint.replace(/\/$/, '')}/callback` : '') ||
                       (appConfig.entryUrl ? `${appConfig.entryUrl.replace(/\/$/, '')}/callback` : '')
                     )}&state=sso_state_launch&response_type=code`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-8 py-3.5 bg-gradient-to-r from-brand-accent to-[#00ffcc] hover:from-brand-hover hover:to-[#55ffd8] text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-brand-accent/25 transition-all duration-200 transform hover:scale-[1.03] active:scale-[0.98] inline-block cursor-pointer"
+                    className="text-brand-accent hover:underline font-bold"
                   >
-                    Launch In New Tab
-                  </a>
+                    click here
+                  </a>.
                 </div>
               </div>
             ) : isIframe ? (

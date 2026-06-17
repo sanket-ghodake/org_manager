@@ -894,6 +894,7 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
               <Link
                 key={app.id}
                 href={`/apps/${app.id}`}
+                target={app.routingMode === 'standalone' ? '_blank' : undefined}
                 className="w-full px-3.5 py-3 rounded-xl text-xs font-bold flex items-center gap-3.5 text-sidebar-text hover:bg-sidebar-hover hover:text-text-primary transition-all group"
               >
                 <span className="text-base group-hover:scale-110 transition-transform">
@@ -1755,6 +1756,7 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                           <div className="pt-6">
                             <Link 
                               href={`/apps/${app.id}`}
+                              target={app.routingMode === 'standalone' ? '_blank' : undefined}
                               className="w-full py-2 bg-brand-accent text-white hover:bg-brand-hover text-xs font-black rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                               Launch Application 🡥
