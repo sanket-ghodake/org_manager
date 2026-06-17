@@ -43,7 +43,7 @@ var __export = (target, all) => {
     });
 };
 
-// core/node_modules/react/cjs/react.development.js
+// node_modules/react/cjs/react.development.js
 var require_react_development = __commonJS((exports, module) => {
   (function() {
     function defineDeprecationWarning(methodName, info) {
@@ -866,7 +866,7 @@ See https://react.dev/link/invalid-hook-call for tips about how to debug and fix
   })();
 });
 
-// core/node_modules/react/index.js
+// node_modules/react/index.js
 var require_react = __commonJS((exports, module) => {
   var react_development = __toESM(require_react_development());
   if (false) {} else {
@@ -1137,7 +1137,7 @@ var require_scheduler = __commonJS((exports, module) => {
   }
 });
 
-// core/node_modules/react-dom/cjs/react-dom.development.js
+// node_modules/react-dom/cjs/react-dom.development.js
 var require_react_dom_development = __commonJS((exports) => {
   var React = __toESM(require_react());
   (function() {
@@ -1320,7 +1320,7 @@ See https://react.dev/link/invalid-hook-call for tips about how to debug and fix
   })();
 });
 
-// core/node_modules/react-dom/index.js
+// node_modules/react-dom/index.js
 var require_react_dom = __commonJS((exports, module) => {
   var react_dom_development = __toESM(require_react_dom_development());
   if (false) {} else {
@@ -1328,7 +1328,7 @@ var require_react_dom = __commonJS((exports, module) => {
   }
 });
 
-// core/node_modules/react-dom/cjs/react-dom-client.development.js
+// node_modules/react-dom/cjs/react-dom-client.development.js
 var require_react_dom_client_development = __commonJS((exports) => {
   var Scheduler = __toESM(require_scheduler());
   var React = __toESM(require_react());
@@ -16896,7 +16896,7 @@ You might need to use a local HTTP server (instead of file://): https://react.de
   })();
 });
 
-// core/node_modules/react-dom/client.js
+// node_modules/react-dom/client.js
 var require_client = __commonJS((exports, module) => {
   var react_dom_client_development = __toESM(require_react_dom_client_development());
   if (false) {} else {
@@ -16904,1031 +16904,9 @@ var require_client = __commonJS((exports, module) => {
   }
 });
 
-// node_modules/react/cjs/react.development.js
-var require_react_development2 = __commonJS((exports, module) => {
-  (function() {
-    function defineDeprecationWarning(methodName, info) {
-      Object.defineProperty(Component.prototype, methodName, {
-        get: function() {
-          console.warn("%s(...) is deprecated in plain JavaScript React classes. %s", info[0], info[1]);
-        }
-      });
-    }
-    function getIteratorFn(maybeIterable) {
-      if (maybeIterable === null || typeof maybeIterable !== "object")
-        return null;
-      maybeIterable = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable["@@iterator"];
-      return typeof maybeIterable === "function" ? maybeIterable : null;
-    }
-    function warnNoop(publicInstance, callerName) {
-      publicInstance = (publicInstance = publicInstance.constructor) && (publicInstance.displayName || publicInstance.name) || "ReactClass";
-      var warningKey = publicInstance + "." + callerName;
-      didWarnStateUpdateForUnmountedComponent[warningKey] || (console.error("Can't call %s on a component that is not yet mounted. This is a no-op, but it might indicate a bug in your application. Instead, assign to `this.state` directly or define a `state = {};` class property with the desired state in the %s component.", callerName, publicInstance), didWarnStateUpdateForUnmountedComponent[warningKey] = true);
-    }
-    function Component(props, context, updater) {
-      this.props = props;
-      this.context = context;
-      this.refs = emptyObject;
-      this.updater = updater || ReactNoopUpdateQueue;
-    }
-    function ComponentDummy() {}
-    function PureComponent(props, context, updater) {
-      this.props = props;
-      this.context = context;
-      this.refs = emptyObject;
-      this.updater = updater || ReactNoopUpdateQueue;
-    }
-    function noop() {}
-    function testStringCoercion(value) {
-      return "" + value;
-    }
-    function checkKeyStringCoercion(value) {
-      try {
-        testStringCoercion(value);
-        var JSCompiler_inline_result = false;
-      } catch (e) {
-        JSCompiler_inline_result = true;
-      }
-      if (JSCompiler_inline_result) {
-        JSCompiler_inline_result = console;
-        var JSCompiler_temp_const = JSCompiler_inline_result.error;
-        var JSCompiler_inline_result$jscomp$0 = typeof Symbol === "function" && Symbol.toStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
-        JSCompiler_temp_const.call(JSCompiler_inline_result, "The provided key is an unsupported type %s. This value must be coerced to a string before using it here.", JSCompiler_inline_result$jscomp$0);
-        return testStringCoercion(value);
-      }
-    }
-    function getComponentNameFromType(type) {
-      if (type == null)
-        return null;
-      if (typeof type === "function")
-        return type.$$typeof === REACT_CLIENT_REFERENCE ? null : type.displayName || type.name || null;
-      if (typeof type === "string")
-        return type;
-      switch (type) {
-        case REACT_FRAGMENT_TYPE:
-          return "Fragment";
-        case REACT_PROFILER_TYPE:
-          return "Profiler";
-        case REACT_STRICT_MODE_TYPE:
-          return "StrictMode";
-        case REACT_SUSPENSE_TYPE:
-          return "Suspense";
-        case REACT_SUSPENSE_LIST_TYPE:
-          return "SuspenseList";
-        case REACT_ACTIVITY_TYPE:
-          return "Activity";
-      }
-      if (typeof type === "object")
-        switch (typeof type.tag === "number" && console.error("Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue."), type.$$typeof) {
-          case REACT_PORTAL_TYPE:
-            return "Portal";
-          case REACT_CONTEXT_TYPE:
-            return type.displayName || "Context";
-          case REACT_CONSUMER_TYPE:
-            return (type._context.displayName || "Context") + ".Consumer";
-          case REACT_FORWARD_REF_TYPE:
-            var innerType = type.render;
-            type = type.displayName;
-            type || (type = innerType.displayName || innerType.name || "", type = type !== "" ? "ForwardRef(" + type + ")" : "ForwardRef");
-            return type;
-          case REACT_MEMO_TYPE:
-            return innerType = type.displayName || null, innerType !== null ? innerType : getComponentNameFromType(type.type) || "Memo";
-          case REACT_LAZY_TYPE:
-            innerType = type._payload;
-            type = type._init;
-            try {
-              return getComponentNameFromType(type(innerType));
-            } catch (x) {}
-        }
-      return null;
-    }
-    function getTaskName(type) {
-      if (type === REACT_FRAGMENT_TYPE)
-        return "<>";
-      if (typeof type === "object" && type !== null && type.$$typeof === REACT_LAZY_TYPE)
-        return "<...>";
-      try {
-        var name = getComponentNameFromType(type);
-        return name ? "<" + name + ">" : "<...>";
-      } catch (x) {
-        return "<...>";
-      }
-    }
-    function getOwner() {
-      var dispatcher = ReactSharedInternals.A;
-      return dispatcher === null ? null : dispatcher.getOwner();
-    }
-    function UnknownOwner() {
-      return Error("react-stack-top-frame");
-    }
-    function hasValidKey(config) {
-      if (hasOwnProperty.call(config, "key")) {
-        var getter = Object.getOwnPropertyDescriptor(config, "key").get;
-        if (getter && getter.isReactWarning)
-          return false;
-      }
-      return config.key !== undefined;
-    }
-    function defineKeyPropWarningGetter(props, displayName) {
-      function warnAboutAccessingKey() {
-        specialPropKeyWarningShown || (specialPropKeyWarningShown = true, console.error("%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://react.dev/link/special-props)", displayName));
-      }
-      warnAboutAccessingKey.isReactWarning = true;
-      Object.defineProperty(props, "key", {
-        get: warnAboutAccessingKey,
-        configurable: true
-      });
-    }
-    function elementRefGetterWithDeprecationWarning() {
-      var componentName = getComponentNameFromType(this.type);
-      didWarnAboutElementRef[componentName] || (didWarnAboutElementRef[componentName] = true, console.error("Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release."));
-      componentName = this.props.ref;
-      return componentName !== undefined ? componentName : null;
-    }
-    function ReactElement(type, key, props, owner, debugStack, debugTask) {
-      var refProp = props.ref;
-      type = {
-        $$typeof: REACT_ELEMENT_TYPE,
-        type,
-        key,
-        props,
-        _owner: owner
-      };
-      (refProp !== undefined ? refProp : null) !== null ? Object.defineProperty(type, "ref", {
-        enumerable: false,
-        get: elementRefGetterWithDeprecationWarning
-      }) : Object.defineProperty(type, "ref", { enumerable: false, value: null });
-      type._store = {};
-      Object.defineProperty(type._store, "validated", {
-        configurable: false,
-        enumerable: false,
-        writable: true,
-        value: 0
-      });
-      Object.defineProperty(type, "_debugInfo", {
-        configurable: false,
-        enumerable: false,
-        writable: true,
-        value: null
-      });
-      Object.defineProperty(type, "_debugStack", {
-        configurable: false,
-        enumerable: false,
-        writable: true,
-        value: debugStack
-      });
-      Object.defineProperty(type, "_debugTask", {
-        configurable: false,
-        enumerable: false,
-        writable: true,
-        value: debugTask
-      });
-      Object.freeze && (Object.freeze(type.props), Object.freeze(type));
-      return type;
-    }
-    function cloneAndReplaceKey(oldElement, newKey) {
-      newKey = ReactElement(oldElement.type, newKey, oldElement.props, oldElement._owner, oldElement._debugStack, oldElement._debugTask);
-      oldElement._store && (newKey._store.validated = oldElement._store.validated);
-      return newKey;
-    }
-    function validateChildKeys(node) {
-      isValidElement(node) ? node._store && (node._store.validated = 1) : typeof node === "object" && node !== null && node.$$typeof === REACT_LAZY_TYPE && (node._payload.status === "fulfilled" ? isValidElement(node._payload.value) && node._payload.value._store && (node._payload.value._store.validated = 1) : node._store && (node._store.validated = 1));
-    }
-    function isValidElement(object) {
-      return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
-    }
-    function escape(key) {
-      var escaperLookup = { "=": "=0", ":": "=2" };
-      return "$" + key.replace(/[=:]/g, function(match) {
-        return escaperLookup[match];
-      });
-    }
-    function getElementKey(element, index) {
-      return typeof element === "object" && element !== null && element.key != null ? (checkKeyStringCoercion(element.key), escape("" + element.key)) : index.toString(36);
-    }
-    function resolveThenable(thenable) {
-      switch (thenable.status) {
-        case "fulfilled":
-          return thenable.value;
-        case "rejected":
-          throw thenable.reason;
-        default:
-          switch (typeof thenable.status === "string" ? thenable.then(noop, noop) : (thenable.status = "pending", thenable.then(function(fulfilledValue) {
-            thenable.status === "pending" && (thenable.status = "fulfilled", thenable.value = fulfilledValue);
-          }, function(error) {
-            thenable.status === "pending" && (thenable.status = "rejected", thenable.reason = error);
-          })), thenable.status) {
-            case "fulfilled":
-              return thenable.value;
-            case "rejected":
-              throw thenable.reason;
-          }
-      }
-      throw thenable;
-    }
-    function mapIntoArray(children, array, escapedPrefix, nameSoFar, callback) {
-      var type = typeof children;
-      if (type === "undefined" || type === "boolean")
-        children = null;
-      var invokeCallback = false;
-      if (children === null)
-        invokeCallback = true;
-      else
-        switch (type) {
-          case "bigint":
-          case "string":
-          case "number":
-            invokeCallback = true;
-            break;
-          case "object":
-            switch (children.$$typeof) {
-              case REACT_ELEMENT_TYPE:
-              case REACT_PORTAL_TYPE:
-                invokeCallback = true;
-                break;
-              case REACT_LAZY_TYPE:
-                return invokeCallback = children._init, mapIntoArray(invokeCallback(children._payload), array, escapedPrefix, nameSoFar, callback);
-            }
-        }
-      if (invokeCallback) {
-        invokeCallback = children;
-        callback = callback(invokeCallback);
-        var childKey = nameSoFar === "" ? "." + getElementKey(invokeCallback, 0) : nameSoFar;
-        isArrayImpl(callback) ? (escapedPrefix = "", childKey != null && (escapedPrefix = childKey.replace(userProvidedKeyEscapeRegex, "$&/") + "/"), mapIntoArray(callback, array, escapedPrefix, "", function(c) {
-          return c;
-        })) : callback != null && (isValidElement(callback) && (callback.key != null && (invokeCallback && invokeCallback.key === callback.key || checkKeyStringCoercion(callback.key)), escapedPrefix = cloneAndReplaceKey(callback, escapedPrefix + (callback.key == null || invokeCallback && invokeCallback.key === callback.key ? "" : ("" + callback.key).replace(userProvidedKeyEscapeRegex, "$&/") + "/") + childKey), nameSoFar !== "" && invokeCallback != null && isValidElement(invokeCallback) && invokeCallback.key == null && invokeCallback._store && !invokeCallback._store.validated && (escapedPrefix._store.validated = 2), callback = escapedPrefix), array.push(callback));
-        return 1;
-      }
-      invokeCallback = 0;
-      childKey = nameSoFar === "" ? "." : nameSoFar + ":";
-      if (isArrayImpl(children))
-        for (var i = 0;i < children.length; i++)
-          nameSoFar = children[i], type = childKey + getElementKey(nameSoFar, i), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
-      else if (i = getIteratorFn(children), typeof i === "function")
-        for (i === children.entries && (didWarnAboutMaps || console.warn("Using Maps as children is not supported. Use an array of keyed ReactElements instead."), didWarnAboutMaps = true), children = i.call(children), i = 0;!(nameSoFar = children.next()).done; )
-          nameSoFar = nameSoFar.value, type = childKey + getElementKey(nameSoFar, i++), invokeCallback += mapIntoArray(nameSoFar, array, escapedPrefix, type, callback);
-      else if (type === "object") {
-        if (typeof children.then === "function")
-          return mapIntoArray(resolveThenable(children), array, escapedPrefix, nameSoFar, callback);
-        array = String(children);
-        throw Error("Objects are not valid as a React child (found: " + (array === "[object Object]" ? "object with keys {" + Object.keys(children).join(", ") + "}" : array) + "). If you meant to render a collection of children, use an array instead.");
-      }
-      return invokeCallback;
-    }
-    function mapChildren(children, func, context) {
-      if (children == null)
-        return children;
-      var result = [], count = 0;
-      mapIntoArray(children, result, "", "", function(child) {
-        return func.call(context, child, count++);
-      });
-      return result;
-    }
-    function lazyInitializer(payload) {
-      if (payload._status === -1) {
-        var ioInfo = payload._ioInfo;
-        ioInfo != null && (ioInfo.start = ioInfo.end = performance.now());
-        ioInfo = payload._result;
-        var thenable = ioInfo();
-        thenable.then(function(moduleObject) {
-          if (payload._status === 0 || payload._status === -1) {
-            payload._status = 1;
-            payload._result = moduleObject;
-            var _ioInfo = payload._ioInfo;
-            _ioInfo != null && (_ioInfo.end = performance.now());
-            thenable.status === undefined && (thenable.status = "fulfilled", thenable.value = moduleObject);
-          }
-        }, function(error) {
-          if (payload._status === 0 || payload._status === -1) {
-            payload._status = 2;
-            payload._result = error;
-            var _ioInfo2 = payload._ioInfo;
-            _ioInfo2 != null && (_ioInfo2.end = performance.now());
-            thenable.status === undefined && (thenable.status = "rejected", thenable.reason = error);
-          }
-        });
-        ioInfo = payload._ioInfo;
-        if (ioInfo != null) {
-          ioInfo.value = thenable;
-          var displayName = thenable.displayName;
-          typeof displayName === "string" && (ioInfo.name = displayName);
-        }
-        payload._status === -1 && (payload._status = 0, payload._result = thenable);
-      }
-      if (payload._status === 1)
-        return ioInfo = payload._result, ioInfo === undefined && console.error(`lazy: Expected the result of a dynamic import() call. Instead received: %s
-
-Your code should look like: 
-  const MyComponent = lazy(() => import('./MyComponent'))
-
-Did you accidentally put curly braces around the import?`, ioInfo), "default" in ioInfo || console.error(`lazy: Expected the result of a dynamic import() call. Instead received: %s
-
-Your code should look like: 
-  const MyComponent = lazy(() => import('./MyComponent'))`, ioInfo), ioInfo.default;
-      throw payload._result;
-    }
-    function resolveDispatcher() {
-      var dispatcher = ReactSharedInternals.H;
-      dispatcher === null && console.error(`Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-1. You might have mismatching versions of React and the renderer (such as React DOM)
-2. You might be breaking the Rules of Hooks
-3. You might have more than one copy of React in the same app
-See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem.`);
-      return dispatcher;
-    }
-    function releaseAsyncTransition() {
-      ReactSharedInternals.asyncTransitions--;
-    }
-    function enqueueTask(task) {
-      if (enqueueTaskImpl === null)
-        try {
-          var requireString = ("require" + Math.random()).slice(0, 7);
-          enqueueTaskImpl = (module && module[requireString]).call(module, "timers").setImmediate;
-        } catch (_err) {
-          enqueueTaskImpl = function(callback) {
-            didWarnAboutMessageChannel === false && (didWarnAboutMessageChannel = true, typeof MessageChannel === "undefined" && console.error("This browser does not have a MessageChannel implementation, so enqueuing tasks via await act(async () => ...) will fail. Please file an issue at https://github.com/facebook/react/issues if you encounter this warning."));
-            var channel = new MessageChannel;
-            channel.port1.onmessage = callback;
-            channel.port2.postMessage(undefined);
-          };
-        }
-      return enqueueTaskImpl(task);
-    }
-    function aggregateErrors(errors) {
-      return 1 < errors.length && typeof AggregateError === "function" ? new AggregateError(errors) : errors[0];
-    }
-    function popActScope(prevActQueue, prevActScopeDepth) {
-      prevActScopeDepth !== actScopeDepth - 1 && console.error("You seem to have overlapping act() calls, this is not supported. Be sure to await previous act() calls before making a new one. ");
-      actScopeDepth = prevActScopeDepth;
-    }
-    function recursivelyFlushAsyncActWork(returnValue, resolve, reject) {
-      var queue = ReactSharedInternals.actQueue;
-      if (queue !== null)
-        if (queue.length !== 0)
-          try {
-            flushActQueue(queue);
-            enqueueTask(function() {
-              return recursivelyFlushAsyncActWork(returnValue, resolve, reject);
-            });
-            return;
-          } catch (error) {
-            ReactSharedInternals.thrownErrors.push(error);
-          }
-        else
-          ReactSharedInternals.actQueue = null;
-      0 < ReactSharedInternals.thrownErrors.length ? (queue = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, reject(queue)) : resolve(returnValue);
-    }
-    function flushActQueue(queue) {
-      if (!isFlushing) {
-        isFlushing = true;
-        var i = 0;
-        try {
-          for (;i < queue.length; i++) {
-            var callback = queue[i];
-            do {
-              ReactSharedInternals.didUsePromise = false;
-              var continuation = callback(false);
-              if (continuation !== null) {
-                if (ReactSharedInternals.didUsePromise) {
-                  queue[i] = callback;
-                  queue.splice(0, i);
-                  return;
-                }
-                callback = continuation;
-              } else
-                break;
-            } while (1);
-          }
-          queue.length = 0;
-        } catch (error) {
-          queue.splice(0, i + 1), ReactSharedInternals.thrownErrors.push(error);
-        } finally {
-          isFlushing = false;
-        }
-      }
-    }
-    typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function" && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-    var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"), REACT_PORTAL_TYPE = Symbol.for("react.portal"), REACT_FRAGMENT_TYPE = Symbol.for("react.fragment"), REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode"), REACT_PROFILER_TYPE = Symbol.for("react.profiler"), REACT_CONSUMER_TYPE = Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = Symbol.for("react.context"), REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref"), REACT_SUSPENSE_TYPE = Symbol.for("react.suspense"), REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list"), REACT_MEMO_TYPE = Symbol.for("react.memo"), REACT_LAZY_TYPE = Symbol.for("react.lazy"), REACT_ACTIVITY_TYPE = Symbol.for("react.activity"), MAYBE_ITERATOR_SYMBOL = Symbol.iterator, didWarnStateUpdateForUnmountedComponent = {}, ReactNoopUpdateQueue = {
-      isMounted: function() {
-        return false;
-      },
-      enqueueForceUpdate: function(publicInstance) {
-        warnNoop(publicInstance, "forceUpdate");
-      },
-      enqueueReplaceState: function(publicInstance) {
-        warnNoop(publicInstance, "replaceState");
-      },
-      enqueueSetState: function(publicInstance) {
-        warnNoop(publicInstance, "setState");
-      }
-    }, assign = Object.assign, emptyObject = {};
-    Object.freeze(emptyObject);
-    Component.prototype.isReactComponent = {};
-    Component.prototype.setState = function(partialState, callback) {
-      if (typeof partialState !== "object" && typeof partialState !== "function" && partialState != null)
-        throw Error("takes an object of state variables to update or a function which returns an object of state variables.");
-      this.updater.enqueueSetState(this, partialState, callback, "setState");
-    };
-    Component.prototype.forceUpdate = function(callback) {
-      this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
-    };
-    var deprecatedAPIs = {
-      isMounted: [
-        "isMounted",
-        "Instead, make sure to clean up subscriptions and pending requests in componentWillUnmount to prevent memory leaks."
-      ],
-      replaceState: [
-        "replaceState",
-        "Refactor your code to use setState instead (see https://github.com/facebook/react/issues/3236)."
-      ]
-    };
-    for (fnName in deprecatedAPIs)
-      deprecatedAPIs.hasOwnProperty(fnName) && defineDeprecationWarning(fnName, deprecatedAPIs[fnName]);
-    ComponentDummy.prototype = Component.prototype;
-    deprecatedAPIs = PureComponent.prototype = new ComponentDummy;
-    deprecatedAPIs.constructor = PureComponent;
-    assign(deprecatedAPIs, Component.prototype);
-    deprecatedAPIs.isPureReactComponent = true;
-    var isArrayImpl = Array.isArray, REACT_CLIENT_REFERENCE = Symbol.for("react.client.reference"), ReactSharedInternals = {
-      H: null,
-      A: null,
-      T: null,
-      S: null,
-      actQueue: null,
-      asyncTransitions: 0,
-      isBatchingLegacy: false,
-      didScheduleLegacyUpdate: false,
-      didUsePromise: false,
-      thrownErrors: [],
-      getCurrentStack: null,
-      recentlyCreatedOwnerStacks: 0
-    }, hasOwnProperty = Object.prototype.hasOwnProperty, createTask = console.createTask ? console.createTask : function() {
-      return null;
-    };
-    deprecatedAPIs = {
-      react_stack_bottom_frame: function(callStackForError) {
-        return callStackForError();
-      }
-    };
-    var specialPropKeyWarningShown, didWarnAboutOldJSXRuntime;
-    var didWarnAboutElementRef = {};
-    var unknownOwnerDebugStack = deprecatedAPIs.react_stack_bottom_frame.bind(deprecatedAPIs, UnknownOwner)();
-    var unknownOwnerDebugTask = createTask(getTaskName(UnknownOwner));
-    var didWarnAboutMaps = false, userProvidedKeyEscapeRegex = /\/+/g, reportGlobalError = typeof reportError === "function" ? reportError : function(error) {
-      if (typeof window === "object" && typeof window.ErrorEvent === "function") {
-        var event = new window.ErrorEvent("error", {
-          bubbles: true,
-          cancelable: true,
-          message: typeof error === "object" && error !== null && typeof error.message === "string" ? String(error.message) : String(error),
-          error
-        });
-        if (!window.dispatchEvent(event))
-          return;
-      } else if (typeof process === "object" && typeof process.emit === "function") {
-        process.emit("uncaughtException", error);
-        return;
-      }
-      console.error(error);
-    }, didWarnAboutMessageChannel = false, enqueueTaskImpl = null, actScopeDepth = 0, didWarnNoAwaitAct = false, isFlushing = false, queueSeveralMicrotasks = typeof queueMicrotask === "function" ? function(callback) {
-      queueMicrotask(function() {
-        return queueMicrotask(callback);
-      });
-    } : enqueueTask;
-    deprecatedAPIs = Object.freeze({
-      __proto__: null,
-      c: function(size) {
-        return resolveDispatcher().useMemoCache(size);
-      }
-    });
-    var fnName = {
-      map: mapChildren,
-      forEach: function(children, forEachFunc, forEachContext) {
-        mapChildren(children, function() {
-          forEachFunc.apply(this, arguments);
-        }, forEachContext);
-      },
-      count: function(children) {
-        var n = 0;
-        mapChildren(children, function() {
-          n++;
-        });
-        return n;
-      },
-      toArray: function(children) {
-        return mapChildren(children, function(child) {
-          return child;
-        }) || [];
-      },
-      only: function(children) {
-        if (!isValidElement(children))
-          throw Error("React.Children.only expected to receive a single React element child.");
-        return children;
-      }
-    };
-    exports.Activity = REACT_ACTIVITY_TYPE;
-    exports.Children = fnName;
-    exports.Component = Component;
-    exports.Fragment = REACT_FRAGMENT_TYPE;
-    exports.Profiler = REACT_PROFILER_TYPE;
-    exports.PureComponent = PureComponent;
-    exports.StrictMode = REACT_STRICT_MODE_TYPE;
-    exports.Suspense = REACT_SUSPENSE_TYPE;
-    exports.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactSharedInternals;
-    exports.__COMPILER_RUNTIME = deprecatedAPIs;
-    exports.act = function(callback) {
-      var prevActQueue = ReactSharedInternals.actQueue, prevActScopeDepth = actScopeDepth;
-      actScopeDepth++;
-      var queue = ReactSharedInternals.actQueue = prevActQueue !== null ? prevActQueue : [], didAwaitActCall = false;
-      try {
-        var result = callback();
-      } catch (error) {
-        ReactSharedInternals.thrownErrors.push(error);
-      }
-      if (0 < ReactSharedInternals.thrownErrors.length)
-        throw popActScope(prevActQueue, prevActScopeDepth), callback = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, callback;
-      if (result !== null && typeof result === "object" && typeof result.then === "function") {
-        var thenable = result;
-        queueSeveralMicrotasks(function() {
-          didAwaitActCall || didWarnNoAwaitAct || (didWarnNoAwaitAct = true, console.error("You called act(async () => ...) without await. This could lead to unexpected testing behaviour, interleaving multiple act calls and mixing their scopes. You should - await act(async () => ...);"));
-        });
-        return {
-          then: function(resolve, reject) {
-            didAwaitActCall = true;
-            thenable.then(function(returnValue) {
-              popActScope(prevActQueue, prevActScopeDepth);
-              if (prevActScopeDepth === 0) {
-                try {
-                  flushActQueue(queue), enqueueTask(function() {
-                    return recursivelyFlushAsyncActWork(returnValue, resolve, reject);
-                  });
-                } catch (error$0) {
-                  ReactSharedInternals.thrownErrors.push(error$0);
-                }
-                if (0 < ReactSharedInternals.thrownErrors.length) {
-                  var _thrownError = aggregateErrors(ReactSharedInternals.thrownErrors);
-                  ReactSharedInternals.thrownErrors.length = 0;
-                  reject(_thrownError);
-                }
-              } else
-                resolve(returnValue);
-            }, function(error) {
-              popActScope(prevActQueue, prevActScopeDepth);
-              0 < ReactSharedInternals.thrownErrors.length ? (error = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, reject(error)) : reject(error);
-            });
-          }
-        };
-      }
-      var returnValue$jscomp$0 = result;
-      popActScope(prevActQueue, prevActScopeDepth);
-      prevActScopeDepth === 0 && (flushActQueue(queue), queue.length !== 0 && queueSeveralMicrotasks(function() {
-        didAwaitActCall || didWarnNoAwaitAct || (didWarnNoAwaitAct = true, console.error("A component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:\n\nawait act(() => ...)"));
-      }), ReactSharedInternals.actQueue = null);
-      if (0 < ReactSharedInternals.thrownErrors.length)
-        throw callback = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, callback;
-      return {
-        then: function(resolve, reject) {
-          didAwaitActCall = true;
-          prevActScopeDepth === 0 ? (ReactSharedInternals.actQueue = queue, enqueueTask(function() {
-            return recursivelyFlushAsyncActWork(returnValue$jscomp$0, resolve, reject);
-          })) : resolve(returnValue$jscomp$0);
-        }
-      };
-    };
-    exports.cache = function(fn) {
-      return function() {
-        return fn.apply(null, arguments);
-      };
-    };
-    exports.cacheSignal = function() {
-      return null;
-    };
-    exports.captureOwnerStack = function() {
-      var getCurrentStack = ReactSharedInternals.getCurrentStack;
-      return getCurrentStack === null ? null : getCurrentStack();
-    };
-    exports.cloneElement = function(element, config, children) {
-      if (element === null || element === undefined)
-        throw Error("The argument must be a React element, but you passed " + element + ".");
-      var props = assign({}, element.props), key = element.key, owner = element._owner;
-      if (config != null) {
-        var JSCompiler_inline_result;
-        a: {
-          if (hasOwnProperty.call(config, "ref") && (JSCompiler_inline_result = Object.getOwnPropertyDescriptor(config, "ref").get) && JSCompiler_inline_result.isReactWarning) {
-            JSCompiler_inline_result = false;
-            break a;
-          }
-          JSCompiler_inline_result = config.ref !== undefined;
-        }
-        JSCompiler_inline_result && (owner = getOwner());
-        hasValidKey(config) && (checkKeyStringCoercion(config.key), key = "" + config.key);
-        for (propName in config)
-          !hasOwnProperty.call(config, propName) || propName === "key" || propName === "__self" || propName === "__source" || propName === "ref" && config.ref === undefined || (props[propName] = config[propName]);
-      }
-      var propName = arguments.length - 2;
-      if (propName === 1)
-        props.children = children;
-      else if (1 < propName) {
-        JSCompiler_inline_result = Array(propName);
-        for (var i = 0;i < propName; i++)
-          JSCompiler_inline_result[i] = arguments[i + 2];
-        props.children = JSCompiler_inline_result;
-      }
-      props = ReactElement(element.type, key, props, owner, element._debugStack, element._debugTask);
-      for (key = 2;key < arguments.length; key++)
-        validateChildKeys(arguments[key]);
-      return props;
-    };
-    exports.createContext = function(defaultValue) {
-      defaultValue = {
-        $$typeof: REACT_CONTEXT_TYPE,
-        _currentValue: defaultValue,
-        _currentValue2: defaultValue,
-        _threadCount: 0,
-        Provider: null,
-        Consumer: null
-      };
-      defaultValue.Provider = defaultValue;
-      defaultValue.Consumer = {
-        $$typeof: REACT_CONSUMER_TYPE,
-        _context: defaultValue
-      };
-      defaultValue._currentRenderer = null;
-      defaultValue._currentRenderer2 = null;
-      return defaultValue;
-    };
-    exports.createElement = function(type, config, children) {
-      for (var i = 2;i < arguments.length; i++)
-        validateChildKeys(arguments[i]);
-      i = {};
-      var key = null;
-      if (config != null)
-        for (propName in didWarnAboutOldJSXRuntime || !("__self" in config) || "key" in config || (didWarnAboutOldJSXRuntime = true, console.warn("Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform")), hasValidKey(config) && (checkKeyStringCoercion(config.key), key = "" + config.key), config)
-          hasOwnProperty.call(config, propName) && propName !== "key" && propName !== "__self" && propName !== "__source" && (i[propName] = config[propName]);
-      var childrenLength = arguments.length - 2;
-      if (childrenLength === 1)
-        i.children = children;
-      else if (1 < childrenLength) {
-        for (var childArray = Array(childrenLength), _i = 0;_i < childrenLength; _i++)
-          childArray[_i] = arguments[_i + 2];
-        Object.freeze && Object.freeze(childArray);
-        i.children = childArray;
-      }
-      if (type && type.defaultProps)
-        for (propName in childrenLength = type.defaultProps, childrenLength)
-          i[propName] === undefined && (i[propName] = childrenLength[propName]);
-      key && defineKeyPropWarningGetter(i, typeof type === "function" ? type.displayName || type.name || "Unknown" : type);
-      var propName = 1e4 > ReactSharedInternals.recentlyCreatedOwnerStacks++;
-      return ReactElement(type, key, i, getOwner(), propName ? Error("react-stack-top-frame") : unknownOwnerDebugStack, propName ? createTask(getTaskName(type)) : unknownOwnerDebugTask);
-    };
-    exports.createRef = function() {
-      var refObject = { current: null };
-      Object.seal(refObject);
-      return refObject;
-    };
-    exports.forwardRef = function(render) {
-      render != null && render.$$typeof === REACT_MEMO_TYPE ? console.error("forwardRef requires a render function but received a `memo` component. Instead of forwardRef(memo(...)), use memo(forwardRef(...)).") : typeof render !== "function" ? console.error("forwardRef requires a render function but was given %s.", render === null ? "null" : typeof render) : render.length !== 0 && render.length !== 2 && console.error("forwardRef render functions accept exactly two parameters: props and ref. %s", render.length === 1 ? "Did you forget to use the ref parameter?" : "Any additional parameter will be undefined.");
-      render != null && render.defaultProps != null && console.error("forwardRef render functions do not support defaultProps. Did you accidentally pass a React component?");
-      var elementType = { $$typeof: REACT_FORWARD_REF_TYPE, render }, ownName;
-      Object.defineProperty(elementType, "displayName", {
-        enumerable: false,
-        configurable: true,
-        get: function() {
-          return ownName;
-        },
-        set: function(name) {
-          ownName = name;
-          render.name || render.displayName || (Object.defineProperty(render, "name", { value: name }), render.displayName = name);
-        }
-      });
-      return elementType;
-    };
-    exports.isValidElement = isValidElement;
-    exports.lazy = function(ctor) {
-      ctor = { _status: -1, _result: ctor };
-      var lazyType = {
-        $$typeof: REACT_LAZY_TYPE,
-        _payload: ctor,
-        _init: lazyInitializer
-      }, ioInfo = {
-        name: "lazy",
-        start: -1,
-        end: -1,
-        value: null,
-        owner: null,
-        debugStack: Error("react-stack-top-frame"),
-        debugTask: console.createTask ? console.createTask("lazy()") : null
-      };
-      ctor._ioInfo = ioInfo;
-      lazyType._debugInfo = [{ awaited: ioInfo }];
-      return lazyType;
-    };
-    exports.memo = function(type, compare) {
-      type == null && console.error("memo: The first argument must be a component. Instead received: %s", type === null ? "null" : typeof type);
-      compare = {
-        $$typeof: REACT_MEMO_TYPE,
-        type,
-        compare: compare === undefined ? null : compare
-      };
-      var ownName;
-      Object.defineProperty(compare, "displayName", {
-        enumerable: false,
-        configurable: true,
-        get: function() {
-          return ownName;
-        },
-        set: function(name) {
-          ownName = name;
-          type.name || type.displayName || (Object.defineProperty(type, "name", { value: name }), type.displayName = name);
-        }
-      });
-      return compare;
-    };
-    exports.startTransition = function(scope) {
-      var prevTransition = ReactSharedInternals.T, currentTransition = {};
-      currentTransition._updatedFibers = new Set;
-      ReactSharedInternals.T = currentTransition;
-      try {
-        var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
-        onStartTransitionFinish !== null && onStartTransitionFinish(currentTransition, returnValue);
-        typeof returnValue === "object" && returnValue !== null && typeof returnValue.then === "function" && (ReactSharedInternals.asyncTransitions++, returnValue.then(releaseAsyncTransition, releaseAsyncTransition), returnValue.then(noop, reportGlobalError));
-      } catch (error) {
-        reportGlobalError(error);
-      } finally {
-        prevTransition === null && currentTransition._updatedFibers && (scope = currentTransition._updatedFibers.size, currentTransition._updatedFibers.clear(), 10 < scope && console.warn("Detected a large number of updates inside startTransition. If this is due to a subscription please re-write it to use React provided hooks. Otherwise concurrent mode guarantees are off the table.")), prevTransition !== null && currentTransition.types !== null && (prevTransition.types !== null && prevTransition.types !== currentTransition.types && console.error("We expected inner Transitions to have transferred the outer types set and that you cannot add to the outer Transition while inside the inner.This is a bug in React."), prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
-      }
-    };
-    exports.unstable_useCacheRefresh = function() {
-      return resolveDispatcher().useCacheRefresh();
-    };
-    exports.use = function(usable) {
-      return resolveDispatcher().use(usable);
-    };
-    exports.useActionState = function(action, initialState, permalink) {
-      return resolveDispatcher().useActionState(action, initialState, permalink);
-    };
-    exports.useCallback = function(callback, deps) {
-      return resolveDispatcher().useCallback(callback, deps);
-    };
-    exports.useContext = function(Context) {
-      var dispatcher = resolveDispatcher();
-      Context.$$typeof === REACT_CONSUMER_TYPE && console.error("Calling useContext(Context.Consumer) is not supported and will cause bugs. Did you mean to call useContext(Context) instead?");
-      return dispatcher.useContext(Context);
-    };
-    exports.useDebugValue = function(value, formatterFn) {
-      return resolveDispatcher().useDebugValue(value, formatterFn);
-    };
-    exports.useDeferredValue = function(value, initialValue) {
-      return resolveDispatcher().useDeferredValue(value, initialValue);
-    };
-    exports.useEffect = function(create, deps) {
-      create == null && console.warn("React Hook useEffect requires an effect callback. Did you forget to pass a callback to the hook?");
-      return resolveDispatcher().useEffect(create, deps);
-    };
-    exports.useEffectEvent = function(callback) {
-      return resolveDispatcher().useEffectEvent(callback);
-    };
-    exports.useId = function() {
-      return resolveDispatcher().useId();
-    };
-    exports.useImperativeHandle = function(ref, create, deps) {
-      return resolveDispatcher().useImperativeHandle(ref, create, deps);
-    };
-    exports.useInsertionEffect = function(create, deps) {
-      create == null && console.warn("React Hook useInsertionEffect requires an effect callback. Did you forget to pass a callback to the hook?");
-      return resolveDispatcher().useInsertionEffect(create, deps);
-    };
-    exports.useLayoutEffect = function(create, deps) {
-      create == null && console.warn("React Hook useLayoutEffect requires an effect callback. Did you forget to pass a callback to the hook?");
-      return resolveDispatcher().useLayoutEffect(create, deps);
-    };
-    exports.useMemo = function(create, deps) {
-      return resolveDispatcher().useMemo(create, deps);
-    };
-    exports.useOptimistic = function(passthrough, reducer) {
-      return resolveDispatcher().useOptimistic(passthrough, reducer);
-    };
-    exports.useReducer = function(reducer, initialArg, init) {
-      return resolveDispatcher().useReducer(reducer, initialArg, init);
-    };
-    exports.useRef = function(initialValue) {
-      return resolveDispatcher().useRef(initialValue);
-    };
-    exports.useState = function(initialState) {
-      return resolveDispatcher().useState(initialState);
-    };
-    exports.useSyncExternalStore = function(subscribe, getSnapshot, getServerSnapshot) {
-      return resolveDispatcher().useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-    };
-    exports.useTransition = function() {
-      return resolveDispatcher().useTransition();
-    };
-    exports.version = "19.2.7";
-    typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop === "function" && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
-  })();
-});
-
-// node_modules/react/index.js
-var require_react2 = __commonJS((exports, module) => {
-  var react_development = __toESM(require_react_development2());
-  if (false) {} else {
-    module.exports = react_development;
-  }
-});
-
-// node_modules/react-dom/cjs/react-dom.development.js
-var require_react_dom_development2 = __commonJS((exports) => {
-  var React = __toESM(require_react2());
-  (function() {
-    function noop() {}
-    function testStringCoercion(value) {
-      return "" + value;
-    }
-    function createPortal$1(children, containerInfo, implementation) {
-      var key = 3 < arguments.length && arguments[3] !== undefined ? arguments[3] : null;
-      try {
-        testStringCoercion(key);
-        var JSCompiler_inline_result = false;
-      } catch (e) {
-        JSCompiler_inline_result = true;
-      }
-      JSCompiler_inline_result && (console.error("The provided key is an unsupported type %s. This value must be coerced to a string before using it here.", typeof Symbol === "function" && Symbol.toStringTag && key[Symbol.toStringTag] || key.constructor.name || "Object"), testStringCoercion(key));
-      return {
-        $$typeof: REACT_PORTAL_TYPE,
-        key: key == null ? null : "" + key,
-        children,
-        containerInfo,
-        implementation
-      };
-    }
-    function getCrossOriginStringAs(as, input) {
-      if (as === "font")
-        return "";
-      if (typeof input === "string")
-        return input === "use-credentials" ? input : "";
-    }
-    function getValueDescriptorExpectingObjectForWarning(thing) {
-      return thing === null ? "`null`" : thing === undefined ? "`undefined`" : thing === "" ? "an empty string" : 'something with type "' + typeof thing + '"';
-    }
-    function getValueDescriptorExpectingEnumForWarning(thing) {
-      return thing === null ? "`null`" : thing === undefined ? "`undefined`" : thing === "" ? "an empty string" : typeof thing === "string" ? JSON.stringify(thing) : typeof thing === "number" ? "`" + thing + "`" : 'something with type "' + typeof thing + '"';
-    }
-    function resolveDispatcher() {
-      var dispatcher = ReactSharedInternals.H;
-      dispatcher === null && console.error(`Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
-1. You might have mismatching versions of React and the renderer (such as React DOM)
-2. You might be breaking the Rules of Hooks
-3. You might have more than one copy of React in the same app
-See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem.`);
-      return dispatcher;
-    }
-    typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function" && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-    var Internals = {
-      d: {
-        f: noop,
-        r: function() {
-          throw Error("Invalid form element. requestFormReset must be passed a form that was rendered by React.");
-        },
-        D: noop,
-        C: noop,
-        L: noop,
-        m: noop,
-        X: noop,
-        S: noop,
-        M: noop
-      },
-      p: 0,
-      findDOMNode: null
-    }, REACT_PORTAL_TYPE = Symbol.for("react.portal"), ReactSharedInternals = React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
-    typeof Map === "function" && Map.prototype != null && typeof Map.prototype.forEach === "function" && typeof Set === "function" && Set.prototype != null && typeof Set.prototype.clear === "function" && typeof Set.prototype.forEach === "function" || console.error("React depends on Map and Set built-in types. Make sure that you load a polyfill in older browsers. https://reactjs.org/link/react-polyfills");
-    exports.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = Internals;
-    exports.createPortal = function(children, container) {
-      var key = 2 < arguments.length && arguments[2] !== undefined ? arguments[2] : null;
-      if (!container || container.nodeType !== 1 && container.nodeType !== 9 && container.nodeType !== 11)
-        throw Error("Target container is not a DOM element.");
-      return createPortal$1(children, container, null, key);
-    };
-    exports.flushSync = function(fn) {
-      var previousTransition = ReactSharedInternals.T, previousUpdatePriority = Internals.p;
-      try {
-        if (ReactSharedInternals.T = null, Internals.p = 2, fn)
-          return fn();
-      } finally {
-        ReactSharedInternals.T = previousTransition, Internals.p = previousUpdatePriority, Internals.d.f() && console.error("flushSync was called from inside a lifecycle method. React cannot flush when React is already rendering. Consider moving this call to a scheduler task or micro task.");
-      }
-    };
-    exports.preconnect = function(href, options) {
-      typeof href === "string" && href ? options != null && typeof options !== "object" ? console.error("ReactDOM.preconnect(): Expected the `options` argument (second) to be an object but encountered %s instead. The only supported option at this time is `crossOrigin` which accepts a string.", getValueDescriptorExpectingEnumForWarning(options)) : options != null && typeof options.crossOrigin !== "string" && console.error("ReactDOM.preconnect(): Expected the `crossOrigin` option (second argument) to be a string but encountered %s instead. Try removing this option or passing a string value instead.", getValueDescriptorExpectingObjectForWarning(options.crossOrigin)) : console.error("ReactDOM.preconnect(): Expected the `href` argument (first) to be a non-empty string but encountered %s instead.", getValueDescriptorExpectingObjectForWarning(href));
-      typeof href === "string" && (options ? (options = options.crossOrigin, options = typeof options === "string" ? options === "use-credentials" ? options : "" : undefined) : options = null, Internals.d.C(href, options));
-    };
-    exports.prefetchDNS = function(href) {
-      if (typeof href !== "string" || !href)
-        console.error("ReactDOM.prefetchDNS(): Expected the `href` argument (first) to be a non-empty string but encountered %s instead.", getValueDescriptorExpectingObjectForWarning(href));
-      else if (1 < arguments.length) {
-        var options = arguments[1];
-        typeof options === "object" && options.hasOwnProperty("crossOrigin") ? console.error("ReactDOM.prefetchDNS(): Expected only one argument, `href`, but encountered %s as a second argument instead. This argument is reserved for future options and is currently disallowed. It looks like the you are attempting to set a crossOrigin property for this DNS lookup hint. Browsers do not perform DNS queries using CORS and setting this attribute on the resource hint has no effect. Try calling ReactDOM.prefetchDNS() with just a single string argument, `href`.", getValueDescriptorExpectingEnumForWarning(options)) : console.error("ReactDOM.prefetchDNS(): Expected only one argument, `href`, but encountered %s as a second argument instead. This argument is reserved for future options and is currently disallowed. Try calling ReactDOM.prefetchDNS() with just a single string argument, `href`.", getValueDescriptorExpectingEnumForWarning(options));
-      }
-      typeof href === "string" && Internals.d.D(href);
-    };
-    exports.preinit = function(href, options) {
-      typeof href === "string" && href ? options == null || typeof options !== "object" ? console.error("ReactDOM.preinit(): Expected the `options` argument (second) to be an object with an `as` property describing the type of resource to be preinitialized but encountered %s instead.", getValueDescriptorExpectingEnumForWarning(options)) : options.as !== "style" && options.as !== "script" && console.error('ReactDOM.preinit(): Expected the `as` property in the `options` argument (second) to contain a valid value describing the type of resource to be preinitialized but encountered %s instead. Valid values for `as` are "style" and "script".', getValueDescriptorExpectingEnumForWarning(options.as)) : console.error("ReactDOM.preinit(): Expected the `href` argument (first) to be a non-empty string but encountered %s instead.", getValueDescriptorExpectingObjectForWarning(href));
-      if (typeof href === "string" && options && typeof options.as === "string") {
-        var as = options.as, crossOrigin = getCrossOriginStringAs(as, options.crossOrigin), integrity = typeof options.integrity === "string" ? options.integrity : undefined, fetchPriority = typeof options.fetchPriority === "string" ? options.fetchPriority : undefined;
-        as === "style" ? Internals.d.S(href, typeof options.precedence === "string" ? options.precedence : undefined, {
-          crossOrigin,
-          integrity,
-          fetchPriority
-        }) : as === "script" && Internals.d.X(href, {
-          crossOrigin,
-          integrity,
-          fetchPriority,
-          nonce: typeof options.nonce === "string" ? options.nonce : undefined
-        });
-      }
-    };
-    exports.preinitModule = function(href, options) {
-      var encountered = "";
-      typeof href === "string" && href || (encountered += " The `href` argument encountered was " + getValueDescriptorExpectingObjectForWarning(href) + ".");
-      options !== undefined && typeof options !== "object" ? encountered += " The `options` argument encountered was " + getValueDescriptorExpectingObjectForWarning(options) + "." : options && ("as" in options) && options.as !== "script" && (encountered += " The `as` option encountered was " + getValueDescriptorExpectingEnumForWarning(options.as) + ".");
-      if (encountered)
-        console.error("ReactDOM.preinitModule(): Expected up to two arguments, a non-empty `href` string and, optionally, an `options` object with a valid `as` property.%s", encountered);
-      else
-        switch (encountered = options && typeof options.as === "string" ? options.as : "script", encountered) {
-          case "script":
-            break;
-          default:
-            encountered = getValueDescriptorExpectingEnumForWarning(encountered), console.error('ReactDOM.preinitModule(): Currently the only supported "as" type for this function is "script" but received "%s" instead. This warning was generated for `href` "%s". In the future other module types will be supported, aligning with the import-attributes proposal. Learn more here: (https://github.com/tc39/proposal-import-attributes)', encountered, href);
-        }
-      if (typeof href === "string")
-        if (typeof options === "object" && options !== null) {
-          if (options.as == null || options.as === "script")
-            encountered = getCrossOriginStringAs(options.as, options.crossOrigin), Internals.d.M(href, {
-              crossOrigin: encountered,
-              integrity: typeof options.integrity === "string" ? options.integrity : undefined,
-              nonce: typeof options.nonce === "string" ? options.nonce : undefined
-            });
-        } else
-          options == null && Internals.d.M(href);
-    };
-    exports.preload = function(href, options) {
-      var encountered = "";
-      typeof href === "string" && href || (encountered += " The `href` argument encountered was " + getValueDescriptorExpectingObjectForWarning(href) + ".");
-      options == null || typeof options !== "object" ? encountered += " The `options` argument encountered was " + getValueDescriptorExpectingObjectForWarning(options) + "." : typeof options.as === "string" && options.as || (encountered += " The `as` option encountered was " + getValueDescriptorExpectingObjectForWarning(options.as) + ".");
-      encountered && console.error('ReactDOM.preload(): Expected two arguments, a non-empty `href` string and an `options` object with an `as` property valid for a `<link rel="preload" as="..." />` tag.%s', encountered);
-      if (typeof href === "string" && typeof options === "object" && options !== null && typeof options.as === "string") {
-        encountered = options.as;
-        var crossOrigin = getCrossOriginStringAs(encountered, options.crossOrigin);
-        Internals.d.L(href, encountered, {
-          crossOrigin,
-          integrity: typeof options.integrity === "string" ? options.integrity : undefined,
-          nonce: typeof options.nonce === "string" ? options.nonce : undefined,
-          type: typeof options.type === "string" ? options.type : undefined,
-          fetchPriority: typeof options.fetchPriority === "string" ? options.fetchPriority : undefined,
-          referrerPolicy: typeof options.referrerPolicy === "string" ? options.referrerPolicy : undefined,
-          imageSrcSet: typeof options.imageSrcSet === "string" ? options.imageSrcSet : undefined,
-          imageSizes: typeof options.imageSizes === "string" ? options.imageSizes : undefined,
-          media: typeof options.media === "string" ? options.media : undefined
-        });
-      }
-    };
-    exports.preloadModule = function(href, options) {
-      var encountered = "";
-      typeof href === "string" && href || (encountered += " The `href` argument encountered was " + getValueDescriptorExpectingObjectForWarning(href) + ".");
-      options !== undefined && typeof options !== "object" ? encountered += " The `options` argument encountered was " + getValueDescriptorExpectingObjectForWarning(options) + "." : options && ("as" in options) && typeof options.as !== "string" && (encountered += " The `as` option encountered was " + getValueDescriptorExpectingObjectForWarning(options.as) + ".");
-      encountered && console.error('ReactDOM.preloadModule(): Expected two arguments, a non-empty `href` string and, optionally, an `options` object with an `as` property valid for a `<link rel="modulepreload" as="..." />` tag.%s', encountered);
-      typeof href === "string" && (options ? (encountered = getCrossOriginStringAs(options.as, options.crossOrigin), Internals.d.m(href, {
-        as: typeof options.as === "string" && options.as !== "script" ? options.as : undefined,
-        crossOrigin: encountered,
-        integrity: typeof options.integrity === "string" ? options.integrity : undefined
-      })) : Internals.d.m(href));
-    };
-    exports.requestFormReset = function(form) {
-      Internals.d.r(form);
-    };
-    exports.unstable_batchedUpdates = function(fn, a) {
-      return fn(a);
-    };
-    exports.useFormState = function(action, initialState, permalink) {
-      return resolveDispatcher().useFormState(action, initialState, permalink);
-    };
-    exports.useFormStatus = function() {
-      return resolveDispatcher().useHostTransitionStatus();
-    };
-    exports.version = "19.2.7";
-    typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop === "function" && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
-  })();
-});
-
-// node_modules/react-dom/index.js
-var require_react_dom2 = __commonJS((exports, module) => {
-  var react_dom_development = __toESM(require_react_dom_development2());
-  if (false) {} else {
-    module.exports = react_dom_development;
-  }
-});
-
 // node_modules/use-sync-external-store/cjs/use-sync-external-store-shim.development.js
 var require_use_sync_external_store_shim_development = __commonJS((exports) => {
-  var React3 = __toESM(require_react2());
+  var React3 = __toESM(require_react());
   (function() {
     function is(x, y) {
       return x === y && (x !== 0 || 1 / x === 1 / y) || x !== x && y !== y;
@@ -17987,7 +16965,7 @@ var require_shim = __commonJS((exports, module) => {
 
 // node_modules/use-sync-external-store/cjs/use-sync-external-store-shim/with-selector.development.js
 var require_with_selector_development = __commonJS((exports) => {
-  var React3 = __toESM(require_react2());
+  var React3 = __toESM(require_react());
   (function() {
     function is(x, y) {
       return x === y && (x !== 0 || 1 / x === 1 / y) || x !== x && y !== y;
@@ -19449,7 +18427,7 @@ var require_react_is = __commonJS((exports, module) => {
 
 // node_modules/use-sync-external-store/cjs/use-sync-external-store-with-selector.development.js
 var require_use_sync_external_store_with_selector_development = __commonJS((exports) => {
-  var React21 = __toESM(require_react2());
+  var React21 = __toESM(require_react());
   (function() {
     function is3(x2, y2) {
       return x2 === y2 && (x2 !== 0 || 1 / x2 === 1 / y2) || x2 !== x2 && y2 !== y2;
@@ -19514,7 +18492,7 @@ var require_with_selector2 = __commonJS((exports, module) => {
   }
 });
 
-// core/node_modules/react/cjs/react-jsx-dev-runtime.development.js
+// node_modules/react/cjs/react-jsx-dev-runtime.development.js
 var require_react_jsx_dev_runtime_development = __commonJS((exports) => {
   var React31 = __toESM(require_react());
   (function() {
@@ -19729,7 +18707,7 @@ React keys must be passed directly to JSX without using spread:
   })();
 });
 
-// core/node_modules/react/jsx-dev-runtime.js
+// node_modules/react/jsx-dev-runtime.js
 var require_jsx_dev_runtime = __commonJS((exports, module) => {
   var react_jsx_dev_runtime_development = __toESM(require_react_jsx_dev_runtime_development());
   if (false) {} else {
@@ -19741,7 +18719,7 @@ var require_jsx_dev_runtime = __commonJS((exports, module) => {
 var import_react50 = __toESM(require_react(), 1);
 var import_client = __toESM(require_client(), 1);
 // node_modules/lucide-react/dist/esm/createLucideIcon.mjs
-var import_react3 = __toESM(require_react2(), 1);
+var import_react3 = __toESM(require_react(), 1);
 
 // node_modules/lucide-react/dist/esm/shared/src/utils/mergeClasses.mjs
 var mergeClasses = (...classes) => classes.filter((className, index, array) => {
@@ -19761,7 +18739,7 @@ var toPascalCase = (string) => {
 };
 
 // node_modules/lucide-react/dist/esm/Icon.mjs
-var import_react2 = __toESM(require_react2(), 1);
+var import_react2 = __toESM(require_react(), 1);
 
 // node_modules/lucide-react/dist/esm/defaultAttributes.mjs
 var defaultAttributes = {
@@ -19787,7 +18765,7 @@ var hasA11yProp = (props) => {
 };
 
 // node_modules/lucide-react/dist/esm/context.mjs
-var import_react = __toESM(require_react2(), 1);
+var import_react = __toESM(require_react(), 1);
 "use client";
 var LucideContext = import_react.createContext({});
 var useLucideContext = () => import_react.useContext(LucideContext);
@@ -19838,8 +18816,21 @@ var __iconNode = [
   ["path", { d: "M19 21V9", key: "unv183" }]
 ];
 var ChartNoAxesColumn = createLucideIcon("chart-no-axes-column", __iconNode);
-// node_modules/lucide-react/dist/esm/icons/activity.mjs
+// node_modules/lucide-react/dist/esm/icons/triangle-alert.mjs
 var __iconNode2 = [
+  [
+    "path",
+    {
+      d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3",
+      key: "wmoenq"
+    }
+  ],
+  ["path", { d: "M12 9v4", key: "juzpu7" }],
+  ["path", { d: "M12 17h.01", key: "p32p05" }]
+];
+var TriangleAlert = createLucideIcon("triangle-alert", __iconNode2);
+// node_modules/lucide-react/dist/esm/icons/activity.mjs
+var __iconNode3 = [
   [
     "path",
     {
@@ -19848,22 +18839,40 @@ var __iconNode2 = [
     }
   ]
 ];
-var Activity = createLucideIcon("activity", __iconNode2);
+var Activity = createLucideIcon("activity", __iconNode3);
 // node_modules/lucide-react/dist/esm/icons/chevron-down.mjs
-var __iconNode3 = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-var ChevronDown = createLucideIcon("chevron-down", __iconNode3);
+var __iconNode4 = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+var ChevronDown = createLucideIcon("chevron-down", __iconNode4);
 // node_modules/lucide-react/dist/esm/icons/chevron-right.mjs
-var __iconNode4 = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-var ChevronRight = createLucideIcon("chevron-right", __iconNode4);
+var __iconNode5 = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+var ChevronRight = createLucideIcon("chevron-right", __iconNode5);
+// node_modules/lucide-react/dist/esm/icons/cpu.mjs
+var __iconNode6 = [
+  ["path", { d: "M12 20v2", key: "1lh1kg" }],
+  ["path", { d: "M12 2v2", key: "tus03m" }],
+  ["path", { d: "M17 20v2", key: "1rnc9c" }],
+  ["path", { d: "M17 2v2", key: "11trls" }],
+  ["path", { d: "M2 12h2", key: "1t8f8n" }],
+  ["path", { d: "M2 17h2", key: "7oei6x" }],
+  ["path", { d: "M2 7h2", key: "asdhe0" }],
+  ["path", { d: "M20 12h2", key: "1q8mjw" }],
+  ["path", { d: "M20 17h2", key: "1fpfkl" }],
+  ["path", { d: "M20 7h2", key: "1o8tra" }],
+  ["path", { d: "M7 20v2", key: "4gnj0m" }],
+  ["path", { d: "M7 2v2", key: "1i4yhu" }],
+  ["rect", { x: "4", y: "4", width: "16", height: "16", rx: "2", key: "1vbyd7" }],
+  ["rect", { x: "8", y: "8", width: "8", height: "8", rx: "1", key: "z9xiuo" }]
+];
+var Cpu = createLucideIcon("cpu", __iconNode6);
 // node_modules/lucide-react/dist/esm/icons/database.mjs
-var __iconNode5 = [
+var __iconNode7 = [
   ["ellipse", { cx: "12", cy: "5", rx: "9", ry: "3", key: "msslwz" }],
   ["path", { d: "M3 5V19A9 3 0 0 0 21 19V5", key: "1wlel7" }],
   ["path", { d: "M3 12A9 3 0 0 0 21 12", key: "mv7ke4" }]
 ];
-var Database = createLucideIcon("database", __iconNode5);
+var Database = createLucideIcon("database", __iconNode7);
 // node_modules/lucide-react/dist/esm/icons/file-text.mjs
-var __iconNode6 = [
+var __iconNode8 = [
   [
     "path",
     {
@@ -19876,9 +18885,9 @@ var __iconNode6 = [
   ["path", { d: "M16 13H8", key: "t4e002" }],
   ["path", { d: "M16 17H8", key: "z1uh3a" }]
 ];
-var FileText = createLucideIcon("file-text", __iconNode6);
+var FileText = createLucideIcon("file-text", __iconNode8);
 // node_modules/lucide-react/dist/esm/icons/folder.mjs
-var __iconNode7 = [
+var __iconNode9 = [
   [
     "path",
     {
@@ -19887,23 +18896,45 @@ var __iconNode7 = [
     }
   ]
 ];
-var Folder = createLucideIcon("folder", __iconNode7);
+var Folder = createLucideIcon("folder", __iconNode9);
 // node_modules/lucide-react/dist/esm/icons/git-branch.mjs
-var __iconNode8 = [
+var __iconNode10 = [
   ["path", { d: "M15 6a9 9 0 0 0-9 9V3", key: "1cii5b" }],
   ["circle", { cx: "18", cy: "6", r: "3", key: "1h7g24" }],
   ["circle", { cx: "6", cy: "18", r: "3", key: "fqmcym" }]
 ];
-var GitBranch = createLucideIcon("git-branch", __iconNode8);
+var GitBranch = createLucideIcon("git-branch", __iconNode10);
+// node_modules/lucide-react/dist/esm/icons/lock.mjs
+var __iconNode11 = [
+  ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
+  ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
+];
+var Lock = createLucideIcon("lock", __iconNode11);
 // node_modules/lucide-react/dist/esm/icons/log-out.mjs
-var __iconNode9 = [
+var __iconNode12 = [
   ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
   ["path", { d: "M21 12H9", key: "dn1m92" }],
   ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
 ];
-var LogOut = createLucideIcon("log-out", __iconNode9);
+var LogOut = createLucideIcon("log-out", __iconNode12);
+// node_modules/lucide-react/dist/esm/icons/maximize-2.mjs
+var __iconNode13 = [
+  ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
+  ["path", { d: "m21 3-7 7", key: "1l2asr" }],
+  ["path", { d: "m3 21 7-7", key: "tjx5ai" }],
+  ["path", { d: "M9 21H3v-6", key: "wtvkvv" }]
+];
+var Maximize2 = createLucideIcon("maximize-2", __iconNode13);
+// node_modules/lucide-react/dist/esm/icons/minimize-2.mjs
+var __iconNode14 = [
+  ["path", { d: "m14 10 7-7", key: "oa77jy" }],
+  ["path", { d: "M20 10h-6V4", key: "mjg0md" }],
+  ["path", { d: "m3 21 7-7", key: "tjx5ai" }],
+  ["path", { d: "M4 14h6v6", key: "rmj7iw" }]
+];
+var Minimize2 = createLucideIcon("minimize-2", __iconNode14);
 // node_modules/lucide-react/dist/esm/icons/play.mjs
-var __iconNode10 = [
+var __iconNode15 = [
   [
     "path",
     {
@@ -19912,23 +18943,31 @@ var __iconNode10 = [
     }
   ]
 ];
-var Play = createLucideIcon("play", __iconNode10);
+var Play = createLucideIcon("play", __iconNode15);
 // node_modules/lucide-react/dist/esm/icons/refresh-cw.mjs
-var __iconNode11 = [
+var __iconNode16 = [
   ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
   ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
   ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
   ["path", { d: "M8 16H3v5", key: "1cv678" }]
 ];
-var RefreshCw = createLucideIcon("refresh-cw", __iconNode11);
+var RefreshCw = createLucideIcon("refresh-cw", __iconNode16);
 // node_modules/lucide-react/dist/esm/icons/search.mjs
-var __iconNode12 = [
+var __iconNode17 = [
   ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
   ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
 ];
-var Search = createLucideIcon("search", __iconNode12);
+var Search = createLucideIcon("search", __iconNode17);
+// node_modules/lucide-react/dist/esm/icons/server.mjs
+var __iconNode18 = [
+  ["rect", { width: "20", height: "8", x: "2", y: "2", rx: "2", ry: "2", key: "ngkwjq" }],
+  ["rect", { width: "20", height: "8", x: "2", y: "14", rx: "2", ry: "2", key: "iecqi9" }],
+  ["line", { x1: "6", x2: "6.01", y1: "6", y2: "6", key: "16zg32" }],
+  ["line", { x1: "6", x2: "6.01", y1: "18", y2: "18", key: "nzw8ys" }]
+];
+var Server = createLucideIcon("server", __iconNode18);
 // node_modules/lucide-react/dist/esm/icons/shield-alert.mjs
-var __iconNode13 = [
+var __iconNode19 = [
   [
     "path",
     {
@@ -19939,9 +18978,9 @@ var __iconNode13 = [
   ["path", { d: "M12 8v4", key: "1got3b" }],
   ["path", { d: "M12 16h.01", key: "1drbdi" }]
 ];
-var ShieldAlert = createLucideIcon("shield-alert", __iconNode13);
+var ShieldAlert = createLucideIcon("shield-alert", __iconNode19);
 // node_modules/lucide-react/dist/esm/icons/shield-check.mjs
-var __iconNode14 = [
+var __iconNode20 = [
   [
     "path",
     {
@@ -19951,26 +18990,37 @@ var __iconNode14 = [
   ],
   ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-var ShieldCheck = createLucideIcon("shield-check", __iconNode14);
+var ShieldCheck = createLucideIcon("shield-check", __iconNode20);
 // node_modules/lucide-react/dist/esm/icons/terminal.mjs
-var __iconNode15 = [
+var __iconNode21 = [
   ["path", { d: "M12 19h8", key: "baeox8" }],
   ["path", { d: "m4 17 6-6-6-6", key: "1yngyt" }]
 ];
-var Terminal = createLucideIcon("terminal", __iconNode15);
+var Terminal = createLucideIcon("terminal", __iconNode21);
 // node_modules/lucide-react/dist/esm/icons/x.mjs
-var __iconNode16 = [
+var __iconNode22 = [
   ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
   ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
 ];
-var X = createLucideIcon("x", __iconNode16);
+var X = createLucideIcon("x", __iconNode22);
+// node_modules/lucide-react/dist/esm/icons/zap.mjs
+var __iconNode23 = [
+  [
+    "path",
+    {
+      d: "M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z",
+      key: "1xq2db"
+    }
+  ]
+];
+var Zap = createLucideIcon("zap", __iconNode23);
 // node_modules/recharts/es6/component/Tooltip.js
-var React10 = __toESM(require_react2(), 1);
-var import_react22 = __toESM(require_react2(), 1);
-var import_react_dom2 = __toESM(require_react_dom2(), 1);
+var React10 = __toESM(require_react(), 1);
+var import_react22 = __toESM(require_react(), 1);
+var import_react_dom2 = __toESM(require_react_dom(), 1);
 
 // node_modules/recharts/es6/component/DefaultTooltipContent.js
-var React = __toESM(require_react2(), 1);
+var React = __toESM(require_react(), 1);
 
 // node_modules/es-toolkit/dist/array/flatten.mjs
 function flatten(arr, depth = 1) {
@@ -20599,7 +19649,7 @@ var DefaultTooltipContent = (props) => {
 };
 
 // node_modules/recharts/es6/component/TooltipBoundingBox.js
-var React2 = __toESM(require_react2(), 1);
+var React2 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/tooltip/translate.js
 var CSS_CLASS_PREFIX = "recharts-tooltip-wrapper";
@@ -20726,7 +19776,7 @@ function getTooltipTranslate(_ref4) {
 }
 
 // node_modules/recharts/es6/util/usePrefersReducedMotion.js
-var import_react4 = __toESM(require_react2(), 1);
+var import_react4 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/Global.js
 var parseIsSsrByDefault = () => !(typeof window !== "undefined" && window.document && Boolean(window.document.createElement) && window.setTimeout);
@@ -21391,14 +20441,14 @@ function getUniqPayload(payload, option, defaultUniqBy) {
 }
 
 // node_modules/recharts/es6/context/chartLayoutContext.js
-var import_react9 = __toESM(require_react2(), 1);
+var import_react9 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/state/hooks.js
 var import_with_selector = __toESM(require_with_selector(), 1);
-var import_react6 = __toESM(require_react2(), 1);
+var import_react6 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/state/RechartsReduxContext.js
-var import_react5 = __toESM(require_react2(), 1);
+var import_react5 = __toESM(require_react(), 1);
 var RechartsReduxContext = /* @__PURE__ */ import_react5.createContext(null);
 
 // node_modules/recharts/es6/state/hooks.js
@@ -25952,8 +25002,8 @@ var selectAxisViewBox = createSelector(selectChartWidth, selectChartHeight, (wid
 }));
 
 // node_modules/recharts/es6/context/PanoramaContext.js
-var React3 = __toESM(require_react2(), 1);
-var import_react7 = __toESM(require_react2(), 1);
+var React3 = __toESM(require_react(), 1);
+var import_react7 = __toESM(require_react(), 1);
 var PanoramaContext = /* @__PURE__ */ import_react7.createContext(null);
 var useIsPanorama = () => import_react7.useContext(PanoramaContext) != null;
 
@@ -25967,136 +25017,8 @@ var selectBrushDimensions = createSelector([selectBrushSettings, selectChartOffs
 }));
 
 // node_modules/recharts/es6/component/ResponsiveContainer.js
-var React4 = __toESM(require_react2(), 1);
-var import_react8 = __toESM(require_react2(), 1);
-
-// node_modules/es-toolkit/dist/function/debounce.mjs
-function debounce(func, debounceMs, { signal, edges } = {}) {
-  let pendingThis = undefined;
-  let pendingArgs = null;
-  const leading = edges != null && edges.includes("leading");
-  const trailing = edges == null || edges.includes("trailing");
-  const invoke = () => {
-    if (pendingArgs !== null) {
-      func.apply(pendingThis, pendingArgs);
-      pendingThis = undefined;
-      pendingArgs = null;
-    }
-  };
-  const onTimerEnd = () => {
-    if (trailing)
-      invoke();
-    cancel();
-  };
-  let timeoutId = null;
-  const schedule = () => {
-    if (timeoutId != null)
-      clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => {
-      timeoutId = null;
-      onTimerEnd();
-    }, debounceMs);
-  };
-  const cancelTimer = () => {
-    if (timeoutId !== null) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-    }
-  };
-  const cancel = () => {
-    cancelTimer();
-    pendingThis = undefined;
-    pendingArgs = null;
-  };
-  const flush = () => {
-    invoke();
-  };
-  const debounced = function(...args) {
-    if (signal?.aborted)
-      return;
-    pendingThis = this;
-    pendingArgs = args;
-    const isFirstCall = timeoutId == null;
-    schedule();
-    if (leading && isFirstCall)
-      invoke();
-  };
-  debounced.schedule = schedule;
-  debounced.cancel = cancel;
-  debounced.flush = flush;
-  signal?.addEventListener("abort", cancel, { once: true });
-  return debounced;
-}
-
-// node_modules/es-toolkit/dist/compat/function/debounce.mjs
-function debounce2(func, debounceMs = 0, options = {}) {
-  if (typeof options !== "object")
-    options = {};
-  const { leading = false, trailing = true, maxWait } = options;
-  const edges = Array(2);
-  if (leading)
-    edges[0] = "leading";
-  if (trailing)
-    edges[1] = "trailing";
-  let result = undefined;
-  let pendingAt = null;
-  const _debounced = debounce(function(...args) {
-    result = func.apply(this, args);
-    pendingAt = null;
-  }, debounceMs, { edges });
-  const debounced = function(...args) {
-    if (maxWait != null) {
-      if (pendingAt === null)
-        pendingAt = Date.now();
-      if (Date.now() - pendingAt >= maxWait) {
-        result = func.apply(this, args);
-        pendingAt = Date.now();
-        _debounced.cancel();
-        _debounced.schedule();
-        return result;
-      }
-    }
-    _debounced.apply(this, args);
-    return result;
-  };
-  const flush = () => {
-    _debounced.flush();
-    return result;
-  };
-  debounced.cancel = _debounced.cancel;
-  debounced.flush = flush;
-  return debounced;
-}
-
-// node_modules/es-toolkit/dist/compat/function/throttle.mjs
-function throttle(func, throttleMs = 0, options = {}) {
-  const { leading = true, trailing = true } = options;
-  return debounce2(func, throttleMs, {
-    leading,
-    maxWait: throttleMs,
-    trailing
-  });
-}
-// node_modules/recharts/es6/util/LogUtils.js
-var isDev = true;
-var warn = function warn2(condition, format) {
-  for (var _len = arguments.length, args = new Array(_len > 2 ? _len - 2 : 0), _key = 2;_key < _len; _key++) {
-    args[_key - 2] = arguments[_key];
-  }
-  if (isDev && typeof console !== "undefined" && console.warn) {
-    if (format === undefined) {
-      console.warn("LogUtils requires an error message argument");
-    }
-    if (!condition) {
-      if (format === undefined) {
-        console.warn("Minified exception occurred; use the non-minified dev environment " + "for the full error message and additional helpful warnings.");
-      } else {
-        var argIndex = 0;
-        console.warn(format.replace(/%s/g, () => args[argIndex++]));
-      }
-    }
-  }
-};
+var React4 = __toESM(require_react(), 1);
+var import_react8 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/component/responsiveContainerUtils.js
 var defaultResponsiveContainerProps = {
@@ -26109,301 +25031,10 @@ var defaultResponsiveContainerProps = {
     height: -1
   }
 };
-var calculateChartDimensions = (containerWidth, containerHeight, props) => {
-  var {
-    width = defaultResponsiveContainerProps.width,
-    height = defaultResponsiveContainerProps.height,
-    aspect,
-    maxHeight
-  } = props;
-  var calculatedWidth = isPercent(width) ? containerWidth : Number(width);
-  var calculatedHeight = isPercent(height) ? containerHeight : Number(height);
-  if (aspect && aspect > 0) {
-    if (calculatedWidth) {
-      calculatedHeight = calculatedWidth / aspect;
-    } else if (calculatedHeight) {
-      calculatedWidth = calculatedHeight * aspect;
-    }
-    if (maxHeight && calculatedHeight != null && calculatedHeight > maxHeight) {
-      calculatedHeight = maxHeight;
-    }
-  }
-  return {
-    calculatedWidth,
-    calculatedHeight
-  };
-};
-var bothOverflow = {
-  width: 0,
-  height: 0,
-  overflow: "visible"
-};
-var overflowX = {
-  width: 0,
-  overflowX: "visible"
-};
-var overflowY = {
-  height: 0,
-  overflowY: "visible"
-};
-var noStyle = {};
-var getInnerDivStyle = (props) => {
-  var {
-    width,
-    height
-  } = props;
-  var isWidthPercent = isPercent(width);
-  var isHeightPercent = isPercent(height);
-  if (isWidthPercent && isHeightPercent) {
-    return bothOverflow;
-  }
-  if (isWidthPercent) {
-    return overflowX;
-  }
-  if (isHeightPercent) {
-    return overflowY;
-  }
-  return noStyle;
-};
-function getDefaultWidthAndHeight(_ref) {
-  var {
-    width,
-    height,
-    aspect
-  } = _ref;
-  var calculatedWidth = width;
-  var calculatedHeight = height;
-  if (calculatedWidth === undefined && calculatedHeight === undefined) {
-    calculatedWidth = defaultResponsiveContainerProps.width;
-    calculatedHeight = defaultResponsiveContainerProps.height;
-  } else if (calculatedWidth === undefined) {
-    calculatedWidth = aspect && aspect > 0 ? undefined : defaultResponsiveContainerProps.width;
-  } else if (calculatedHeight === undefined) {
-    calculatedHeight = aspect && aspect > 0 ? undefined : defaultResponsiveContainerProps.height;
-  }
-  return {
-    width: calculatedWidth,
-    height: calculatedHeight
-  };
-}
 
 // node_modules/recharts/es6/component/ResponsiveContainer.js
-function _extends2() {
-  return _extends2 = Object.assign ? Object.assign.bind() : function(n) {
-    for (var e = 1;e < arguments.length; e++) {
-      var t = arguments[e];
-      for (var r2 in t)
-        ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
-    }
-    return n;
-  }, _extends2.apply(null, arguments);
-}
-function ownKeys5(e, r2) {
-  var t = Object.keys(e);
-  if (Object.getOwnPropertySymbols) {
-    var o = Object.getOwnPropertySymbols(e);
-    r2 && (o = o.filter(function(r3) {
-      return Object.getOwnPropertyDescriptor(e, r3).enumerable;
-    })), t.push.apply(t, o);
-  }
-  return t;
-}
-function _objectSpread5(e) {
-  for (var r2 = 1;r2 < arguments.length; r2++) {
-    var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys5(Object(t), true).forEach(function(r3) {
-      _defineProperty5(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys5(Object(t)).forEach(function(r3) {
-      Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
-    });
-  }
-  return e;
-}
-function _defineProperty5(e, r2, t) {
-  return (r2 = _toPropertyKey5(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
-}
-function _toPropertyKey5(t) {
-  var i = _toPrimitive5(t, "string");
-  return typeof i == "symbol" ? i : i + "";
-}
-function _toPrimitive5(t, r2) {
-  if (typeof t != "object" || !t)
-    return t;
-  var e = t[Symbol.toPrimitive];
-  if (e !== undefined) {
-    var i = e.call(t, r2 || "default");
-    if (typeof i != "object")
-      return i;
-    throw new TypeError("@@toPrimitive must return a primitive value.");
-  }
-  return (r2 === "string" ? String : Number)(t);
-}
 var ResponsiveContainerContext = /* @__PURE__ */ import_react8.createContext(defaultResponsiveContainerProps.initialDimension);
-function isAcceptableSize(size) {
-  return isPositiveNumber(size.width) && isPositiveNumber(size.height);
-}
-function ResponsiveContainerContextProvider(_ref) {
-  var {
-    children,
-    width,
-    height
-  } = _ref;
-  var size = import_react8.useMemo(() => ({
-    width,
-    height
-  }), [width, height]);
-  if (!isAcceptableSize(size)) {
-    return null;
-  }
-  return /* @__PURE__ */ React4.createElement(ResponsiveContainerContext.Provider, {
-    value: size
-  }, children);
-}
 var useResponsiveContainerContext = () => import_react8.useContext(ResponsiveContainerContext);
-var SizeDetectorContainer = /* @__PURE__ */ import_react8.forwardRef((_ref2, ref) => {
-  var {
-    aspect,
-    initialDimension = defaultResponsiveContainerProps.initialDimension,
-    width,
-    height,
-    minWidth = defaultResponsiveContainerProps.minWidth,
-    minHeight,
-    maxHeight,
-    children,
-    debounce: debounce3 = defaultResponsiveContainerProps.debounce,
-    id,
-    className,
-    onResize,
-    style = {}
-  } = _ref2;
-  var containerRef = import_react8.useRef(null);
-  var onResizeRef = import_react8.useRef();
-  onResizeRef.current = onResize;
-  import_react8.useImperativeHandle(ref, () => containerRef.current);
-  var [sizes, setSizes] = import_react8.useState({
-    containerWidth: initialDimension.width,
-    containerHeight: initialDimension.height
-  });
-  var setContainerSize = import_react8.useCallback((newWidth, newHeight) => {
-    setSizes((prevState) => {
-      var roundedWidth = Math.round(newWidth);
-      var roundedHeight = Math.round(newHeight);
-      if (prevState.containerWidth === roundedWidth && prevState.containerHeight === roundedHeight) {
-        return prevState;
-      }
-      return {
-        containerWidth: roundedWidth,
-        containerHeight: roundedHeight
-      };
-    });
-  }, []);
-  import_react8.useEffect(() => {
-    if (containerRef.current == null || typeof ResizeObserver === "undefined") {
-      return noop;
-    }
-    var callback = (entries) => {
-      var _onResizeRef$current;
-      var entry = entries[0];
-      if (entry == null) {
-        return;
-      }
-      var {
-        width: containerWidth3,
-        height: containerHeight3
-      } = entry.contentRect;
-      setContainerSize(containerWidth3, containerHeight3);
-      (_onResizeRef$current = onResizeRef.current) === null || _onResizeRef$current === undefined || _onResizeRef$current.call(onResizeRef, containerWidth3, containerHeight3);
-    };
-    if (debounce3 > 0) {
-      callback = throttle(callback, debounce3, {
-        trailing: true,
-        leading: false
-      });
-    }
-    var observer = new ResizeObserver(callback);
-    var {
-      width: containerWidth2,
-      height: containerHeight2
-    } = containerRef.current.getBoundingClientRect();
-    setContainerSize(containerWidth2, containerHeight2);
-    observer.observe(containerRef.current);
-    return () => {
-      observer.disconnect();
-    };
-  }, [setContainerSize, debounce3]);
-  var {
-    containerWidth,
-    containerHeight
-  } = sizes;
-  warn(!aspect || aspect > 0, "The aspect(%s) must be greater than zero.", aspect);
-  var {
-    calculatedWidth,
-    calculatedHeight
-  } = calculateChartDimensions(containerWidth, containerHeight, {
-    width,
-    height,
-    aspect,
-    maxHeight
-  });
-  warn(calculatedWidth != null && calculatedWidth > 0 || calculatedHeight != null && calculatedHeight > 0, `The width(%s) and height(%s) of chart should be greater than 0,
-       please check the style of container, or the props width(%s) and height(%s),
-       or add a minWidth(%s) or minHeight(%s) or use aspect(%s) to control the
-       height and width.`, calculatedWidth, calculatedHeight, width, height, minWidth, minHeight, aspect);
-  return /* @__PURE__ */ React4.createElement("div", {
-    id: id ? "".concat(id) : undefined,
-    className: clsx("recharts-responsive-container", className),
-    style: _objectSpread5(_objectSpread5({}, style), {}, {
-      width,
-      height,
-      minWidth,
-      minHeight,
-      maxHeight
-    }),
-    ref: containerRef
-  }, /* @__PURE__ */ React4.createElement("div", {
-    style: getInnerDivStyle({
-      width,
-      height
-    })
-  }, /* @__PURE__ */ React4.createElement(ResponsiveContainerContextProvider, {
-    width: calculatedWidth,
-    height: calculatedHeight
-  }, children)));
-});
-var ResponsiveContainer = /* @__PURE__ */ import_react8.forwardRef((props, ref) => {
-  var responsiveContainerContext = useResponsiveContainerContext();
-  if (isPositiveNumber(responsiveContainerContext.width) && isPositiveNumber(responsiveContainerContext.height)) {
-    return props.children;
-  }
-  var {
-    width,
-    height
-  } = getDefaultWidthAndHeight({
-    width: props.width,
-    height: props.height,
-    aspect: props.aspect
-  });
-  var {
-    calculatedWidth,
-    calculatedHeight
-  } = calculateChartDimensions(undefined, undefined, {
-    width,
-    height,
-    aspect: props.aspect,
-    maxHeight: props.maxHeight
-  });
-  if (isNumber(calculatedWidth) && isNumber(calculatedHeight)) {
-    return /* @__PURE__ */ React4.createElement(ResponsiveContainerContextProvider, {
-      width: calculatedWidth,
-      height: calculatedHeight
-    }, props.children);
-  }
-  return /* @__PURE__ */ React4.createElement(SizeDetectorContainer, _extends2({}, props, {
-    width,
-    height,
-    ref
-  }));
-});
 
 // node_modules/recharts/es6/context/chartLayoutContext.js
 function cartesianViewBoxToTrapezoid(box) {
@@ -26499,7 +25130,7 @@ var useAccessibilityLayer = () => {
 };
 
 // node_modules/recharts/es6/util/useElementOffset.js
-var import_react10 = __toESM(require_react2(), 1);
+var import_react10 = __toESM(require_react(), 1);
 var EPS = 1;
 function useElementOffset() {
   var extraDependencies = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
@@ -26532,11 +25163,11 @@ function useElementOffset() {
 }
 
 // node_modules/recharts/es6/component/Cursor.js
-var React9 = __toESM(require_react2(), 1);
-var import_react19 = __toESM(require_react2(), 1);
+var React9 = __toESM(require_react(), 1);
+var import_react19 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/types.js
-var import_react11 = __toESM(require_react2(), 1);
+var import_react11 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/excludeEventProps.js
 var EventKeys = ["dangerouslySetInnerHTML", "onCopy", "onCopyCapture", "onCut", "onCutCapture", "onPaste", "onPasteCapture", "onCompositionEnd", "onCompositionEndCapture", "onCompositionStart", "onCompositionStartCapture", "onCompositionUpdate", "onCompositionUpdateCapture", "onFocus", "onFocusCapture", "onBlur", "onBlurCapture", "onChange", "onChangeCapture", "onBeforeInput", "onBeforeInputCapture", "onInput", "onInputCapture", "onReset", "onResetCapture", "onSubmit", "onSubmitCapture", "onInvalid", "onInvalidCapture", "onLoad", "onLoadCapture", "onError", "onErrorCapture", "onKeyDown", "onKeyDownCapture", "onKeyPress", "onKeyPressCapture", "onKeyUp", "onKeyUpCapture", "onAbort", "onAbortCapture", "onCanPlay", "onCanPlayCapture", "onCanPlayThrough", "onCanPlayThroughCapture", "onDurationChange", "onDurationChangeCapture", "onEmptied", "onEmptiedCapture", "onEncrypted", "onEncryptedCapture", "onEnded", "onEndedCapture", "onLoadedData", "onLoadedDataCapture", "onLoadedMetadata", "onLoadedMetadataCapture", "onLoadStart", "onLoadStartCapture", "onPause", "onPauseCapture", "onPlay", "onPlayCapture", "onPlaying", "onPlayingCapture", "onProgress", "onProgressCapture", "onRateChange", "onRateChangeCapture", "onSeeked", "onSeekedCapture", "onSeeking", "onSeekingCapture", "onStalled", "onStalledCapture", "onSuspend", "onSuspendCapture", "onTimeUpdate", "onTimeUpdateCapture", "onVolumeChange", "onVolumeChangeCapture", "onWaiting", "onWaitingCapture", "onAuxClick", "onAuxClickCapture", "onClick", "onClickCapture", "onContextMenu", "onContextMenuCapture", "onDoubleClick", "onDoubleClickCapture", "onDrag", "onDragCapture", "onDragEnd", "onDragEndCapture", "onDragEnter", "onDragEnterCapture", "onDragExit", "onDragExitCapture", "onDragLeave", "onDragLeaveCapture", "onDragOver", "onDragOverCapture", "onDragStart", "onDragStartCapture", "onDrop", "onDropCapture", "onMouseDown", "onMouseDownCapture", "onMouseEnter", "onMouseLeave", "onMouseMove", "onMouseMoveCapture", "onMouseOut", "onMouseOutCapture", "onMouseOver", "onMouseOverCapture", "onMouseUp", "onMouseUpCapture", "onSelect", "onSelectCapture", "onTouchCancel", "onTouchCancelCapture", "onTouchEnd", "onTouchEndCapture", "onTouchMove", "onTouchMoveCapture", "onTouchStart", "onTouchStartCapture", "onPointerDown", "onPointerDownCapture", "onPointerMove", "onPointerMoveCapture", "onPointerUp", "onPointerUpCapture", "onPointerCancel", "onPointerCancelCapture", "onPointerEnter", "onPointerEnterCapture", "onPointerLeave", "onPointerLeaveCapture", "onPointerOver", "onPointerOverCapture", "onPointerOut", "onPointerOutCapture", "onGotPointerCapture", "onGotPointerCaptureCapture", "onLostPointerCapture", "onLostPointerCaptureCapture", "onScroll", "onScrollCapture", "onWheel", "onWheelCapture", "onAnimationStart", "onAnimationStartCapture", "onAnimationEnd", "onAnimationEndCapture", "onAnimationIteration", "onAnimationIterationCapture", "onTransitionEnd", "onTransitionEndCapture"];
@@ -26592,10 +25223,10 @@ var adaptEventsOfChild = (props, data, index2) => {
 };
 
 // node_modules/recharts/es6/shape/Curve.js
-var React5 = __toESM(require_react2(), 1);
+var React5 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/svgPropertiesNoEvents.js
-var import_react12 = __toESM(require_react2(), 1);
+var import_react12 = __toESM(require_react(), 1);
 var SVGElementPropKeys = [
   "aria-activedescendant",
   "aria-atomic",
@@ -26938,17 +25569,17 @@ function svgPropertiesNoEventsFromUnknown(input) {
 }
 
 // node_modules/recharts/es6/shape/Curve.js
-function _extends3() {
-  return _extends3 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends2() {
+  return _extends2 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends3.apply(null, arguments);
+  }, _extends2.apply(null, arguments);
 }
-function ownKeys6(e, r2) {
+function ownKeys5(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -26958,25 +25589,25 @@ function ownKeys6(e, r2) {
   }
   return t;
 }
-function _objectSpread6(e) {
+function _objectSpread5(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys6(Object(t), true).forEach(function(r3) {
-      _defineProperty6(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys6(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys5(Object(t), true).forEach(function(r3) {
+      _defineProperty5(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys5(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty6(e, r2, t) {
-  return (r2 = _toPropertyKey6(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty5(e, r2, t) {
+  return (r2 = _toPropertyKey5(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey6(t) {
-  var i = _toPrimitive6(t, "string");
+function _toPropertyKey5(t) {
+  var i = _toPrimitive5(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive6(t, r2) {
+function _toPrimitive5(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -27036,7 +25667,7 @@ var getPath = (_ref) => {
   var formatPoints = connectNulls ? points.filter(defined) : points;
   if (Array.isArray(baseLine)) {
     var _lineFunction;
-    var areaPoints = points.map((entry, index2) => _objectSpread6(_objectSpread6({}, entry), {}, {
+    var areaPoints = points.map((entry, index2) => _objectSpread5(_objectSpread5({}, entry), {}, {
       base: baseLine[index2]
     }));
     if (layout === "vertical") {
@@ -27078,7 +25709,7 @@ var Curve = (props) => {
     connectNulls: props.connectNulls
   };
   var realPath = points && points.length ? getPath(getPathInput) : path2;
-  return /* @__PURE__ */ React5.createElement("path", _extends3({}, svgPropertiesNoEvents(props), adaptEventHandlers(props), {
+  return /* @__PURE__ */ React5.createElement("path", _extends2({}, svgPropertiesNoEvents(props), adaptEventHandlers(props), {
     className: clsx("recharts-curve", className),
     d: realPath === null ? undefined : realPath,
     ref: pathRef
@@ -27086,10 +25717,10 @@ var Curve = (props) => {
 };
 
 // node_modules/recharts/es6/shape/Cross.js
-var React6 = __toESM(require_react2(), 1);
+var React6 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/svgPropertiesAndEvents.js
-var import_react13 = __toESM(require_react2(), 1);
+var import_react13 = __toESM(require_react(), 1);
 function svgPropertiesAndEvents(obj) {
   var result = {};
   for (var key in obj) {
@@ -27104,17 +25735,17 @@ function svgPropertiesAndEvents(obj) {
 
 // node_modules/recharts/es6/shape/Cross.js
 var _excluded = ["x", "y", "top", "left", "width", "height", "className"];
-function _extends4() {
-  return _extends4 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends3() {
+  return _extends3 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends4.apply(null, arguments);
+  }, _extends3.apply(null, arguments);
 }
-function ownKeys7(e, r2) {
+function ownKeys6(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -27124,25 +25755,25 @@ function ownKeys7(e, r2) {
   }
   return t;
 }
-function _objectSpread7(e) {
+function _objectSpread6(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys7(Object(t), true).forEach(function(r3) {
-      _defineProperty7(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys7(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys6(Object(t), true).forEach(function(r3) {
+      _defineProperty6(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys6(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty7(e, r2, t) {
-  return (r2 = _toPropertyKey7(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty6(e, r2, t) {
+  return (r2 = _toPropertyKey6(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey7(t) {
-  var i = _toPrimitive7(t, "string");
+function _toPropertyKey6(t) {
+  var i = _toPrimitive6(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive7(t, r2) {
+function _toPrimitive6(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -27190,7 +25821,7 @@ var Cross = (_ref) => {
     height = 0,
     className
   } = _ref, rest = _objectWithoutProperties(_ref, _excluded);
-  var props = _objectSpread7({
+  var props = _objectSpread6({
     x: x2,
     y: y2,
     top,
@@ -27201,7 +25832,7 @@ var Cross = (_ref) => {
   if (!isNumber(x2) || !isNumber(y2) || !isNumber(width) || !isNumber(height) || !isNumber(top) || !isNumber(left)) {
     return null;
   }
-  return /* @__PURE__ */ React6.createElement("path", _extends4({}, svgPropertiesAndEvents(props), {
+  return /* @__PURE__ */ React6.createElement("path", _extends3({}, svgPropertiesAndEvents(props), {
     className: clsx("recharts-cross", className),
     d: getPath2(x2, y2, width, height, top, left)
   }));
@@ -27221,10 +25852,67 @@ function getCursorRectangle(layout, activeCoordinate, offset, tooltipAxisBandSiz
 }
 
 // node_modules/recharts/es6/shape/Rectangle.js
-var React7 = __toESM(require_react2(), 1);
-var import_react17 = __toESM(require_react2(), 1);
+var React7 = __toESM(require_react(), 1);
+var import_react17 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/resolveDefaultProps.js
+function ownKeys7(e, r2) {
+  var t = Object.keys(e);
+  if (Object.getOwnPropertySymbols) {
+    var o = Object.getOwnPropertySymbols(e);
+    r2 && (o = o.filter(function(r3) {
+      return Object.getOwnPropertyDescriptor(e, r3).enumerable;
+    })), t.push.apply(t, o);
+  }
+  return t;
+}
+function _objectSpread7(e) {
+  for (var r2 = 1;r2 < arguments.length; r2++) {
+    var t = arguments[r2] != null ? arguments[r2] : {};
+    r2 % 2 ? ownKeys7(Object(t), true).forEach(function(r3) {
+      _defineProperty7(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys7(Object(t)).forEach(function(r3) {
+      Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
+    });
+  }
+  return e;
+}
+function _defineProperty7(e, r2, t) {
+  return (r2 = _toPropertyKey7(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+}
+function _toPropertyKey7(t) {
+  var i = _toPrimitive7(t, "string");
+  return typeof i == "symbol" ? i : i + "";
+}
+function _toPrimitive7(t, r2) {
+  if (typeof t != "object" || !t)
+    return t;
+  var e = t[Symbol.toPrimitive];
+  if (e !== undefined) {
+    var i = e.call(t, r2 || "default");
+    if (typeof i != "object")
+      return i;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return (r2 === "string" ? String : Number)(t);
+}
+function resolveDefaultProps(realProps, defaultProps) {
+  var resolvedProps = _objectSpread7({}, realProps);
+  var dp = defaultProps;
+  var keys = Object.keys(defaultProps);
+  var withDefaults = keys.reduce((acc, key) => {
+    if (acc[key] === undefined && dp[key] !== undefined) {
+      acc[key] = dp[key];
+    }
+    return acc;
+  }, resolvedProps);
+  return withDefaults;
+}
+
+// node_modules/recharts/es6/animation/JavascriptAnimate.js
+var import_react15 = __toESM(require_react(), 1);
+
+// node_modules/recharts/es6/animation/util.js
 function ownKeys8(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
@@ -27265,23 +25953,14 @@ function _toPrimitive8(t, r2) {
   }
   return (r2 === "string" ? String : Number)(t);
 }
-function resolveDefaultProps(realProps, defaultProps) {
-  var resolvedProps = _objectSpread8({}, realProps);
-  var dp = defaultProps;
-  var keys = Object.keys(defaultProps);
-  var withDefaults = keys.reduce((acc, key) => {
-    if (acc[key] === undefined && dp[key] !== undefined) {
-      acc[key] = dp[key];
-    }
-    return acc;
-  }, resolvedProps);
-  return withDefaults;
-}
+var getDashCase = (name) => name.replace(/([A-Z])/g, (v) => "-".concat(v.toLowerCase()));
+var getTransitionVal = (props, duration, easing) => props.map((prop) => "".concat(getDashCase(prop), " ").concat(duration, "ms ").concat(easing)).join(",");
+var getIntersectionKeys = (preObj, nextObj) => [Object.keys(preObj), Object.keys(nextObj)].reduce((a2, b) => a2.filter((c2) => b.includes(c2)));
+var mapObject = (fn, obj) => Object.keys(obj).reduce((res, key) => _objectSpread8(_objectSpread8({}, res), {}, {
+  [key]: fn(key, obj[key])
+}), {});
 
-// node_modules/recharts/es6/animation/JavascriptAnimate.js
-var import_react15 = __toESM(require_react2(), 1);
-
-// node_modules/recharts/es6/animation/util.js
+// node_modules/recharts/es6/animation/configUpdate.js
 function ownKeys9(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
@@ -27322,54 +26001,6 @@ function _toPrimitive9(t, r2) {
   }
   return (r2 === "string" ? String : Number)(t);
 }
-var getDashCase = (name) => name.replace(/([A-Z])/g, (v) => "-".concat(v.toLowerCase()));
-var getTransitionVal = (props, duration, easing) => props.map((prop) => "".concat(getDashCase(prop), " ").concat(duration, "ms ").concat(easing)).join(",");
-var getIntersectionKeys = (preObj, nextObj) => [Object.keys(preObj), Object.keys(nextObj)].reduce((a2, b) => a2.filter((c2) => b.includes(c2)));
-var mapObject = (fn, obj) => Object.keys(obj).reduce((res, key) => _objectSpread9(_objectSpread9({}, res), {}, {
-  [key]: fn(key, obj[key])
-}), {});
-
-// node_modules/recharts/es6/animation/configUpdate.js
-function ownKeys10(e, r2) {
-  var t = Object.keys(e);
-  if (Object.getOwnPropertySymbols) {
-    var o = Object.getOwnPropertySymbols(e);
-    r2 && (o = o.filter(function(r3) {
-      return Object.getOwnPropertyDescriptor(e, r3).enumerable;
-    })), t.push.apply(t, o);
-  }
-  return t;
-}
-function _objectSpread10(e) {
-  for (var r2 = 1;r2 < arguments.length; r2++) {
-    var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys10(Object(t), true).forEach(function(r3) {
-      _defineProperty10(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys10(Object(t)).forEach(function(r3) {
-      Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
-    });
-  }
-  return e;
-}
-function _defineProperty10(e, r2, t) {
-  return (r2 = _toPropertyKey10(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
-}
-function _toPropertyKey10(t) {
-  var i = _toPrimitive10(t, "string");
-  return typeof i == "symbol" ? i : i + "";
-}
-function _toPrimitive10(t, r2) {
-  if (typeof t != "object" || !t)
-    return t;
-  var e = t[Symbol.toPrimitive];
-  if (e !== undefined) {
-    var i = e.call(t, r2 || "default");
-    if (typeof i != "object")
-      return i;
-    throw new TypeError("@@toPrimitive must return a primitive value.");
-  }
-  return (r2 === "string" ? String : Number)(t);
-}
 var alpha = (begin, end, k2) => begin + (end - begin) * k2;
 var needContinue = (_ref) => {
   var {
@@ -27382,7 +26013,7 @@ var calStepperVals = (easing, preVals, steps) => {
   var nextStepVals = mapObject((key, val) => {
     if (needContinue(val)) {
       var [newX, newV] = easing(val.from, val.to, val.velocity);
-      return _objectSpread10(_objectSpread10({}, val), {}, {
+      return _objectSpread9(_objectSpread9({}, val), {}, {
         from: newX,
         velocity: newV
       });
@@ -27392,7 +26023,7 @@ var calStepperVals = (easing, preVals, steps) => {
   if (steps < 1) {
     return mapObject((key, val) => {
       if (needContinue(val) && nextStepVals[key] != null) {
-        return _objectSpread10(_objectSpread10({}, val), {}, {
+        return _objectSpread9(_objectSpread9({}, val), {}, {
           velocity: alpha(val.velocity, nextStepVals[key].velocity, steps),
           from: alpha(val.from, nextStepVals[key].from, steps)
         });
@@ -27404,7 +26035,7 @@ var calStepperVals = (easing, preVals, steps) => {
 };
 function createStepperUpdate(from, to, easing, interKeys, render, timeoutController) {
   var preTime;
-  var stepperStyle = interKeys.reduce((res, key) => _objectSpread10(_objectSpread10({}, res), {}, {
+  var stepperStyle = interKeys.reduce((res, key) => _objectSpread9(_objectSpread9({}, res), {}, {
     [key]: {
       from: from[key],
       velocity: 0,
@@ -27421,7 +26052,7 @@ function createStepperUpdate(from, to, easing, interKeys, render, timeoutControl
     var deltaTime = now - preTime;
     var steps = deltaTime / easing.dt;
     stepperStyle = calStepperVals(easing, stepperStyle, steps);
-    render(_objectSpread10(_objectSpread10(_objectSpread10({}, from), to), getCurrStyle()));
+    render(_objectSpread9(_objectSpread9(_objectSpread9({}, from), to), getCurrStyle()));
     preTime = now;
     if (!shouldStopAnimation()) {
       stopAnimation = timeoutController.setTimeout(stepperUpdate);
@@ -27443,7 +26074,7 @@ function createTimingUpdate(from, to, easing, duration, interKeys, render, timeo
     if (fromElement == null || toElement == null) {
       return res;
     }
-    return _objectSpread10(_objectSpread10({}, res), {}, {
+    return _objectSpread9(_objectSpread9({}, res), {}, {
       [key]: [fromElement, toElement]
     });
   }, {});
@@ -27454,12 +26085,12 @@ function createTimingUpdate(from, to, easing, duration, interKeys, render, timeo
     }
     var t = (now - beginTime) / duration;
     var currStyle = mapObject((key, val) => alpha(...val, easing(t)), timingStyle);
-    render(_objectSpread10(_objectSpread10(_objectSpread10({}, from), to), currStyle));
+    render(_objectSpread9(_objectSpread9(_objectSpread9({}, from), to), currStyle));
     if (t < 1) {
       stopAnimation = timeoutController.setTimeout(timingUpdate);
     } else {
       var finalStyle = mapObject((key, val) => alpha(...val, easing(1)), timingStyle);
-      render(_objectSpread10(_objectSpread10(_objectSpread10({}, from), to), finalStyle));
+      render(_objectSpread9(_objectSpread9(_objectSpread9({}, from), to), finalStyle));
     }
   };
   return () => {
@@ -27474,7 +26105,7 @@ var configUpdate_default = (from, to, easing, duration, render, timeoutControlle
   var interKeys = getIntersectionKeys(from, to);
   if (easing == null) {
     return () => {
-      render(_objectSpread10(_objectSpread10({}, from), to));
+      render(_objectSpread9(_objectSpread9({}, from), to));
       return () => {};
     };
   }
@@ -27613,7 +26244,7 @@ var configEasing = (easing) => {
 };
 
 // node_modules/recharts/es6/animation/useAnimationManager.js
-var import_react14 = __toESM(require_react2(), 1);
+var import_react14 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/animation/AnimationManager.js
 function createAnimateManager(timeoutController) {
@@ -27766,7 +26397,7 @@ function JavascriptAnimate(outsideProps) {
 }
 
 // node_modules/recharts/es6/util/useAnimationId.js
-var import_react16 = __toESM(require_react2(), 1);
+var import_react16 = __toESM(require_react(), 1);
 function useAnimationId(input) {
   var prefix = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "animation-";
   var animationId = import_react16.useRef(uniqueId(prefix));
@@ -27791,7 +26422,7 @@ var _templateObject7;
 var _templateObject8;
 var _templateObject9;
 var _templateObject0;
-function ownKeys11(e, r2) {
+function ownKeys10(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -27801,25 +26432,25 @@ function ownKeys11(e, r2) {
   }
   return t;
 }
-function _objectSpread11(e) {
+function _objectSpread10(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys11(Object(t), true).forEach(function(r3) {
-      _defineProperty11(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys11(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys10(Object(t), true).forEach(function(r3) {
+      _defineProperty10(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys10(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty11(e, r2, t) {
-  return (r2 = _toPropertyKey11(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty10(e, r2, t) {
+  return (r2 = _toPropertyKey10(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey11(t) {
-  var i = _toPrimitive11(t, "string");
+function _toPropertyKey10(t) {
+  var i = _toPrimitive10(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive11(t, r2) {
+function _toPrimitive10(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -27831,15 +26462,15 @@ function _toPrimitive11(t, r2) {
   }
   return (r2 === "string" ? String : Number)(t);
 }
-function _extends5() {
-  return _extends5 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends4() {
+  return _extends4 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends5.apply(null, arguments);
+  }, _extends4.apply(null, arguments);
 }
 function _objectWithoutProperties2(e, t) {
   if (e == null)
@@ -27978,7 +26609,7 @@ var Rectangle = (rectangleProps) => {
     var _svgPropertiesAndEven = svgPropertiesAndEvents(props), {
       radius: _
     } = _svgPropertiesAndEven, otherPathProps = _objectWithoutProperties2(_svgPropertiesAndEven, _excluded2);
-    return /* @__PURE__ */ React7.createElement("path", _extends5({}, otherPathProps, {
+    return /* @__PURE__ */ React7.createElement("path", _extends4({}, otherPathProps, {
       x: round(x2),
       y: round(y2),
       width: round(width),
@@ -28032,18 +26663,18 @@ var Rectangle = (rectangleProps) => {
     var _svgPropertiesAndEven2 = svgPropertiesAndEvents(props), {
       radius: _2
     } = _svgPropertiesAndEven2, otherPathProps2 = _objectWithoutProperties2(_svgPropertiesAndEven2, _excluded22);
-    return /* @__PURE__ */ React7.createElement("path", _extends5({}, otherPathProps2, {
+    return /* @__PURE__ */ React7.createElement("path", _extends4({}, otherPathProps2, {
       radius: typeof radius === "number" ? radius : undefined,
       className: layerClass,
       d: getRectanglePath(currX, currY, currWidth, currHeight, radius),
       ref: pathRef,
-      style: _objectSpread11(_objectSpread11({}, animationStyle), props.style)
+      style: _objectSpread10(_objectSpread10({}, animationStyle), props.style)
     }));
   });
 };
 
 // node_modules/recharts/es6/util/PolarUtils.js
-function ownKeys12(e, r2) {
+function ownKeys11(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -28053,25 +26684,25 @@ function ownKeys12(e, r2) {
   }
   return t;
 }
-function _objectSpread12(e) {
+function _objectSpread11(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys12(Object(t), true).forEach(function(r3) {
-      _defineProperty12(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys12(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys11(Object(t), true).forEach(function(r3) {
+      _defineProperty11(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys11(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty12(e, r2, t) {
-  return (r2 = _toPropertyKey12(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty11(e, r2, t) {
+  return (r2 = _toPropertyKey11(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey12(t) {
-  var i = _toPrimitive12(t, "string");
+function _toPropertyKey11(t) {
+  var i = _toPrimitive11(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive12(t, r2) {
+function _toPrimitive11(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -28214,7 +26845,7 @@ var inRangeOfSector = (_ref5, viewBox) => {
     inRange = formatAngle >= endAngle && formatAngle <= startAngle;
   }
   if (inRange) {
-    return _objectSpread12(_objectSpread12({}, viewBox), {}, {
+    return _objectSpread11(_objectSpread11({}, viewBox), {}, {
       radius,
       angle: reverseFormatAngleOfSector(formatAngle, viewBox)
     });
@@ -28244,7 +26875,7 @@ function getRadialCursorPoints(activeCoordinate) {
 }
 
 // node_modules/recharts/es6/shape/Sector.js
-var React8 = __toESM(require_react2(), 1);
+var React8 = __toESM(require_react(), 1);
 var _templateObject10;
 var _templateObject22;
 var _templateObject32;
@@ -28252,15 +26883,15 @@ var _templateObject42;
 var _templateObject52;
 var _templateObject62;
 var _templateObject72;
-function _extends6() {
-  return _extends6 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends5() {
+  return _extends5 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends6.apply(null, arguments);
+  }, _extends5.apply(null, arguments);
 }
 function _taggedTemplateLiteral2(e, t) {
   return t || (t = e.slice(0)), Object.freeze(Object.defineProperties(e, { raw: { value: Object.freeze(t) } }));
@@ -28482,7 +27113,7 @@ var Sector = (sectorProps) => {
       endAngle
     });
   }
-  return /* @__PURE__ */ React8.createElement("path", _extends6({}, svgPropertiesAndEvents(props), {
+  return /* @__PURE__ */ React8.createElement("path", _extends5({}, svgPropertiesAndEvents(props), {
     className: layerClass,
     d: path2
   }));
@@ -28993,7 +27624,7 @@ function getAxisTypeBasedOnLayout(layout, axisType, axisDomainType) {
 }
 
 // node_modules/recharts/es6/state/selectors/polarAxisSelectors.js
-function ownKeys13(e, r2) {
+function ownKeys12(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -29003,25 +27634,25 @@ function ownKeys13(e, r2) {
   }
   return t;
 }
-function _objectSpread13(e) {
+function _objectSpread12(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys13(Object(t), true).forEach(function(r3) {
-      _defineProperty13(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys13(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys12(Object(t), true).forEach(function(r3) {
+      _defineProperty12(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys12(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty13(e, r2, t) {
-  return (r2 = _toPropertyKey13(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty12(e, r2, t) {
+  return (r2 = _toPropertyKey12(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey13(t) {
-  var i = _toPrimitive13(t, "string");
+function _toPropertyKey12(t) {
+  var i = _toPrimitive12(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive13(t, r2) {
+function _toPrimitive12(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -29081,7 +27712,7 @@ var selectAngleAxis = createSelector([selectAngleAxisNoDefaults, selectPolarChar
     return angleAxisSettings;
   }
   var evaluatedType = (_getAxisTypeBasedOnLa = getAxisTypeBasedOnLayout(layout, "angleAxis", implicitAngleAxis.type)) !== null && _getAxisTypeBasedOnLa !== undefined ? _getAxisTypeBasedOnLa : "category";
-  return _objectSpread13(_objectSpread13({}, implicitAngleAxis), {}, {
+  return _objectSpread12(_objectSpread12({}, implicitAngleAxis), {}, {
     type: evaluatedType
   });
 });
@@ -29094,7 +27725,7 @@ var selectRadiusAxis = createSelector([selectRadiusAxisNoDefaults, selectPolarCh
     return radiusAxisSettings;
   }
   var evaluatedType = (_getAxisTypeBasedOnLa2 = getAxisTypeBasedOnLayout(layout, "radiusAxis", implicitRadiusAxis.type)) !== null && _getAxisTypeBasedOnLa2 !== undefined ? _getAxisTypeBasedOnLa2 : "category";
-  return _objectSpread13(_objectSpread13({}, implicitRadiusAxis), {}, {
+  return _objectSpread12(_objectSpread12({}, implicitRadiusAxis), {}, {
     type: evaluatedType
   });
 });
@@ -32450,7 +31081,7 @@ function combineInverseScaleFunction(configuredScale) {
 }
 
 // node_modules/recharts/es6/state/selectors/axisSelectors.js
-function ownKeys14(e, r2) {
+function ownKeys13(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -32460,25 +31091,25 @@ function ownKeys14(e, r2) {
   }
   return t;
 }
-function _objectSpread14(e) {
+function _objectSpread13(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys14(Object(t), true).forEach(function(r3) {
-      _defineProperty14(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys14(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys13(Object(t), true).forEach(function(r3) {
+      _defineProperty13(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys13(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty14(e, r2, t) {
-  return (r2 = _toPropertyKey14(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty13(e, r2, t) {
+  return (r2 = _toPropertyKey13(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey14(t) {
-  var i = _toPrimitive14(t, "string");
+function _toPropertyKey13(t) {
+  var i = _toPrimitive13(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive14(t, r2) {
+function _toPrimitive13(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -33589,7 +32220,7 @@ var selectAxisWithScale = createSelector(selectBaseAxis, selectAxisScale, (axis,
   if (axis == null || scale == null) {
     return;
   }
-  return _objectSpread14(_objectSpread14({}, axis), {}, {
+  return _objectSpread13(_objectSpread13({}, axis), {}, {
     scale
   });
 });
@@ -33599,7 +32230,7 @@ var selectZAxisWithScale = createSelector((state, _axisType, axisId) => selectZA
   if (axis == null || scale == null) {
     return;
   }
-  return _objectSpread14(_objectSpread14({}, axis), {}, {
+  return _objectSpread13(_objectSpread13({}, axis), {}, {
     scale
   });
 });
@@ -34469,7 +33100,7 @@ var {
 var tooltipReducer = tooltipSlice.reducer;
 
 // node_modules/recharts/es6/state/selectors/combiners/combineTooltipInteractionState.js
-function ownKeys15(e, r2) {
+function ownKeys14(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -34479,25 +33110,25 @@ function ownKeys15(e, r2) {
   }
   return t;
 }
-function _objectSpread15(e) {
+function _objectSpread14(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys15(Object(t), true).forEach(function(r3) {
-      _defineProperty15(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys15(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys14(Object(t), true).forEach(function(r3) {
+      _defineProperty14(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys14(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty15(e, r2, t) {
-  return (r2 = _toPropertyKey15(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty14(e, r2, t) {
+  return (r2 = _toPropertyKey14(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey15(t) {
-  var i = _toPrimitive15(t, "string");
+function _toPropertyKey14(t) {
+  var i = _toPrimitive14(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive15(t, r2) {
+function _toPrimitive14(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -34544,7 +33175,7 @@ var combineTooltipInteractionState = (tooltipState, tooltipEventType, trigger, d
   var activeFromProps = tooltipState.settings.active === true;
   if (hasBeenActivePreviously(appropriateMouseInteraction)) {
     if (activeFromProps) {
-      return _objectSpread15(_objectSpread15({}, appropriateMouseInteraction), {}, {
+      return _objectSpread14(_objectSpread14({}, appropriateMouseInteraction), {}, {
         active: true
       });
     }
@@ -34557,7 +33188,7 @@ var combineTooltipInteractionState = (tooltipState, tooltipEventType, trigger, d
       graphicalItemId: undefined
     };
   }
-  return _objectSpread15(_objectSpread15({}, noInteraction), {}, {
+  return _objectSpread14(_objectSpread14({}, noInteraction), {}, {
     coordinate: appropriateMouseInteraction.coordinate
   });
 };
@@ -34690,7 +33321,7 @@ var selectTooltipPayloadSearcher = (state) => state.options.tooltipPayloadSearch
 var selectTooltipState = (state) => state.tooltip;
 
 // node_modules/recharts/es6/state/selectors/combiners/combineTooltipPayload.js
-function ownKeys16(e, r2) {
+function ownKeys15(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -34700,25 +33331,25 @@ function ownKeys16(e, r2) {
   }
   return t;
 }
-function _objectSpread16(e) {
+function _objectSpread15(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys16(Object(t), true).forEach(function(r3) {
-      _defineProperty16(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys16(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys15(Object(t), true).forEach(function(r3) {
+      _defineProperty15(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys15(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty16(e, r2, t) {
-  return (r2 = _toPropertyKey16(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty15(e, r2, t) {
+  return (r2 = _toPropertyKey15(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey16(t) {
-  var i = _toPrimitive16(t, "string");
+function _toPropertyKey15(t) {
+  var i = _toPrimitive15(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive16(t, r2) {
+function _toPrimitive15(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -34816,7 +33447,7 @@ var combineTooltipPayload = (tooltipPayloadConfigurations, activeIndex, chartDat
         var itemName = parsedItem === null || parsedItem === undefined ? undefined : parsedItem.name;
         var itemDataKey = parsedItem === null || parsedItem === undefined ? undefined : parsedItem.dataKey;
         var itemPayload = parsedItem === null || parsedItem === undefined ? undefined : parsedItem.payload;
-        var newSettings = _objectSpread16(_objectSpread16({}, settings), {}, {
+        var newSettings = _objectSpread15(_objectSpread15({}, settings), {}, {
           name: itemName,
           unit: parsedItem === null || parsedItem === undefined ? undefined : parsedItem.unit,
           color: (_parsedItem$color = parsedItem === null || parsedItem === undefined ? undefined : parsedItem.color) !== null && _parsedItem$color !== undefined ? _parsedItem$color : settings === null || settings === undefined ? undefined : settings.color,
@@ -34979,6 +33610,60 @@ var selectActiveTooltipDataPoints = createSelector([selectActiveTooltipPayload],
 });
 
 // node_modules/recharts/es6/context/useTooltipAxis.js
+function ownKeys16(e, r2) {
+  var t = Object.keys(e);
+  if (Object.getOwnPropertySymbols) {
+    var o = Object.getOwnPropertySymbols(e);
+    r2 && (o = o.filter(function(r3) {
+      return Object.getOwnPropertyDescriptor(e, r3).enumerable;
+    })), t.push.apply(t, o);
+  }
+  return t;
+}
+function _objectSpread16(e) {
+  for (var r2 = 1;r2 < arguments.length; r2++) {
+    var t = arguments[r2] != null ? arguments[r2] : {};
+    r2 % 2 ? ownKeys16(Object(t), true).forEach(function(r3) {
+      _defineProperty16(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys16(Object(t)).forEach(function(r3) {
+      Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
+    });
+  }
+  return e;
+}
+function _defineProperty16(e, r2, t) {
+  return (r2 = _toPropertyKey16(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+}
+function _toPropertyKey16(t) {
+  var i = _toPrimitive16(t, "string");
+  return typeof i == "symbol" ? i : i + "";
+}
+function _toPrimitive16(t, r2) {
+  if (typeof t != "object" || !t)
+    return t;
+  var e = t[Symbol.toPrimitive];
+  if (e !== undefined) {
+    var i = e.call(t, r2 || "default");
+    if (typeof i != "object")
+      return i;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return (r2 === "string" ? String : Number)(t);
+}
+var useTooltipAxis = () => useAppSelector(selectTooltipAxis);
+var useTooltipAxisBandSize = () => {
+  var tooltipAxis = useTooltipAxis();
+  var tooltipTicks = useAppSelector(selectTooltipAxisTicks);
+  var tooltipAxisScale = useAppSelector(selectTooltipAxisScale);
+  if (!tooltipAxis || !tooltipAxisScale) {
+    return getBandSizeOfAxis(undefined, tooltipTicks);
+  }
+  return getBandSizeOfAxis(_objectSpread16(_objectSpread16({}, tooltipAxis), {}, {
+    scale: tooltipAxisScale
+  }), tooltipTicks);
+};
+
+// node_modules/recharts/es6/util/getActiveCoordinate.js
 function ownKeys17(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
@@ -35019,60 +33704,6 @@ function _toPrimitive17(t, r2) {
   }
   return (r2 === "string" ? String : Number)(t);
 }
-var useTooltipAxis = () => useAppSelector(selectTooltipAxis);
-var useTooltipAxisBandSize = () => {
-  var tooltipAxis = useTooltipAxis();
-  var tooltipTicks = useAppSelector(selectTooltipAxisTicks);
-  var tooltipAxisScale = useAppSelector(selectTooltipAxisScale);
-  if (!tooltipAxis || !tooltipAxisScale) {
-    return getBandSizeOfAxis(undefined, tooltipTicks);
-  }
-  return getBandSizeOfAxis(_objectSpread17(_objectSpread17({}, tooltipAxis), {}, {
-    scale: tooltipAxisScale
-  }), tooltipTicks);
-};
-
-// node_modules/recharts/es6/util/getActiveCoordinate.js
-function ownKeys18(e, r2) {
-  var t = Object.keys(e);
-  if (Object.getOwnPropertySymbols) {
-    var o = Object.getOwnPropertySymbols(e);
-    r2 && (o = o.filter(function(r3) {
-      return Object.getOwnPropertyDescriptor(e, r3).enumerable;
-    })), t.push.apply(t, o);
-  }
-  return t;
-}
-function _objectSpread18(e) {
-  for (var r2 = 1;r2 < arguments.length; r2++) {
-    var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys18(Object(t), true).forEach(function(r3) {
-      _defineProperty18(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys18(Object(t)).forEach(function(r3) {
-      Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
-    });
-  }
-  return e;
-}
-function _defineProperty18(e, r2, t) {
-  return (r2 = _toPropertyKey18(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
-}
-function _toPropertyKey18(t) {
-  var i = _toPrimitive18(t, "string");
-  return typeof i == "symbol" ? i : i + "";
-}
-function _toPrimitive18(t, r2) {
-  if (typeof t != "object" || !t)
-    return t;
-  var e = t[Symbol.toPrimitive];
-  if (e !== undefined) {
-    var i = e.call(t, r2 || "default");
-    if (typeof i != "object")
-      return i;
-    throw new TypeError("@@toPrimitive must return a primitive value.");
-  }
-  return (r2 === "string" ? String : Number)(t);
-}
 var getActiveCartesianCoordinate = (layout, tooltipTicks, activeIndex, pointer) => {
   var entry = tooltipTicks.find((tick) => tick && tick.index === activeIndex);
   if (entry) {
@@ -35102,7 +33733,7 @@ var getActivePolarCoordinate = (layout, tooltipTicks, activeIndex, rangeObj) => 
       var {
         radius: _radius
       } = rangeObj;
-      return _objectSpread18(_objectSpread18(_objectSpread18({}, rangeObj), polarToCartesian(rangeObj.cx, rangeObj.cy, _radius, _angle)), {}, {
+      return _objectSpread17(_objectSpread17(_objectSpread17({}, rangeObj), polarToCartesian(rangeObj.cx, rangeObj.cy, _radius, _angle)), {}, {
         angle: _angle,
         radius: _radius
       });
@@ -35111,7 +33742,7 @@ var getActivePolarCoordinate = (layout, tooltipTicks, activeIndex, rangeObj) => 
     var {
       angle
     } = rangeObj;
-    return _objectSpread18(_objectSpread18(_objectSpread18({}, rangeObj), polarToCartesian(rangeObj.cx, rangeObj.cy, radius, angle)), {}, {
+    return _objectSpread17(_objectSpread17(_objectSpread17({}, rangeObj), polarToCartesian(rangeObj.cx, rangeObj.cy, radius, angle)), {}, {
       angle,
       radius
     });
@@ -35284,8 +33915,8 @@ var combineActiveProps = (chartEvent, layout, polarViewBox, tooltipAxisType, too
 };
 
 // node_modules/recharts/es6/zIndex/ZIndexLayer.js
-var import_react18 = __toESM(require_react2(), 1);
-var import_react_dom = __toESM(require_react_dom2(), 1);
+var import_react18 = __toESM(require_react(), 1);
+var import_react_dom = __toESM(require_react_dom(), 1);
 
 // node_modules/recharts/es6/zIndex/zIndexSelectors.js
 var selectZIndexPortalElement = createSelector((state) => state.zIndex.zIndexMap, (_, zIndex) => zIndex, (_, _zIndex, isPanorama) => isPanorama, (zIndexMap, zIndex, isPanorama) => {
@@ -35312,7 +33943,7 @@ var selectAllRegisteredZIndexes = createSelector((state) => state.zIndex.zIndexM
 });
 
 // node_modules/recharts/es6/state/zIndexSlice.js
-function ownKeys19(e, r2) {
+function ownKeys18(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -35322,25 +33953,25 @@ function ownKeys19(e, r2) {
   }
   return t;
 }
-function _objectSpread19(e) {
+function _objectSpread18(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys19(Object(t), true).forEach(function(r3) {
-      _defineProperty19(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys19(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys18(Object(t), true).forEach(function(r3) {
+      _defineProperty18(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys18(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty19(e, r2, t) {
-  return (r2 = _toPropertyKey19(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty18(e, r2, t) {
+  return (r2 = _toPropertyKey18(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey19(t) {
-  var i = _toPrimitive19(t, "string");
+function _toPropertyKey18(t) {
+  var i = _toPrimitive18(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive19(t, r2) {
+function _toPrimitive18(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -35354,7 +33985,7 @@ function _toPrimitive19(t, r2) {
 }
 var seed = {};
 var initialState3 = {
-  zIndexMap: Object.values(DefaultZIndexes).reduce((acc, current3) => _objectSpread19(_objectSpread19({}, acc), {}, {
+  zIndexMap: Object.values(DefaultZIndexes).reduce((acc, current3) => _objectSpread18(_objectSpread18({}, acc), {}, {
     [current3]: {
       element: undefined,
       panoramaElement: undefined,
@@ -35515,17 +34146,17 @@ function ZIndexLayer(_ref) {
 }
 
 // node_modules/recharts/es6/component/Cursor.js
-function _extends7() {
-  return _extends7 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends6() {
+  return _extends6 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends7.apply(null, arguments);
+  }, _extends6.apply(null, arguments);
 }
-function ownKeys20(e, r2) {
+function ownKeys19(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -35535,25 +34166,25 @@ function ownKeys20(e, r2) {
   }
   return t;
 }
-function _objectSpread20(e) {
+function _objectSpread19(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys20(Object(t), true).forEach(function(r3) {
-      _defineProperty20(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys20(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys19(Object(t), true).forEach(function(r3) {
+      _defineProperty19(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys19(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty20(e, r2, t) {
-  return (r2 = _toPropertyKey20(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty19(e, r2, t) {
+  return (r2 = _toPropertyKey19(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey20(t) {
-  var i = _toPrimitive20(t, "string");
+function _toPropertyKey19(t) {
+  var i = _toPrimitive19(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive20(t, r2) {
+function _toPrimitive19(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -35630,7 +34261,7 @@ function CursorInternal(props) {
     preferredZIndex = DefaultZIndexes.cursorLine;
   }
   var extraClassName = typeof cursor === "object" && "className" in cursor ? cursor.className : undefined;
-  var cursorProps = _objectSpread20(_objectSpread20(_objectSpread20(_objectSpread20({
+  var cursorProps = _objectSpread19(_objectSpread19(_objectSpread19(_objectSpread19({
     stroke: "#ccc",
     pointerEvents: "none"
   }, offset), restProps), svgPropertiesNoEventsFromUnknown(cursor)), {}, {
@@ -35654,7 +34285,7 @@ function Cursor(props) {
   if (tooltipAxisBandSize == null || offset == null || layout == null || chartName == null) {
     return null;
   }
-  return /* @__PURE__ */ React9.createElement(CursorInternal, _extends7({}, props, {
+  return /* @__PURE__ */ React9.createElement(CursorInternal, _extends6({}, props, {
     offset,
     layout,
     tooltipAxisBandSize,
@@ -35663,12 +34294,12 @@ function Cursor(props) {
 }
 
 // node_modules/recharts/es6/context/tooltipPortalContext.js
-var import_react20 = __toESM(require_react2(), 1);
+var import_react20 = __toESM(require_react(), 1);
 var TooltipPortalContext = /* @__PURE__ */ import_react20.createContext(null);
 var useTooltipPortal = () => import_react20.useContext(TooltipPortalContext);
 
 // node_modules/recharts/es6/synchronisation/useChartSynchronisation.js
-var import_react21 = __toESM(require_react2(), 1);
+var import_react21 = __toESM(require_react(), 1);
 
 // node_modules/eventemitter3/index.mjs
 var import__ = __toESM(require_eventemitter3(), 1);
@@ -35768,7 +34399,7 @@ var chartDataReducer = chartDataSlice.reducer;
 
 // node_modules/recharts/es6/synchronisation/useChartSynchronisation.js
 var _excluded3 = ["x", "y"];
-function ownKeys21(e, r2) {
+function ownKeys20(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -35778,25 +34409,25 @@ function ownKeys21(e, r2) {
   }
   return t;
 }
-function _objectSpread21(e) {
+function _objectSpread20(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys21(Object(t), true).forEach(function(r3) {
-      _defineProperty21(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys21(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys20(Object(t), true).forEach(function(r3) {
+      _defineProperty20(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys20(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty21(e, r2, t) {
-  return (r2 = _toPropertyKey21(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty20(e, r2, t) {
+  return (r2 = _toPropertyKey20(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey21(t) {
-  var i = _toPrimitive21(t, "string");
+function _toPropertyKey20(t) {
+  var i = _toPrimitive20(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive21(t, r2) {
+function _toPrimitive20(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -35876,12 +34507,12 @@ function useTooltipSyncEventsListener() {
             width: sourceWidth,
             height: sourceHeight
           } = action.payload.sourceViewBox;
-          var scaledCoordinate = _objectSpread21(_objectSpread21({}, otherCoordinateProps), {}, {
+          var scaledCoordinate = _objectSpread20(_objectSpread20({}, otherCoordinateProps), {}, {
             x: viewBox.x + (sourceWidth ? (_x - sourceX) / sourceWidth : 0) * viewBox.width,
             y: viewBox.y + (sourceHeight ? (_y - sourceY) / sourceHeight : 0) * viewBox.height
           });
-          dispatch(_objectSpread21(_objectSpread21({}, action), {}, {
-            payload: _objectSpread21(_objectSpread21({}, action.payload), {}, {
+          dispatch(_objectSpread20(_objectSpread20({}, action), {}, {
+            payload: _objectSpread20(_objectSpread20({}, action.payload), {}, {
               coordinate: scaledCoordinate
             })
           }));
@@ -36025,7 +34656,7 @@ function useTooltipChartSynchronisation(tooltipEventType, trigger, activeCoordin
 }
 
 // node_modules/recharts/es6/component/Tooltip.js
-function ownKeys22(e, r2) {
+function ownKeys21(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -36035,25 +34666,25 @@ function ownKeys22(e, r2) {
   }
   return t;
 }
-function _objectSpread22(e) {
+function _objectSpread21(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys22(Object(t), true).forEach(function(r3) {
-      _defineProperty22(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys22(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys21(Object(t), true).forEach(function(r3) {
+      _defineProperty21(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys21(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty22(e, r2, t) {
-  return (r2 = _toPropertyKey22(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty21(e, r2, t) {
+  return (r2 = _toPropertyKey21(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey22(t) {
-  var i = _toPrimitive22(t, "string");
+function _toPropertyKey21(t) {
+  var i = _toPrimitive21(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive22(t, r2) {
+function _toPrimitive21(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -36167,7 +34798,7 @@ function Tooltip(outsideProps) {
     finalPayload = getUniqPayload(finalPayload.filter((entry) => entry.value != null && (entry.hide !== true || props.includeHidden)), payloadUniqBy, defaultUniqBy);
   }
   var hasPayload = finalPayload.length > 0;
-  var tooltipContentProps = _objectSpread22(_objectSpread22({}, props), {}, {
+  var tooltipContentProps = _objectSpread21(_objectSpread21({}, props), {}, {
     payload: finalPayload,
     label: finalLabel,
     active: finalIsActive,
@@ -36205,8 +34836,8 @@ function Tooltip(outsideProps) {
 var Cell2 = (_props) => null;
 Cell2.displayName = "Cell";
 // node_modules/recharts/es6/polar/Pie.js
-var React20 = __toESM(require_react2(), 1);
-var import_react33 = __toESM(require_react2(), 1);
+var React20 = __toESM(require_react(), 1);
+var import_react33 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/state/selectors/polarSelectors.js
 var selectUnfilteredPolarItems = (state) => state.graphicalItems.polarItems;
@@ -36250,7 +34881,7 @@ var selectPolarAxisDomainIncludingNiceTicks = createSelector([selectBaseAxis, se
 var selectPolarAxisCheckedDomain = createSelector([selectRealScaleType, selectPolarAxisDomainIncludingNiceTicks], combineCheckedDomain);
 
 // node_modules/recharts/es6/state/selectors/pieSelectors.js
-function ownKeys23(e, r2) {
+function ownKeys22(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -36260,25 +34891,25 @@ function ownKeys23(e, r2) {
   }
   return t;
 }
-function _objectSpread23(e) {
+function _objectSpread22(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys23(Object(t), true).forEach(function(r3) {
-      _defineProperty23(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys23(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys22(Object(t), true).forEach(function(r3) {
+      _defineProperty22(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys22(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty23(e, r2, t) {
-  return (r2 = _toPropertyKey23(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty22(e, r2, t) {
+  return (r2 = _toPropertyKey22(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey23(t) {
-  var i = _toPrimitive23(t, "string");
+function _toPropertyKey22(t) {
+  var i = _toPrimitive22(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive23(t, r2) {
+function _toPrimitive22(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -36313,7 +34944,7 @@ var selectDisplayedData2 = createSelector([selectChartDataAndAlwaysIgnoreIndexes
     displayedData = chartData;
   }
   if ((!displayedData || !displayedData.length) && cells != null) {
-    displayedData = cells.map((cell) => _objectSpread23(_objectSpread23({}, pieSettings.presentationProps), cell.props));
+    displayedData = cells.map((cell) => _objectSpread22(_objectSpread22({}, pieSettings.presentationProps), cell.props));
   }
   if (displayedData == null) {
     return;
@@ -36356,17 +34987,17 @@ var selectPieSectors = createSelector([selectDisplayedData2, selectSynchronisedP
 });
 
 // node_modules/recharts/es6/container/Layer.js
-var React11 = __toESM(require_react2(), 1);
+var React11 = __toESM(require_react(), 1);
 var _excluded4 = ["children", "className"];
-function _extends8() {
-  return _extends8 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends7() {
+  return _extends7 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends8.apply(null, arguments);
+  }, _extends7.apply(null, arguments);
 }
 function _objectWithoutProperties4(e, t) {
   if (e == null)
@@ -36397,7 +35028,7 @@ var Layer = /* @__PURE__ */ React11.forwardRef((props, ref) => {
     className
   } = props, others = _objectWithoutProperties4(props, _excluded4);
   var layerClass = clsx("recharts-layer", className);
-  return /* @__PURE__ */ React11.createElement("g", _extends8({
+  return /* @__PURE__ */ React11.createElement("g", _extends7({
     className: layerClass
   }, svgPropertiesAndEvents(others), {
     ref
@@ -36405,18 +35036,18 @@ var Layer = /* @__PURE__ */ React11.forwardRef((props, ref) => {
 });
 
 // node_modules/recharts/es6/component/Text.js
-var React12 = __toESM(require_react2(), 1);
-var import_react23 = __toESM(require_react2(), 1);
+var React12 = __toESM(require_react(), 1);
+var import_react23 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/LRUCache.js
-function _defineProperty24(e, r2, t) {
-  return (r2 = _toPropertyKey24(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty23(e, r2, t) {
+  return (r2 = _toPropertyKey23(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey24(t) {
-  var i = _toPrimitive24(t, "string");
+function _toPropertyKey23(t) {
+  var i = _toPrimitive23(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive24(t, r2) {
+function _toPrimitive23(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -36431,7 +35062,7 @@ function _toPrimitive24(t, r2) {
 
 class LRUCache {
   constructor(maxSize) {
-    _defineProperty24(this, "cache", new Map);
+    _defineProperty23(this, "cache", new Map);
     this.maxSize = maxSize;
   }
   get(key) {
@@ -36462,7 +35093,7 @@ class LRUCache {
 }
 
 // node_modules/recharts/es6/util/DOMUtils.js
-function ownKeys24(e, r2) {
+function ownKeys23(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -36472,25 +35103,25 @@ function ownKeys24(e, r2) {
   }
   return t;
 }
-function _objectSpread24(e) {
+function _objectSpread23(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys24(Object(t), true).forEach(function(r3) {
-      _defineProperty25(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys24(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys23(Object(t), true).forEach(function(r3) {
+      _defineProperty24(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys23(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty25(e, r2, t) {
-  return (r2 = _toPropertyKey25(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty24(e, r2, t) {
+  return (r2 = _toPropertyKey24(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey25(t) {
-  var i = _toPrimitive25(t, "string");
+function _toPropertyKey24(t) {
+  var i = _toPrimitive24(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive25(t, r2) {
+function _toPrimitive24(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -36506,7 +35137,7 @@ var defaultConfig = {
   cacheSize: 2000,
   enableCache: true
 };
-var currentConfig = _objectSpread24({}, defaultConfig);
+var currentConfig = _objectSpread23({}, defaultConfig);
 var stringCache = new LRUCache(currentConfig.cacheSize);
 var SPAN_STYLE = {
   position: "absolute",
@@ -36573,14 +35204,14 @@ var getStringSize = function getStringSize2(text) {
 
 // node_modules/recharts/es6/util/ReduceCSSCalc.js
 var _DecimalCSS;
-function _defineProperty26(e, r2, t) {
-  return (r2 = _toPropertyKey26(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty25(e, r2, t) {
+  return (r2 = _toPropertyKey25(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey26(t) {
-  var i = _toPrimitive26(t, "string");
+function _toPropertyKey25(t) {
+  var i = _toPrimitive25(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive26(t, r2) {
+function _toPrimitive25(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -36672,7 +35303,7 @@ class DecimalCSS {
   }
 }
 _DecimalCSS = DecimalCSS;
-_defineProperty26(DecimalCSS, "NaN", new _DecimalCSS(NaN, ""));
+_defineProperty25(DecimalCSS, "NaN", new _DecimalCSS(NaN, ""));
 function calculateArithmetic(expr) {
   if (expr == null || expr.includes(STR_NAN)) {
     return STR_NAN;
@@ -36736,15 +35367,15 @@ function reduceCSSCalc(expression) {
 // node_modules/recharts/es6/component/Text.js
 var _excluded5 = ["x", "y", "lineHeight", "capHeight", "fill", "scaleToFit", "textAnchor", "verticalAnchor"];
 var _excluded23 = ["dx", "dy", "angle", "className", "breakAll"];
-function _extends9() {
-  return _extends9 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends8() {
+  return _extends8 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends9.apply(null, arguments);
+  }, _extends8.apply(null, arguments);
 }
 function _objectWithoutProperties5(e, t) {
   if (e == null)
@@ -36996,7 +35627,7 @@ var Text = /* @__PURE__ */ import_react23.forwardRef((outsideProps, ref) => {
   if (transforms.length) {
     textProps.transform = transforms.join(" ");
   }
-  return /* @__PURE__ */ React12.createElement("text", _extends9({}, svgPropertiesAndEvents(textProps), {
+  return /* @__PURE__ */ React12.createElement("text", _extends8({}, svgPropertiesAndEvents(textProps), {
     ref,
     x: x2,
     y: y2,
@@ -37015,7 +35646,7 @@ var Text = /* @__PURE__ */ import_react23.forwardRef((outsideProps, ref) => {
 Text.displayName = "Text";
 
 // node_modules/recharts/es6/util/ReactUtils.js
-var import_react24 = __toESM(require_react2(), 1);
+var import_react24 = __toESM(require_react(), 1);
 var import_react_is = __toESM(require_react_is(), 1);
 var getDisplayName = (Comp) => {
   if (typeof Comp === "string") {
@@ -37064,8 +35695,8 @@ function findAllByType(children, type) {
 }
 
 // node_modules/recharts/es6/util/ActiveShapeUtils.js
-var React15 = __toESM(require_react2(), 1);
-var import_react26 = __toESM(require_react2(), 1);
+var React15 = __toESM(require_react(), 1);
+var import_react26 = __toESM(require_react(), 1);
 
 // node_modules/es-toolkit/dist/compat/predicate/isPlainObject.mjs
 function isPlainObject4(object) {
@@ -37089,14 +35720,14 @@ function isPlainObject4(object) {
   return Object.getPrototypeOf(object) === proto2;
 }
 // node_modules/recharts/es6/shape/Trapezoid.js
-var React13 = __toESM(require_react2(), 1);
-var import_react25 = __toESM(require_react2(), 1);
+var React13 = __toESM(require_react(), 1);
+var import_react25 = __toESM(require_react(), 1);
 var _templateObject12;
 var _templateObject23;
 var _templateObject33;
 var _templateObject43;
 var _templateObject53;
-function ownKeys25(e, r2) {
+function ownKeys24(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -37106,25 +35737,25 @@ function ownKeys25(e, r2) {
   }
   return t;
 }
-function _objectSpread25(e) {
+function _objectSpread24(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys25(Object(t), true).forEach(function(r3) {
-      _defineProperty27(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys25(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys24(Object(t), true).forEach(function(r3) {
+      _defineProperty26(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys24(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty27(e, r2, t) {
-  return (r2 = _toPropertyKey27(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty26(e, r2, t) {
+  return (r2 = _toPropertyKey26(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey27(t) {
-  var i = _toPrimitive27(t, "string");
+function _toPropertyKey26(t) {
+  var i = _toPrimitive26(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive27(t, r2) {
+function _toPrimitive26(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -37136,15 +35767,15 @@ function _toPrimitive27(t, r2) {
   }
   return (r2 === "string" ? String : Number)(t);
 }
-function _extends10() {
-  return _extends10 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends9() {
+  return _extends9 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends10.apply(null, arguments);
+  }, _extends9.apply(null, arguments);
 }
 function _taggedTemplateLiteral3(e, t) {
   return t || (t = e.slice(0)), Object.freeze(Object.defineProperties(e, { raw: { value: Object.freeze(t) } }));
@@ -37209,7 +35840,7 @@ var Trapezoid = (outsideProps) => {
   }
   var layerClass = clsx("recharts-trapezoid", className);
   if (!isUpdateAnimationActive) {
-    return /* @__PURE__ */ React13.createElement("g", null, /* @__PURE__ */ React13.createElement("path", _extends10({}, svgPropertiesAndEvents(trapezoidProps), {
+    return /* @__PURE__ */ React13.createElement("g", null, /* @__PURE__ */ React13.createElement("path", _extends9({}, svgPropertiesAndEvents(trapezoidProps), {
       className: layerClass,
       d: getTrapezoidPath(x2, y2, upperWidth, lowerWidth, height)
     })));
@@ -37249,29 +35880,29 @@ var Trapezoid = (outsideProps) => {
     } : {
       strokeDasharray: from2
     };
-    return /* @__PURE__ */ React13.createElement("path", _extends10({}, svgPropertiesAndEvents(trapezoidProps), {
+    return /* @__PURE__ */ React13.createElement("path", _extends9({}, svgPropertiesAndEvents(trapezoidProps), {
       className: layerClass,
       d: getTrapezoidPath(currX, currY, currUpperWidth, currLowerWidth, currHeight),
       ref: pathRef,
-      style: _objectSpread25(_objectSpread25({}, animationStyle), trapezoidProps.style)
+      style: _objectSpread24(_objectSpread24({}, animationStyle), trapezoidProps.style)
     }));
   });
 };
 
 // node_modules/recharts/es6/shape/Symbols.js
-var React14 = __toESM(require_react2(), 1);
+var React14 = __toESM(require_react(), 1);
 var _excluded6 = ["type", "size", "sizeType"];
-function _extends11() {
-  return _extends11 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends10() {
+  return _extends10 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends11.apply(null, arguments);
+  }, _extends10.apply(null, arguments);
 }
-function ownKeys26(e, r2) {
+function ownKeys25(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -37281,25 +35912,25 @@ function ownKeys26(e, r2) {
   }
   return t;
 }
-function _objectSpread26(e) {
+function _objectSpread25(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys26(Object(t), true).forEach(function(r3) {
-      _defineProperty28(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys26(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys25(Object(t), true).forEach(function(r3) {
+      _defineProperty27(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys25(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty28(e, r2, t) {
-  return (r2 = _toPropertyKey28(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty27(e, r2, t) {
+  return (r2 = _toPropertyKey27(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey28(t) {
-  var i = _toPrimitive28(t, "string");
+function _toPropertyKey27(t) {
+  var i = _toPrimitive27(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive28(t, r2) {
+function _toPrimitive27(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -37380,7 +36011,7 @@ var Symbols = (_ref) => {
     size = 64,
     sizeType = "area"
   } = _ref, rest = _objectWithoutProperties6(_ref, _excluded6);
-  var props = _objectSpread26(_objectSpread26({}, rest), {}, {
+  var props = _objectSpread25(_objectSpread25({}, rest), {}, {
     type,
     size,
     sizeType
@@ -37405,7 +36036,7 @@ var Symbols = (_ref) => {
   } = props;
   var filteredProps = svgPropertiesAndEvents(props);
   if (isNumber(cx) && isNumber(cy) && isNumber(size)) {
-    return /* @__PURE__ */ React14.createElement("path", _extends11({}, filteredProps, {
+    return /* @__PURE__ */ React14.createElement("path", _extends10({}, filteredProps, {
       className: clsx("recharts-symbols", className),
       transform: "translate(".concat(cx, ", ").concat(cy, ")"),
       d: getPath3()
@@ -37440,7 +36071,7 @@ function _objectWithoutPropertiesLoose7(r2, e) {
     }
   return t;
 }
-function ownKeys27(e, r2) {
+function ownKeys26(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -37450,25 +36081,25 @@ function ownKeys27(e, r2) {
   }
   return t;
 }
-function _objectSpread27(e) {
+function _objectSpread26(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys27(Object(t), true).forEach(function(r3) {
-      _defineProperty29(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys27(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys26(Object(t), true).forEach(function(r3) {
+      _defineProperty28(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys26(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty29(e, r2, t) {
-  return (r2 = _toPropertyKey29(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty28(e, r2, t) {
+  return (r2 = _toPropertyKey28(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey29(t) {
-  var i = _toPrimitive29(t, "string");
+function _toPropertyKey28(t) {
+  var i = _toPrimitive28(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive29(t, r2) {
+function _toPrimitive28(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -37481,7 +36112,7 @@ function _toPrimitive29(t, r2) {
   return (r2 === "string" ? String : Number)(t);
 }
 function defaultPropTransformer(option, props) {
-  return _objectSpread27(_objectSpread27({}, props), option);
+  return _objectSpread26(_objectSpread26({}, props), option);
 }
 function isSymbolsProps(shapeType, _elementProps) {
   return shapeType === "symbols";
@@ -37524,7 +36155,7 @@ function Shape(_ref2) {
   } = _ref2, props = _objectWithoutProperties7(_ref2, _excluded7);
   var shape;
   if (/* @__PURE__ */ import_react26.isValidElement(option)) {
-    shape = /* @__PURE__ */ import_react26.cloneElement(option, _objectSpread27(_objectSpread27({}, props), getPropsFromShapeOption(option)));
+    shape = /* @__PURE__ */ import_react26.cloneElement(option, _objectSpread26(_objectSpread26({}, props), getPropsFromShapeOption(option)));
   } else if (typeof option === "function") {
     shape = option(props, props.index);
   } else if (isPlainObject4(option) && typeof option !== "boolean") {
@@ -37584,7 +36215,7 @@ var useMouseClickItemDispatch = (onMouseClickFromProps, dataKey, graphicalItemId
 };
 
 // node_modules/recharts/es6/state/SetTooltipEntrySettings.js
-var import_react27 = __toESM(require_react2(), 1);
+var import_react27 = __toESM(require_react(), 1);
 function SetTooltipEntrySettings(_ref) {
   var {
     tooltipEntrySettings
@@ -37618,7 +36249,7 @@ function SetTooltipEntrySettings(_ref) {
 }
 
 // node_modules/recharts/es6/state/SetLegendPayload.js
-var import_react28 = __toESM(require_react2(), 1);
+var import_react28 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/state/legendSlice.js
 var initialState5 = {
@@ -37721,11 +36352,11 @@ function SetPolarLegendPayload(_ref2) {
 }
 
 // node_modules/recharts/es6/context/RegisterGraphicalItemId.js
-var React17 = __toESM(require_react2(), 1);
-var import_react29 = __toESM(require_react2(), 1);
+var React17 = __toESM(require_react(), 1);
+var import_react29 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/useId.js
-var React16 = __toESM(require_react2(), 1);
+var React16 = __toESM(require_react(), 1);
 var _ref;
 var useIdFallback = () => {
   var [id] = React16.useState(() => uniqueId("uid-"));
@@ -37757,7 +36388,7 @@ var RegisterGraphicalItemId = (_ref2) => {
 };
 
 // node_modules/recharts/es6/state/SetGraphicalItem.js
-var import_react30 = __toESM(require_react2(), 1);
+var import_react30 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/state/graphicalItemsSlice.js
 var initialState6 = {
@@ -37864,15 +36495,15 @@ var SetPolarGraphicalItemImpl = (props) => {
 var SetPolarGraphicalItem = /* @__PURE__ */ import_react30.memo(SetPolarGraphicalItemImpl);
 
 // node_modules/recharts/es6/component/LabelList.js
-var React19 = __toESM(require_react2(), 1);
-var import_react32 = __toESM(require_react2(), 1);
+var React19 = __toESM(require_react(), 1);
+var import_react32 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/component/Label.js
-var React18 = __toESM(require_react2(), 1);
-var import_react31 = __toESM(require_react2(), 1);
+var React18 = __toESM(require_react(), 1);
+var import_react31 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/cartesian/getCartesianPosition.js
-function ownKeys28(e, r2) {
+function ownKeys27(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -37882,25 +36513,25 @@ function ownKeys28(e, r2) {
   }
   return t;
 }
-function _objectSpread28(e) {
+function _objectSpread27(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys28(Object(t), true).forEach(function(r3) {
-      _defineProperty30(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys28(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys27(Object(t), true).forEach(function(r3) {
+      _defineProperty29(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys27(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty30(e, r2, t) {
-  return (r2 = _toPropertyKey30(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty29(e, r2, t) {
+  return (r2 = _toPropertyKey29(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey30(t) {
-  var i = _toPrimitive30(t, "string");
+function _toPropertyKey29(t) {
+  var i = _toPrimitive29(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive30(t, r2) {
+function _toPrimitive29(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -37998,7 +36629,7 @@ var getCartesianPosition = (options) => {
     height
   } : {};
   if (position === "insideLeft") {
-    return _objectSpread28({
+    return _objectSpread27({
       x: middleX + horizontalOffset,
       y: y2 + height / 2,
       horizontalAnchor: horizontalStart,
@@ -38006,7 +36637,7 @@ var getCartesianPosition = (options) => {
     }, sizeAttrs);
   }
   if (position === "insideRight") {
-    return _objectSpread28({
+    return _objectSpread27({
       x: middleX + midHeightWidth - horizontalOffset,
       y: y2 + height / 2,
       horizontalAnchor: horizontalEnd,
@@ -38014,7 +36645,7 @@ var getCartesianPosition = (options) => {
     }, sizeAttrs);
   }
   if (position === "insideTop") {
-    return _objectSpread28({
+    return _objectSpread27({
       x: upperX + upperWidth / 2,
       y: y2 + verticalOffset,
       horizontalAnchor: "middle",
@@ -38022,7 +36653,7 @@ var getCartesianPosition = (options) => {
     }, sizeAttrs);
   }
   if (position === "insideBottom") {
-    return _objectSpread28({
+    return _objectSpread27({
       x: lowerX + lowerWidth / 2,
       y: y2 + height - verticalOffset,
       horizontalAnchor: "middle",
@@ -38030,7 +36661,7 @@ var getCartesianPosition = (options) => {
     }, sizeAttrs);
   }
   if (position === "insideTopLeft") {
-    return _objectSpread28({
+    return _objectSpread27({
       x: upperX + horizontalOffset,
       y: y2 + verticalOffset,
       horizontalAnchor: horizontalStart,
@@ -38038,7 +36669,7 @@ var getCartesianPosition = (options) => {
     }, sizeAttrs);
   }
   if (position === "insideTopRight") {
-    return _objectSpread28({
+    return _objectSpread27({
       x: upperX + upperWidth - horizontalOffset,
       y: y2 + verticalOffset,
       horizontalAnchor: horizontalEnd,
@@ -38046,7 +36677,7 @@ var getCartesianPosition = (options) => {
     }, sizeAttrs);
   }
   if (position === "insideBottomLeft") {
-    return _objectSpread28({
+    return _objectSpread27({
       x: lowerX + horizontalOffset,
       y: y2 + height - verticalOffset,
       horizontalAnchor: horizontalStart,
@@ -38054,7 +36685,7 @@ var getCartesianPosition = (options) => {
     }, sizeAttrs);
   }
   if (position === "insideBottomRight") {
-    return _objectSpread28({
+    return _objectSpread27({
       x: lowerX + lowerWidth - horizontalOffset,
       y: y2 + height - verticalOffset,
       horizontalAnchor: horizontalEnd,
@@ -38062,14 +36693,14 @@ var getCartesianPosition = (options) => {
     }, sizeAttrs);
   }
   if (!!position && typeof position === "object" && (isNumber(position.x) || isPercent(position.x)) && (isNumber(position.y) || isPercent(position.y))) {
-    return _objectSpread28({
+    return _objectSpread27({
       x: x2 + getPercentValue(position.x, midHeightWidth),
       y: y2 + getPercentValue(position.y, height),
       horizontalAnchor: "end",
       verticalAnchor: "end"
     }, sizeAttrs);
   }
-  return _objectSpread28({
+  return _objectSpread27({
     x: centerX,
     y: y2 + height / 2,
     horizontalAnchor: "middle",
@@ -38103,7 +36734,7 @@ function _objectWithoutPropertiesLoose8(r2, e) {
     }
   return t;
 }
-function ownKeys29(e, r2) {
+function ownKeys28(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -38113,25 +36744,25 @@ function ownKeys29(e, r2) {
   }
   return t;
 }
-function _objectSpread29(e) {
+function _objectSpread28(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys29(Object(t), true).forEach(function(r3) {
-      _defineProperty31(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys29(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys28(Object(t), true).forEach(function(r3) {
+      _defineProperty30(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys28(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty31(e, r2, t) {
-  return (r2 = _toPropertyKey31(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty30(e, r2, t) {
+  return (r2 = _toPropertyKey30(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey31(t) {
-  var i = _toPrimitive31(t, "string");
+function _toPropertyKey30(t) {
+  var i = _toPrimitive30(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive31(t, r2) {
+function _toPrimitive30(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -38143,15 +36774,15 @@ function _toPrimitive31(t, r2) {
   }
   return (r2 === "string" ? String : Number)(t);
 }
-function _extends12() {
-  return _extends12 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends11() {
+  return _extends11 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends12.apply(null, arguments);
+  }, _extends11.apply(null, arguments);
 }
 var CartesianLabelContext = /* @__PURE__ */ import_react31.createContext(null);
 var useCartesianLabelContext = () => {
@@ -38225,7 +36856,7 @@ var renderRadialLabel = (labelProps, position, label, attrs, viewBox) => {
     A`).concat(radius, ",").concat(radius, ",0,1,").concat(direction ? 0 : 1, `,
     `).concat(endPoint.x, ",").concat(endPoint.y);
   var id = isNullish(labelProps.id) ? uniqueId("recharts-radial-line-") : labelProps.id;
-  return /* @__PURE__ */ React18.createElement("text", _extends12({}, attrs, {
+  return /* @__PURE__ */ React18.createElement("text", _extends11({}, attrs, {
     dominantBaseline: "central",
     className: clsx("recharts-radial-bar-label", className)
   }), /* @__PURE__ */ React18.createElement("defs", null, /* @__PURE__ */ React18.createElement("path", {
@@ -38348,7 +36979,7 @@ function Label(outerProps) {
   if (!viewBox || isNullish(value) && isNullish(children) && !/* @__PURE__ */ import_react31.isValidElement(content) && typeof content !== "function") {
     return null;
   }
-  var propsWithViewBox = _objectSpread29(_objectSpread29({}, props), {}, {
+  var propsWithViewBox = _objectSpread28(_objectSpread28({}, props), {}, {
     viewBox
   });
   if (/* @__PURE__ */ import_react31.isValidElement(content)) {
@@ -38385,7 +37016,7 @@ function Label(outerProps) {
       parentViewBox: isPolar(parentViewBox) ? undefined : parentViewBox,
       clamp: true
     });
-    positionAttrs = _objectSpread29(_objectSpread29({
+    positionAttrs = _objectSpread28(_objectSpread28({
       x: cartesianResult.x,
       y: cartesianResult.y,
       textAnchor: cartesianResult.horizontalAnchor,
@@ -38398,7 +37029,7 @@ function Label(outerProps) {
   }
   return /* @__PURE__ */ React18.createElement(ZIndexLayer, {
     zIndex: props.zIndex
-  }, /* @__PURE__ */ React18.createElement(Text, _extends12({
+  }, /* @__PURE__ */ React18.createElement(Text, _extends11({
     ref: labelRef,
     className: clsx("recharts-label", className)
   }, attrs, positionAttrs, {
@@ -38411,15 +37042,15 @@ Label.displayName = "Label";
 // node_modules/recharts/es6/component/LabelList.js
 var _excluded9 = ["valueAccessor"];
 var _excluded25 = ["dataKey", "clockWise", "id", "textBreakAll", "zIndex"];
-function _extends13() {
-  return _extends13 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends12() {
+  return _extends12 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends13.apply(null, arguments);
+  }, _extends12.apply(null, arguments);
 }
 function _objectWithoutProperties9(e, t) {
   if (e == null)
@@ -38488,7 +37119,7 @@ function LabelList(_ref2) {
     var idProps = isNullish(id) ? {} : {
       id: "".concat(id, "-").concat(index3)
     };
-    return /* @__PURE__ */ React19.createElement(Label, _extends13({
+    return /* @__PURE__ */ React19.createElement(Label, _extends12({
       key: "label-".concat(index3)
     }, svgPropertiesAndEvents(entry), others, idProps, {
       fill: (_restProps$fill = restProps.fill) !== null && _restProps$fill !== undefined ? _restProps$fill : entry.fill,
@@ -38521,7 +37152,7 @@ function LabelListFromLabelProp(_ref2) {
     });
   }
   if (typeof label === "object") {
-    return /* @__PURE__ */ React19.createElement(LabelList, _extends13({
+    return /* @__PURE__ */ React19.createElement(LabelList, _extends12({
       key: "labelList-implicit"
     }, label, {
       type: String(label.type)
@@ -38543,15 +37174,15 @@ var _excluded10 = ["key"];
 var _excluded26 = ["onMouseEnter", "onClick", "onMouseLeave"];
 var _excluded32 = ["id"];
 var _excluded42 = ["id"];
-function _extends14() {
-  return _extends14 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends13() {
+  return _extends13 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends14.apply(null, arguments);
+  }, _extends13.apply(null, arguments);
 }
 function _objectWithoutProperties10(e, t) {
   if (e == null)
@@ -38576,7 +37207,7 @@ function _objectWithoutPropertiesLoose10(r2, e) {
     }
   return t;
 }
-function ownKeys30(e, r2) {
+function ownKeys29(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -38586,25 +37217,25 @@ function ownKeys30(e, r2) {
   }
   return t;
 }
-function _objectSpread30(e) {
+function _objectSpread29(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys30(Object(t), true).forEach(function(r3) {
-      _defineProperty32(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys30(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys29(Object(t), true).forEach(function(r3) {
+      _defineProperty31(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys29(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty32(e, r2, t) {
-  return (r2 = _toPropertyKey32(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty31(e, r2, t) {
+  return (r2 = _toPropertyKey31(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey32(t) {
-  var i = _toPrimitive32(t, "string");
+function _toPropertyKey31(t) {
+  var i = _toPrimitive31(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive32(t, r2) {
+function _toPrimitive31(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -38660,7 +37291,7 @@ var SetPieTooltipEntrySettings = /* @__PURE__ */ React20.memo((_ref2) => {
     if (activeShapeFill == null || sectorTooltipPayload == null) {
       return sectorTooltipPayload;
     }
-    return sectorTooltipPayload.map((item) => _objectSpread30(_objectSpread30({}, item), {}, {
+    return sectorTooltipPayload.map((item) => _objectSpread29(_objectSpread29({}, item), {}, {
       color: activeShapeFill,
       fill: activeShapeFill
     }));
@@ -38741,7 +37372,7 @@ var renderLabelLineItem = (option, props) => {
   var {
     key
   } = props, otherProps = _objectWithoutProperties10(props, _excluded10);
-  return /* @__PURE__ */ React20.createElement(Curve, _extends14({}, otherProps, {
+  return /* @__PURE__ */ React20.createElement(Curve, _extends13({}, otherProps, {
     type: "linear",
     className
   }));
@@ -38758,7 +37389,7 @@ var renderLabelItem = (option, props, value) => {
     }
   }
   var className = clsx("recharts-pie-label-text", getClassNameFromUnknown(option));
-  return /* @__PURE__ */ React20.createElement(Text, _extends14({}, props, {
+  return /* @__PURE__ */ React20.createElement(Text, _extends13({}, props, {
     alignmentBaseline: "middle",
     className
   }), label);
@@ -38784,13 +37415,13 @@ function PieLabels(_ref2) {
   var labels = sectors.map((entry, i) => {
     var midAngle = (entry.startAngle + entry.endAngle) / 2;
     var endPoint = polarToCartesian(entry.cx, entry.cy, entry.outerRadius + offsetRadius, midAngle);
-    var labelProps = _objectSpread30(_objectSpread30(_objectSpread30(_objectSpread30({}, pieProps), entry), {}, {
+    var labelProps = _objectSpread29(_objectSpread29(_objectSpread29(_objectSpread29({}, pieProps), entry), {}, {
       stroke: "none"
     }, customLabelProps), {}, {
       index: i,
       textAnchor: getTextAnchor(endPoint.x, entry.cx)
     }, endPoint);
-    var lineProps = _objectSpread30(_objectSpread30(_objectSpread30(_objectSpread30({}, pieProps), entry), {}, {
+    var lineProps = _objectSpread29(_objectSpread29(_objectSpread29(_objectSpread29({}, pieProps), entry), {}, {
       fill: "none",
       stroke: entry.fill
     }, customLabelLineProps), {}, {
@@ -38857,13 +37488,13 @@ function PieSectors(props) {
     var isActive = String(i) === activeIndex && (activeDataKey == null || allOtherPieProps.dataKey === activeDataKey) && graphicalItemMatches;
     var inactiveShape = activeIndex ? inactiveShapeProp : null;
     var sectorOptions = activeShape && isActive ? activeShape : inactiveShape;
-    var sectorProps = _objectSpread30(_objectSpread30({}, entry), {}, {
+    var sectorProps = _objectSpread29(_objectSpread29({}, entry), {}, {
       stroke: entry.stroke,
       tabIndex: -1,
       [DATA_ITEM_INDEX_ATTRIBUTE_NAME]: i,
       [DATA_ITEM_GRAPHICAL_ITEM_ID_ATTRIBUTE_NAME]: id
     });
-    return /* @__PURE__ */ React20.createElement(Layer, _extends14({
+    return /* @__PURE__ */ React20.createElement(Layer, _extends13({
       key: "sector-".concat(entry === null || entry === undefined ? undefined : entry.startAngle, "-").concat(entry === null || entry === undefined ? undefined : entry.endAngle, "-").concat(entry.midAngle, "-").concat(i),
       tabIndex: -1,
       className: "recharts-pie-sector"
@@ -38871,7 +37502,7 @@ function PieSectors(props) {
       onMouseEnter: onMouseEnterFromContext(entry, i),
       onMouseLeave: onMouseLeaveFromContext(entry, i),
       onClick: onClickFromContext(entry, i)
-    }), /* @__PURE__ */ React20.createElement(Shape, _extends14({
+    }), /* @__PURE__ */ React20.createElement(Shape, _extends13({
       option: shape !== null && shape !== undefined ? shape : sectorOptions,
       index: i,
       shapeType: "sector",
@@ -38921,7 +37552,7 @@ function computePieSectors(_ref4) {
       var coordinate = parseCoordinateOfPie(pieSettings, offset, entry);
       var percent = (isNumber(val) ? val : 0) / sum;
       var tempStartAngle;
-      var entryWithCellInfo = _objectSpread30(_objectSpread30({}, entry), cells && cells[i] && cells[i].props);
+      var entryWithCellInfo = _objectSpread29(_objectSpread29({}, entry), cells && cells[i] && cells[i].props);
       var sectorColor = entryWithCellInfo != null && "fill" in entryWithCellInfo && typeof entryWithCellInfo.fill === "string" ? entryWithCellInfo.fill : pieSettings.fill;
       if (i) {
         tempStartAngle = prev.endAngle + mathSign(deltaAngle) * paddingAngle * (val !== 0 ? 1 : 0);
@@ -38942,7 +37573,7 @@ function computePieSectors(_ref4) {
         graphicalItemId: pieSettings.id
       }];
       var tooltipPosition = polarToCartesian(coordinate.cx, coordinate.cy, middleRadius, midAngle);
-      prev = _objectSpread30(_objectSpread30(_objectSpread30(_objectSpread30({}, pieSettings.presentationProps), {}, {
+      prev = _objectSpread29(_objectSpread29(_objectSpread29(_objectSpread29({}, pieSettings.presentationProps), {}, {
         percent,
         cornerRadius: typeof cornerRadius === "string" ? parseFloat(cornerRadius) : cornerRadius,
         name,
@@ -39048,7 +37679,7 @@ function SectorsWithAnimation(_ref6) {
       var paddingAngle = index3 > 0 ? get(entry, "paddingAngle", 0) : 0;
       if (prev) {
         var angle = interpolate(prev.endAngle - prev.startAngle, entry.endAngle - entry.startAngle, t);
-        var latest3 = _objectSpread30(_objectSpread30({}, entry), {}, {
+        var latest3 = _objectSpread29(_objectSpread29({}, entry), {}, {
           startAngle: curAngle + paddingAngle,
           endAngle: curAngle + angle + paddingAngle
         });
@@ -39060,7 +37691,7 @@ function SectorsWithAnimation(_ref6) {
           startAngle
         } = entry;
         var deltaAngle = interpolate(0, endAngle - startAngle, t);
-        var _latest = _objectSpread30(_objectSpread30({}, entry), {}, {
+        var _latest = _objectSpread29(_objectSpread29({}, entry), {}, {
           startAngle: curAngle + paddingAngle,
           endAngle: curAngle + deltaAngle + paddingAngle
         });
@@ -39145,7 +37776,7 @@ function PieImpl(props) {
     tabIndex: rootTabIndex,
     className: layerClass
   }, /* @__PURE__ */ React20.createElement(SectorsWithAnimation, {
-    props: _objectSpread30(_objectSpread30({}, propsWithoutId), {}, {
+    props: _objectSpread29(_objectSpread29({}, propsWithoutId), {}, {
       sectors
     }),
     previousSectorsRef,
@@ -39185,28 +37816,28 @@ function PieFn(outsideProps) {
     cornerRadius: propsWithoutId.cornerRadius,
     presentationProps,
     maxRadius: props.maxRadius
-  }), /* @__PURE__ */ React20.createElement(SetPiePayloadLegend, _extends14({}, propsWithoutId, {
+  }), /* @__PURE__ */ React20.createElement(SetPiePayloadLegend, _extends13({}, propsWithoutId, {
     id
-  })), /* @__PURE__ */ React20.createElement(PieImpl, _extends14({}, propsWithoutId, {
+  })), /* @__PURE__ */ React20.createElement(PieImpl, _extends13({}, propsWithoutId, {
     id
   }))));
 }
 var Pie = PieFn;
 Pie.displayName = "Pie";
 // node_modules/recharts/es6/chart/PieChart.js
-var React30 = __toESM(require_react2(), 1);
-var import_react49 = __toESM(require_react2(), 1);
+var React30 = __toESM(require_react(), 1);
+var import_react49 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/chart/PolarChart.js
-var import_react48 = __toESM(require_react2(), 1);
-var React29 = __toESM(require_react2(), 1);
+var import_react48 = __toESM(require_react(), 1);
+var React29 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/state/RechartsStoreProvider.js
-var React22 = __toESM(require_react2(), 1);
-var import_react34 = __toESM(require_react2(), 1);
+var React22 = __toESM(require_react(), 1);
+var import_react34 = __toESM(require_react(), 1);
 
 // node_modules/react-redux/dist/react-redux.mjs
-var React21 = __toESM(require_react2(), 1);
+var React21 = __toESM(require_react(), 1);
 var import_with_selector2 = __toESM(require_with_selector2(), 1);
 var REACT_FORWARD_REF_TYPE = /* @__PURE__ */ Symbol.for("react.forward_ref");
 var REACT_MEMO_TYPE = /* @__PURE__ */ Symbol.for("react.memo");
@@ -39567,7 +38198,7 @@ function reduxDevtoolsJsonStringifyReplacer(key, value) {
 }
 
 // node_modules/recharts/es6/state/cartesianAxisSlice.js
-function ownKeys31(e, r2) {
+function ownKeys30(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -39577,25 +38208,25 @@ function ownKeys31(e, r2) {
   }
   return t;
 }
-function _objectSpread31(e) {
+function _objectSpread30(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys31(Object(t), true).forEach(function(r3) {
-      _defineProperty33(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys31(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys30(Object(t), true).forEach(function(r3) {
+      _defineProperty32(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys30(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty33(e, r2, t) {
-  return (r2 = _toPropertyKey33(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty32(e, r2, t) {
+  return (r2 = _toPropertyKey32(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey33(t) {
-  var i = _toPrimitive33(t, "string");
+function _toPropertyKey32(t) {
+  var i = _toPrimitive32(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive33(t, r2) {
+function _toPrimitive32(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -39710,7 +38341,7 @@ var cartesianAxisSlice = createSlice({
           return;
         }
         var newHistory = [...history, width].slice(-3);
-        state.yAxis[id] = _objectSpread31(_objectSpread31({}, axis), {}, {
+        state.yAxis[id] = _objectSpread30(_objectSpread30({}, axis), {}, {
           width,
           widthHistory: newHistory
         });
@@ -40494,7 +39125,7 @@ function RechartsStoreProvider(_ref2) {
 }
 
 // node_modules/recharts/es6/context/chartDataContext.js
-var import_react35 = __toESM(require_react2(), 1);
+var import_react35 = __toESM(require_react(), 1);
 var ChartDataContextProvider = (props) => {
   var {
     chartData
@@ -40514,7 +39145,7 @@ var ChartDataContextProvider = (props) => {
 };
 
 // node_modules/recharts/es6/state/ReportMainChartProps.js
-var import_react36 = __toESM(require_react2(), 1);
+var import_react36 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/propsAreEqual.js
 var propsToShallowCompare = new Set([
@@ -40585,7 +39216,7 @@ function ReportMainChartPropsImpl(_ref2) {
 var ReportMainChartProps = /* @__PURE__ */ import_react36.memo(ReportMainChartPropsImpl, propsAreEqual);
 
 // node_modules/recharts/es6/state/ReportChartProps.js
-var import_react37 = __toESM(require_react2(), 1);
+var import_react37 = __toESM(require_react(), 1);
 function ReportChartProps(props) {
   var dispatch = useAppDispatch();
   import_react37.useEffect(() => {
@@ -40595,7 +39226,7 @@ function ReportChartProps(props) {
 }
 
 // node_modules/recharts/es6/state/ReportEventSettings.js
-var import_react38 = __toESM(require_react2(), 1);
+var import_react38 = __toESM(require_react(), 1);
 var ReportEventSettingsImpl = (props) => {
   var dispatch = useAppDispatch();
   import_react38.useEffect(() => {
@@ -40606,7 +39237,7 @@ var ReportEventSettingsImpl = (props) => {
 var ReportEventSettings = /* @__PURE__ */ import_react38.memo(ReportEventSettingsImpl, propsAreEqual);
 
 // node_modules/recharts/es6/state/ReportPolarOptions.js
-var import_react39 = __toESM(require_react2(), 1);
+var import_react39 = __toESM(require_react(), 1);
 function ReportPolarOptions(props) {
   var dispatch = useAppDispatch();
   import_react39.useEffect(() => {
@@ -40616,26 +39247,26 @@ function ReportPolarOptions(props) {
 }
 
 // node_modules/recharts/es6/chart/CategoricalChart.js
-var React28 = __toESM(require_react2(), 1);
-var import_react47 = __toESM(require_react2(), 1);
+var React28 = __toESM(require_react(), 1);
+var import_react47 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/container/RootSurface.js
-var React25 = __toESM(require_react2(), 1);
-var import_react42 = __toESM(require_react2(), 1);
+var React25 = __toESM(require_react(), 1);
+var import_react42 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/container/Surface.js
-var React23 = __toESM(require_react2(), 1);
-var import_react40 = __toESM(require_react2(), 1);
+var React23 = __toESM(require_react(), 1);
+var import_react40 = __toESM(require_react(), 1);
 var _excluded11 = ["children", "width", "height", "viewBox", "className", "style", "title", "desc"];
-function _extends15() {
-  return _extends15 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends14() {
+  return _extends14 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends15.apply(null, arguments);
+  }, _extends14.apply(null, arguments);
 }
 function _objectWithoutProperties11(e, t) {
   if (e == null)
@@ -40678,7 +39309,7 @@ var Surface = /* @__PURE__ */ import_react40.forwardRef((props, ref) => {
     y: 0
   };
   var layerClass = clsx("recharts-surface", className);
-  return /* @__PURE__ */ React23.createElement("svg", _extends15({}, svgPropertiesAndEvents(others), {
+  return /* @__PURE__ */ React23.createElement("svg", _extends14({}, svgPropertiesAndEvents(others), {
     className: layerClass,
     width,
     height,
@@ -40689,8 +39320,8 @@ var Surface = /* @__PURE__ */ import_react40.forwardRef((props, ref) => {
 });
 
 // node_modules/recharts/es6/zIndex/ZIndexPortal.js
-var React24 = __toESM(require_react2(), 1);
-var import_react41 = __toESM(require_react2(), 1);
+var React24 = __toESM(require_react(), 1);
+var import_react41 = __toESM(require_react(), 1);
 function ZIndexSvgPortal(_ref2) {
   var {
     zIndex,
@@ -40766,15 +39397,15 @@ function _objectWithoutPropertiesLoose12(r2, e) {
     }
   return t;
 }
-function _extends16() {
-  return _extends16 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends15() {
+  return _extends15 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends16.apply(null, arguments);
+  }, _extends15.apply(null, arguments);
 }
 var FULL_WIDTH_AND_HEIGHT = {
   width: "100%",
@@ -40807,7 +39438,7 @@ var MainChartSurface = /* @__PURE__ */ import_react42.forwardRef((props, ref) =>
       role = hasAccessibilityLayer ? "application" : undefined;
     }
   }
-  return /* @__PURE__ */ React25.createElement(Surface, _extends16({}, otherAttributes, {
+  return /* @__PURE__ */ React25.createElement(Surface, _extends15({}, otherAttributes, {
     title,
     desc,
     role,
@@ -40849,7 +39480,7 @@ var RootSurface = /* @__PURE__ */ import_react42.forwardRef((_ref2, ref) => {
       isPanorama: true
     }, children));
   }
-  return /* @__PURE__ */ React25.createElement(MainChartSurface, _extends16({
+  return /* @__PURE__ */ React25.createElement(MainChartSurface, _extends15({
     ref
   }, rest), /* @__PURE__ */ React25.createElement(AllZIndexPortals, {
     isPanorama: false
@@ -40857,11 +39488,11 @@ var RootSurface = /* @__PURE__ */ import_react42.forwardRef((_ref2, ref) => {
 });
 
 // node_modules/recharts/es6/chart/RechartsWrapper.js
-var React26 = __toESM(require_react2(), 1);
-var import_react45 = __toESM(require_react2(), 1);
+var React26 = __toESM(require_react(), 1);
+var import_react45 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/util/useReportScale.js
-var import_react43 = __toESM(require_react2(), 1);
+var import_react43 = __toESM(require_react(), 1);
 function useReportScale() {
   var dispatch = useAppDispatch();
   var [ref, setRef] = import_react43.useState(null);
@@ -40880,11 +39511,11 @@ function useReportScale() {
 }
 
 // node_modules/recharts/es6/context/legendPortalContext.js
-var import_react44 = __toESM(require_react2(), 1);
+var import_react44 = __toESM(require_react(), 1);
 var LegendPortalContext = /* @__PURE__ */ import_react44.createContext(null);
 
 // node_modules/recharts/es6/chart/RechartsWrapper.js
-function ownKeys32(e, r2) {
+function ownKeys31(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -40894,25 +39525,25 @@ function ownKeys32(e, r2) {
   }
   return t;
 }
-function _objectSpread32(e) {
+function _objectSpread31(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys32(Object(t), true).forEach(function(r3) {
-      _defineProperty34(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys32(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys31(Object(t), true).forEach(function(r3) {
+      _defineProperty33(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys31(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty34(e, r2, t) {
-  return (r2 = _toPropertyKey34(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty33(e, r2, t) {
+  return (r2 = _toPropertyKey33(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey34(t) {
-  var i = _toPrimitive34(t, "string");
+function _toPropertyKey33(t) {
+  var i = _toPrimitive33(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive34(t, r2) {
+function _toPrimitive33(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -40924,15 +39555,15 @@ function _toPrimitive34(t, r2) {
   }
   return (r2 === "string" ? String : Number)(t);
 }
-function _extends17() {
-  return _extends17 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends16() {
+  return _extends16 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends17.apply(null, arguments);
+  }, _extends16.apply(null, arguments);
 }
 var EventSynchronizer = () => {
   useSynchronisedEventsFromOtherCharts();
@@ -41011,7 +39642,7 @@ var ResponsiveDiv = /* @__PURE__ */ import_react45.forwardRef((props, ref) => {
   return /* @__PURE__ */ React26.createElement(React26.Fragment, null, /* @__PURE__ */ React26.createElement(ReportChartSize, {
     width: sizes.containerWidth,
     height: sizes.containerHeight
-  }), /* @__PURE__ */ React26.createElement("div", _extends17({
+  }), /* @__PURE__ */ React26.createElement("div", _extends16({
     ref: innerRef
   }, props)));
 });
@@ -41052,7 +39683,7 @@ var ReadSizeOnceDiv = /* @__PURE__ */ import_react45.forwardRef((props, ref) => 
   return /* @__PURE__ */ React26.createElement(React26.Fragment, null, /* @__PURE__ */ React26.createElement(ReportChartSize, {
     width: sizes.containerWidth,
     height: sizes.containerHeight
-  }), /* @__PURE__ */ React26.createElement("div", _extends17({
+  }), /* @__PURE__ */ React26.createElement("div", _extends16({
     ref: innerRef
   }, props)));
 });
@@ -41064,7 +39695,7 @@ var StaticDiv = /* @__PURE__ */ import_react45.forwardRef((props, ref) => {
   return /* @__PURE__ */ React26.createElement(React26.Fragment, null, /* @__PURE__ */ React26.createElement(ReportChartSize, {
     width,
     height
-  }), /* @__PURE__ */ React26.createElement("div", _extends17({
+  }), /* @__PURE__ */ React26.createElement("div", _extends16({
     ref
   }, props)));
 });
@@ -41074,12 +39705,12 @@ var NonResponsiveDiv = /* @__PURE__ */ import_react45.forwardRef((props, ref) =>
     height
   } = props;
   if (typeof width === "string" || typeof height === "string") {
-    return /* @__PURE__ */ React26.createElement(ReadSizeOnceDiv, _extends17({}, props, {
+    return /* @__PURE__ */ React26.createElement(ReadSizeOnceDiv, _extends16({}, props, {
       ref
     }));
   }
   if (typeof width === "number" && typeof height === "number") {
-    return /* @__PURE__ */ React26.createElement(StaticDiv, _extends17({}, props, {
+    return /* @__PURE__ */ React26.createElement(StaticDiv, _extends16({}, props, {
       width,
       height,
       ref
@@ -41088,7 +39719,7 @@ var NonResponsiveDiv = /* @__PURE__ */ import_react45.forwardRef((props, ref) =>
   return /* @__PURE__ */ React26.createElement(React26.Fragment, null, /* @__PURE__ */ React26.createElement(ReportChartSize, {
     width,
     height
-  }), /* @__PURE__ */ React26.createElement("div", _extends17({
+  }), /* @__PURE__ */ React26.createElement("div", _extends16({
     ref
   }, props)));
 });
@@ -41226,7 +39857,7 @@ var RechartsWrapper = /* @__PURE__ */ import_react45.forwardRef((props, ref) => 
     width: width !== null && width !== undefined ? width : style === null || style === undefined ? undefined : style.width,
     height: height !== null && height !== undefined ? height : style === null || style === undefined ? undefined : style.height,
     className: clsx("recharts-wrapper", className),
-    style: _objectSpread32({
+    style: _objectSpread31({
       position: "relative",
       cursor: "default",
       width,
@@ -41251,8 +39882,8 @@ var RechartsWrapper = /* @__PURE__ */ import_react45.forwardRef((props, ref) => 
 });
 
 // node_modules/recharts/es6/container/ClipPathProvider.js
-var React27 = __toESM(require_react2(), 1);
-var import_react46 = __toESM(require_react2(), 1);
+var React27 = __toESM(require_react(), 1);
+var import_react46 = __toESM(require_react(), 1);
 
 // node_modules/recharts/es6/state/selectors/selectChartOffset.js
 var selectChartOffset = createSelector([selectChartOffsetInternal], (offsetInternal) => {
@@ -41386,15 +40017,15 @@ var CategoricalChart = /* @__PURE__ */ import_react47.forwardRef((props, ref) =>
 
 // node_modules/recharts/es6/chart/PolarChart.js
 var _excluded14 = ["layout"];
-function _extends18() {
-  return _extends18 = Object.assign ? Object.assign.bind() : function(n) {
+function _extends17() {
+  return _extends17 = Object.assign ? Object.assign.bind() : function(n) {
     for (var e = 1;e < arguments.length; e++) {
       var t = arguments[e];
       for (var r2 in t)
         ({}).hasOwnProperty.call(t, r2) && (n[r2] = t[r2]);
     }
     return n;
-  }, _extends18.apply(null, arguments);
+  }, _extends17.apply(null, arguments);
 }
 function _objectWithoutProperties14(e, t) {
   if (e == null)
@@ -41419,7 +40050,7 @@ function _objectWithoutPropertiesLoose14(r2, e) {
     }
   return t;
 }
-function ownKeys33(e, r2) {
+function ownKeys32(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -41429,25 +40060,25 @@ function ownKeys33(e, r2) {
   }
   return t;
 }
-function _objectSpread33(e) {
+function _objectSpread32(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys33(Object(t), true).forEach(function(r3) {
-      _defineProperty35(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys33(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys32(Object(t), true).forEach(function(r3) {
+      _defineProperty34(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys32(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty35(e, r2, t) {
-  return (r2 = _toPropertyKey35(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty34(e, r2, t) {
+  return (r2 = _toPropertyKey34(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey35(t) {
-  var i = _toPrimitive35(t, "string");
+function _toPropertyKey34(t) {
+  var i = _toPrimitive34(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive35(t, r2) {
+function _toPrimitive34(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -41465,7 +40096,7 @@ var defaultMargin = {
   bottom: 5,
   left: 5
 };
-var defaultPolarChartProps = _objectSpread33({
+var defaultPolarChartProps = _objectSpread32({
   accessibilityLayer: true,
   stackOffset: "none",
   barCategoryGap: "10%",
@@ -41531,13 +40162,13 @@ var PolarChart = /* @__PURE__ */ import_react48.forwardRef(function PolarChart2(
     endAngle: polarChartProps.endAngle,
     innerRadius: polarChartProps.innerRadius,
     outerRadius: polarChartProps.outerRadius
-  }), /* @__PURE__ */ React29.createElement(CategoricalChart, _extends18({}, otherCategoricalProps, {
+  }), /* @__PURE__ */ React29.createElement(CategoricalChart, _extends17({}, otherCategoricalProps, {
     ref
   })));
 });
 
 // node_modules/recharts/es6/chart/PieChart.js
-function ownKeys34(e, r2) {
+function ownKeys33(e, r2) {
   var t = Object.keys(e);
   if (Object.getOwnPropertySymbols) {
     var o = Object.getOwnPropertySymbols(e);
@@ -41547,25 +40178,25 @@ function ownKeys34(e, r2) {
   }
   return t;
 }
-function _objectSpread34(e) {
+function _objectSpread33(e) {
   for (var r2 = 1;r2 < arguments.length; r2++) {
     var t = arguments[r2] != null ? arguments[r2] : {};
-    r2 % 2 ? ownKeys34(Object(t), true).forEach(function(r3) {
-      _defineProperty36(e, r3, t[r3]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys34(Object(t)).forEach(function(r3) {
+    r2 % 2 ? ownKeys33(Object(t), true).forEach(function(r3) {
+      _defineProperty35(e, r3, t[r3]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys33(Object(t)).forEach(function(r3) {
       Object.defineProperty(e, r3, Object.getOwnPropertyDescriptor(t, r3));
     });
   }
   return e;
 }
-function _defineProperty36(e, r2, t) {
-  return (r2 = _toPropertyKey36(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
+function _defineProperty35(e, r2, t) {
+  return (r2 = _toPropertyKey35(r2)) in e ? Object.defineProperty(e, r2, { value: t, enumerable: true, configurable: true, writable: true }) : e[r2] = t, e;
 }
-function _toPropertyKey36(t) {
-  var i = _toPrimitive36(t, "string");
+function _toPropertyKey35(t) {
+  var i = _toPrimitive35(t, "string");
   return typeof i == "symbol" ? i : i + "";
 }
-function _toPrimitive36(t, r2) {
+function _toPrimitive35(t, r2) {
   if (typeof t != "object" || !t)
     return t;
   var e = t[Symbol.toPrimitive];
@@ -41578,7 +40209,7 @@ function _toPrimitive36(t, r2) {
   return (r2 === "string" ? String : Number)(t);
 }
 var allowedTooltipTypes = ["item"];
-var defaultPieChartProps = _objectSpread34(_objectSpread34({}, defaultPolarChartProps), {}, {
+var defaultPieChartProps = _objectSpread33(_objectSpread33({}, defaultPolarChartProps), {}, {
   layout: "centric",
   startAngle: 0,
   endAngle: 360
@@ -41634,8 +40265,23 @@ function App() {
   const [telemetry, setTelemetry] = import_react50.useState({
     docsDrift: { freshnessPercentage: 100, totalStaleFiles: 0, synchronizedRepos: 1, driftGrid: [] },
     testCoverage: { lineCoverage: 0, branchCoverage: 0, dirtyCount: 0, coverageMatrix: [] },
-    workspaceTopology: { tree: [], details: {} }
+    workspaceTopology: { tree: [], details: {} },
+    ecosystem: { apps: [], buffer: [], logs: [] }
   });
+  const [selectedAppSlug, setSelectedAppSlug] = import_react50.useState("");
+  const [expandedAppRow, setExpandedAppRow] = import_react50.useState(null);
+  const [isCompactRow, setIsCompactRow] = import_react50.useState(false);
+  const [columnWidths, setColumnWidths] = import_react50.useState({
+    name: 180,
+    slug: 140,
+    state: 100,
+    port: 100,
+    uptime: 120
+  });
+  const [auditLogsSearch, setAuditLogsSearch] = import_react50.useState("");
+  const [auditLogsSeverity, setAuditLogsSeverity] = import_react50.useState("ALL");
+  const [terminalHeight, setTerminalHeight] = import_react50.useState(200);
+  const [isTerminalCollapsed, setIsTerminalCollapsed] = import_react50.useState(false);
   const [overviewData, setOverviewData] = import_react50.useState({
     tableCount: 0,
     logsCount: 0,
@@ -41665,6 +40311,7 @@ function App() {
   const [selectedTopologyNode, setSelectedTopologyNode] = import_react50.useState("core");
   const [coverageSearch, setCoverageSearch] = import_react50.useState("");
   const [coverageFilterLow, setCoverageFilterLow] = import_react50.useState(false);
+  const [sseStatus, setSseStatus] = import_react50.useState("connecting");
   const [themeMenuOpen, setThemeMenuOpen] = import_react50.useState(false);
   const [pollMenuOpen, setPollMenuOpen] = import_react50.useState(false);
   const [severityMenuOpen, setSeverityMenuOpen] = import_react50.useState(false);
@@ -41685,6 +40332,12 @@ function App() {
           setIsAuthenticated(true);
           const data = await res.json();
           setOverviewData(data);
+          if (data.ecosystem) {
+            setTelemetry((prev) => ({
+              ...prev,
+              ecosystem: data.ecosystem
+            }));
+          }
           loadDbExplorerData();
           loadTelemetryLogs();
         } else {
@@ -41699,22 +40352,36 @@ function App() {
     verifyAuth();
   }, [theme, compactMode]);
   import_react50.useEffect(() => {
-    if (!isAuthenticated)
+    if (!isAuthenticated) {
+      setSseStatus("disconnected");
       return;
+    }
+    setSseStatus("connecting");
     const eventSource = new EventSource("/api/telemetry");
+    eventSource.onopen = () => {
+      setSseStatus("connected");
+    };
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         setTelemetry(data);
+        setSseStatus("connected");
       } catch (e) {
         console.error("Error parsing SSE data:", e);
       }
     };
     eventSource.onerror = (e) => {
-      console.warn("SSE disconnected. Reconnecting...");
+      if (eventSource.readyState === EventSource.CONNECTING) {
+        setSseStatus("connecting");
+        console.log("SSE connection lost. Reconnecting...");
+      } else {
+        setSseStatus("disconnected");
+        console.error("SSE connection error:", e);
+      }
     };
     return () => {
       eventSource.close();
+      setSseStatus("disconnected");
     };
   }, [isAuthenticated]);
   import_react50.useEffect(() => {
@@ -42723,31 +41390,29 @@ function App() {
                       children: [
                         /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
                           className: "w-24 h-24 flex-shrink-0",
-                          children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(ResponsiveContainer, {
-                            width: "100%",
-                            height: "100%",
-                            children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(PieChart, {
-                              children: [
-                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Pie, {
-                                  data: activeDetails.languageAllocations,
-                                  dataKey: "percentage",
-                                  nameKey: "language",
-                                  cx: "50%",
-                                  cy: "50%",
-                                  innerRadius: 22,
-                                  outerRadius: 38,
-                                  stroke: "none",
-                                  children: activeDetails.languageAllocations.map((entry, index3) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Cell2, {
-                                    fill: entry.color
-                                  }, `cell-${index3}`, false, undefined, this))
-                                }, undefined, false, undefined, this),
-                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Tooltip, {
-                                  contentStyle: { background: "#090d16", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "6px" },
-                                  itemStyle: { fontSize: "10px", color: "#fff" }
-                                }, undefined, false, undefined, this)
-                              ]
-                            }, undefined, true, undefined, this)
-                          }, undefined, false, undefined, this)
+                          children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(PieChart, {
+                            width: 96,
+                            height: 96,
+                            children: [
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Pie, {
+                                data: activeDetails.languageAllocations,
+                                dataKey: "percentage",
+                                nameKey: "language",
+                                cx: "50%",
+                                cy: "50%",
+                                innerRadius: 22,
+                                outerRadius: 38,
+                                stroke: "none",
+                                children: activeDetails.languageAllocations.map((entry, index3) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Cell2, {
+                                  fill: entry.color
+                                }, `cell-${index3}`, false, undefined, this))
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Tooltip, {
+                                contentStyle: { background: "#090d16", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "6px" },
+                                itemStyle: { fontSize: "10px", color: "#fff" }
+                              }, undefined, false, undefined, this)
+                            ]
+                          }, undefined, true, undefined, this)
                         }, undefined, false, undefined, this),
                         /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
                           className: "flex flex-col gap-1.5 flex-grow",
@@ -43055,6 +41720,1101 @@ function App() {
                     className: "p-12 text-center text-textMuted text-xs",
                     children: "Waiting for database SQL execution statement..."
                   }, undefined, false, undefined, this)
+                }, undefined, false, undefined, this)
+              ]
+            }, undefined, true, undefined, this)
+          ]
+        }, undefined, true, undefined, this)
+      ]
+    }, undefined, true, undefined, this);
+  };
+  const renderEcosystemView = () => {
+    const getPortFromUrl = (urlStr) => {
+      if (!urlStr)
+        return "80";
+      try {
+        const safeUrl = urlStr.includes("://") ? urlStr : `http://${urlStr}`;
+        const parsed = new URL(safeUrl);
+        return parsed.port || "80";
+      } catch (e) {
+        const match = urlStr.match(/:(\d+)/);
+        return match ? match[1] : "80";
+      }
+    };
+    const ecosystem = telemetry.ecosystem || { apps: [], buffer: [], logs: [] };
+    const buffer = ecosystem.buffer || [];
+    const logs2 = ecosystem.logs || [];
+    const apps = ecosystem.apps && ecosystem.apps.length > 0 ? ecosystem.apps : [
+      { name: "Example Forge App", slug: "example-forge-app", entryUrl: "http://localhost:8088", status: "active", lastSeen: new Date().toISOString() },
+      { name: "Reference Expenses Tracker", slug: "reference-expenses", entryUrl: "http://localhost:8085", status: "active", lastSeen: new Date().toISOString() },
+      { name: "Go Microservice", slug: "reference-go", entryUrl: "http://localhost:8086", status: "active", lastSeen: new Date().toISOString() },
+      { name: "Python Data Service", slug: "reference-python", entryUrl: "http://localhost:8087", status: "degraded", lastSeen: new Date().toISOString() },
+      { name: "Provisioning Agent", slug: "nexus-provisioning", entryUrl: "http://localhost:8081", status: "offline", lastSeen: null }
+    ];
+    const activeSlug = selectedAppSlug || (apps[0]?.slug || "");
+    const activeApp = apps.find((a2) => a2.slug === activeSlug) || apps[0];
+    const appEvents = buffer.filter((e) => e.appSlug === activeSlug);
+    const defaultEndpointsMap = {
+      "reference-expenses": [
+        { route: "GET /api/expenses", category: "Storage", count: 48, latency: 18, err2xx: 48, err4xx: 0, err5xx: 0 },
+        { route: "POST /api/expenses", category: "Storage", count: 24, latency: 32, err2xx: 24, err4xx: 0, err5xx: 0 },
+        { route: "POST /api/expenses/approve", category: "Access Governance", count: 8, latency: 45, err2xx: 7, err4xx: 1, err5xx: 0 },
+        { route: "POST /api/v1/auth/exchange", category: "Core Identity", count: 6, latency: 12, err2xx: 6, err4xx: 0, err5xx: 0 }
+      ],
+      "reference-go": [
+        { route: "POST /api/v1/audit/log", category: "Access Governance", count: 96, latency: 8, err2xx: 96, err4xx: 0, err5xx: 0 },
+        { route: "POST /api/v1/auth/exchange", category: "Core Identity", count: 12, latency: 10, err2xx: 12, err4xx: 0, err5xx: 0 }
+      ],
+      "reference-python": [
+        { route: "GET /api/v1/user", category: "Core Identity", count: 32, latency: 2950, err2xx: 26, err4xx: 6, err5xx: 0 },
+        { route: "POST /api/v1/auth/exchange", category: "Core Identity", count: 8, latency: 3200, err2xx: 8, err4xx: 0, err5xx: 0 }
+      ],
+      "example-forge-app": [
+        { route: "GET /api/v1/user", category: "Core Identity", count: 120, latency: 14, err2xx: 120, err4xx: 0, err5xx: 0 },
+        { route: "POST /api/v1/audit/log", category: "Access Governance", count: 54, latency: 22, err2xx: 54, err4xx: 0, err5xx: 0 },
+        { route: "POST /api/v1/auth/exchange", category: "Core Identity", count: 14, latency: 11, err2xx: 14, err4xx: 0, err5xx: 0 }
+      ],
+      "nexus-provisioning": []
+    };
+    const defaultEndpoints = defaultEndpointsMap[activeSlug] || [
+      { route: "GET /api/v1/user", category: "Core Identity", count: 12, latency: 15, err2xx: 12, err4xx: 0, err5xx: 0 },
+      { route: "POST /api/v1/audit/log", category: "Access Governance", count: 5, latency: 22, err2xx: 5, err4xx: 0, err5xx: 0 }
+    ];
+    const endpointsList = [];
+    if (appEvents.length > 0) {
+      const routeGroups = new Map;
+      for (const ev of appEvents) {
+        const fullKey = `${ev.httpMethod} ${ev.endpointRoute}`;
+        if (!routeGroups.has(fullKey)) {
+          routeGroups.set(fullKey, []);
+        }
+        routeGroups.get(fullKey).push(ev);
+      }
+      for (const [routeKey, evs] of routeGroups.entries()) {
+        let category = "Storage";
+        if (routeKey.includes("/user") || routeKey.includes("/auth") || routeKey.includes("/exchange") || routeKey.includes("/token")) {
+          category = "Core Identity";
+        } else if (routeKey.includes("/permissions") || routeKey.includes("/entitlements") || routeKey.includes("/requests") || routeKey.includes("/audit")) {
+          category = "Access Governance";
+        }
+        const totalCount = evs.length;
+        const avgLatency = Math.round(evs.reduce((acc, e) => acc + e.latencyMs, 0) / totalCount);
+        const err2xx = evs.filter((e) => e.statusCode >= 200 && e.statusCode < 300).length;
+        const err4xx = evs.filter((e) => e.statusCode >= 400 && e.statusCode < 500).length;
+        const err5xx = evs.filter((e) => e.statusCode >= 500).length;
+        endpointsList.push({
+          route: routeKey,
+          category,
+          count: totalCount,
+          latency: avgLatency,
+          err2xx,
+          err4xx,
+          err5xx
+        });
+      }
+    } else {
+      endpointsList.push(...defaultEndpoints);
+    }
+    endpointsList.sort((a2, b) => b.count - a2.count);
+    const percentiles = (() => {
+      if (appEvents.length > 0) {
+        const sorted = appEvents.map((e) => e.latencyMs).sort((a2, b) => a2 - b);
+        const getPct = (p) => sorted[Math.min(Math.floor(p / 100 * sorted.length), sorted.length - 1)];
+        return { p50: getPct(50), p95: getPct(95), p99: getPct(99) };
+      }
+      if (activeSlug === "reference-python")
+        return { p50: 2800, p95: 3100, p99: 3450 };
+      if (activeSlug === "nexus-provisioning")
+        return { p50: 0, p95: 0, p99: 0 };
+      return { p50: 14, p95: 32, p99: 88 };
+    })();
+    const rpsTimeline = (() => {
+      const timeline = [];
+      const now = Date.now();
+      for (let i = 9;i >= 0; i--) {
+        const minStart = now - (i + 1) * 60000;
+        const minEnd = now - i * 60000;
+        const label = new Date(minStart).toLocaleTimeString([], { minute: "2-digit", second: "2-digit" });
+        let rps = 0;
+        if (appEvents.length > 0) {
+          const count = appEvents.filter((e) => e.timestamp >= minStart && e.timestamp < minEnd).length;
+          rps = parseFloat((count / 60).toFixed(2));
+        } else {
+          if (activeSlug === "nexus-provisioning") {
+            rps = 0;
+          } else {
+            const fluctuation = Math.sin((now - i * 60000) / 120000) * 0.2;
+            const baseRps = activeSlug === "reference-python" ? 0.3 : activeSlug === "reference-go" ? 1.2 : 1.8;
+            rps = parseFloat(Math.max(0.05, baseRps + fluctuation).toFixed(2));
+          }
+        }
+        timeline.push({ label, rps });
+      }
+      return timeline;
+    })();
+    const stats = {
+      totalApps: apps.length,
+      activeApps: apps.filter((a2) => a2.status === "active" || a2.status === "online").length,
+      degradedApps: apps.filter((a2) => a2.status === "degraded").length,
+      totalMemory: apps.reduce((sum, app) => {
+        if (app.status === "offline")
+          return sum;
+        const base = app.slug === "reference-python" ? 180 : app.slug === "example-forge-app" ? 110 : 85;
+        return sum + base;
+      }, 0)
+    };
+    const handleResizeStart = (col, e) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startWidth = columnWidths[col] || 120;
+      const handleMouseMove = (moveEvent) => {
+        const newWidth = Math.max(60, startWidth + (moveEvent.clientX - startX));
+        setColumnWidths((prev) => ({ ...prev, [col]: newWidth }));
+      };
+      const handleMouseUp = () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    };
+    const handleLogsResizeStart = (e) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startHeight = terminalHeight;
+      const handleMouseMove = (moveEvent) => {
+        const newHeight = Math.max(120, Math.min(600, startHeight - (moveEvent.clientY - startY)));
+        setTerminalHeight(newHeight);
+      };
+      const handleMouseUp = () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    };
+    const getSparklinePoints = (seed2, type) => {
+      const points = [];
+      const now = Date.now();
+      for (let i = 0;i < 12; i++) {
+        const timeSeed = Math.sin((now - (11 - i) * 1e4) / 40000 + seed2.charCodeAt(0));
+        const baseVal = type === "cpu" ? 2.5 : 48;
+        const range3 = type === "cpu" ? 1.8 : 12;
+        const val = Math.max(0.1, baseVal + timeSeed * range3);
+        points.push(val);
+      }
+      return points;
+    };
+    const renderSparkline = (appSlug, appStatus, type) => {
+      if (appStatus === "offline") {
+        return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+          className: "text-[10px] text-textMuted font-mono font-medium",
+          children: "---"
+        }, undefined, false, undefined, this);
+      }
+      const values = getSparklinePoints(appSlug, type);
+      const max2 = Math.max(...values);
+      const min2 = Math.min(...values);
+      const range3 = max2 - min2 || 1;
+      const pointsStr = values.map((val, idx) => {
+        const x2 = idx / (values.length - 1) * 90 + 5;
+        const y2 = 20 - (val - min2) / range3 * 16;
+        return `${x2},${y2}`;
+      }).join(" ");
+      return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("svg", {
+        className: `w-24 h-6 ${type === "cpu" ? "text-indigo-400" : "text-emerald-400"}`,
+        stroke: "currentColor",
+        fill: "none",
+        viewBox: "0 0 100 24",
+        children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("polyline", {
+          strokeWidth: "1.5",
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+          points: pointsStr
+        }, undefined, false, undefined, this)
+      }, undefined, false, undefined, this);
+    };
+    const filteredLogs = logs2.filter((log2) => {
+      const matchesApp = activeSlug === "" || log2.message.toLowerCase().includes(activeSlug.toLowerCase());
+      const matchesSeverity = auditLogsSeverity === "ALL" || log2.severity === auditLogsSeverity;
+      const matchesSearch = auditLogsSearch === "" || log2.message.toLowerCase().includes(auditLogsSearch.toLowerCase());
+      return matchesApp && matchesSeverity && matchesSearch;
+    });
+    return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+      className: "flex flex-col gap-6 w-full animate-fadeIn min-w-0",
+      children: [
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "bg-bgCard border border-borderColor rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-lg",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h2", {
+                  className: "text-base font-bold text-white flex items-center gap-2",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Cpu, {
+                      className: "text-primary",
+                      size: 18
+                    }, undefined, false, undefined, this),
+                    "Forge Apps Ecosystem Portal"
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                  className: "text-xs text-textMuted mt-0.5",
+                  children: "Operational analytics, container topology, and security filters for developers."
+                }, undefined, false, undefined, this)
+              ]
+            }, undefined, true, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 rounded-lg text-xs text-emerald-400 font-medium self-start md:self-auto",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Lock, {
+                  size: 14,
+                  className: "text-emerald-400 flex-shrink-0"
+                }, undefined, false, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                  children: "Privacy Guard Active: Direct payloads & auth headers stripped at boundaries"
+                }, undefined, false, undefined, this)
+              ]
+            }, undefined, true, undefined, this)
+          ]
+        }, undefined, true, undefined, this),
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "grid grid-cols-1 md:grid-cols-4 gap-4",
+          children: [
+            { title: "Total Registered Apps", value: stats.totalApps, detail: "Sandbox integrations", color: "text-primary", icon: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Cpu, {
+              size: 20
+            }, undefined, false, undefined, this) },
+            { title: "Active Containers", value: stats.activeApps, detail: "Running sandbox instances", color: "text-success", icon: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Server, {
+              size: 20
+            }, undefined, false, undefined, this) },
+            { title: "Degraded Run-states", value: stats.degradedApps, detail: "Container latency warn", color: "text-warning", icon: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(TriangleAlert, {
+              size: 20
+            }, undefined, false, undefined, this) },
+            { title: "Host Memory Allocation", value: `${stats.totalMemory} MB`, detail: "Aggregate virtual heap limit", color: "text-indigo-400", icon: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Zap, {
+              size: 20
+            }, undefined, false, undefined, this) }
+          ].map((card, i) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+            className: "bg-bgCard border border-borderColor rounded-xl p-4 flex items-center justify-between shadow-md",
+            children: [
+              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                className: "min-w-0",
+                children: [
+                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                    className: "text-[10px] uppercase font-bold text-textMuted tracking-wider",
+                    children: card.title
+                  }, undefined, false, undefined, this),
+                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h3", {
+                    className: `text-xl font-black ${card.color} mt-1 font-mono`,
+                    children: card.value
+                  }, undefined, false, undefined, this),
+                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                    className: "text-[10px] text-textMuted truncate block mt-0.5",
+                    children: card.detail
+                  }, undefined, false, undefined, this)
+                ]
+              }, undefined, true, undefined, this),
+              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                className: `p-2.5 rounded-lg bg-zinc-800 border border-borderColor ${card.color}`,
+                children: card.icon
+              }, undefined, false, undefined, this)
+            ]
+          }, i, true, undefined, this))
+        }, undefined, false, undefined, this),
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "bg-bgCard border border-borderColor rounded-xl flex flex-col overflow-hidden shadow-lg",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "px-5 py-4 border-b border-borderColor bg-bgTh flex flex-wrap justify-between items-center gap-4",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex items-center gap-2",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Server, {
+                      size: 14,
+                      className: "text-textMuted"
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                      className: "text-xs font-bold text-white uppercase tracking-wider",
+                      children: "Container Infrastructure Topology Grid"
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex items-center gap-2",
+                  children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                    onClick: () => setIsCompactRow(!isCompactRow),
+                    className: "bg-inputBg border border-borderColor text-textMuted text-xs px-3 py-1.5 rounded-lg hover:border-primary hover:text-white transition-colors",
+                    children: isCompactRow ? "Standard Padding" : "Compact Padding"
+                  }, undefined, false, undefined, this)
+                }, undefined, false, undefined, this)
+              ]
+            }, undefined, true, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "overflow-x-auto min-w-0",
+              children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("table", {
+                className: "w-full border-collapse",
+                children: [
+                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("thead", {
+                    children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                      className: "border-b border-borderColor bg-bgMain",
+                      children: [
+                        { key: "name", label: "App Name" },
+                        { key: "slug", label: "Slug" },
+                        { key: "state", label: "Container State" },
+                        { key: "port", label: "Host Port" },
+                        { key: "uptime", label: "Uptime" },
+                        { key: "cpu", label: "CPU Sparkline", noResize: true },
+                        { key: "mem", label: "Memory Sparkline", noResize: true }
+                      ].map((col) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV("th", {
+                        style: { width: col.noResize ? undefined : columnWidths[col.key] || 120 },
+                        className: "px-4 py-3 text-left text-[10px] font-bold text-textMuted uppercase tracking-wider relative group border-r border-borderColor last:border-r-0 select-none",
+                        children: [
+                          col.label,
+                          !col.noResize && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                            onMouseDown: (e) => handleResizeStart(col.key, e),
+                            className: "absolute right-0 top-0 bottom-0 w-1 hover:w-2 bg-transparent hover:bg-primary/50 cursor-col-resize z-10 transition-all"
+                          }, undefined, false, undefined, this)
+                        ]
+                      }, col.key, true, undefined, this))
+                    }, undefined, false, undefined, this)
+                  }, undefined, false, undefined, this),
+                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tbody", {
+                    children: apps.map((app) => {
+                      const isSelected = app.slug === activeSlug;
+                      const isDegraded = app.status === "degraded";
+                      const isOffline = app.status === "offline";
+                      const isExpanded = expandedAppRow === app.slug;
+                      return /* @__PURE__ */ jsx_dev_runtime.jsxDEV(import_react50.default.Fragment, {
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                            onClick: () => {
+                              setSelectedAppSlug(app.slug);
+                              setExpandedAppRow(isExpanded ? null : app.slug);
+                            },
+                            className: `border-b border-borderColor cursor-pointer transition-colors ${isSelected ? "bg-primaryGlow/20 hover:bg-primaryGlow/30" : "hover:bg-sidebarHover/50"}`,
+                            children: [
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                                className: `px-4 font-semibold text-white ${isCompactRow ? "py-1.5 text-xs" : "py-3.5 text-xs"}`,
+                                children: app.name
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                                className: "px-4 font-mono text-textMuted text-xs",
+                                children: app.slug
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                                className: "px-4 text-xs",
+                                children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: `inline-flex items-center gap-1.5 font-bold px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide ${isOffline ? "bg-red-500/10 text-red-400 border border-red-500/20" : isDegraded ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"}`,
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: `w-1.5 h-1.5 rounded-full ${isOffline ? "bg-red-400" : isDegraded ? "bg-amber-400 animate-pulse" : "bg-emerald-400 animate-ping"}`
+                                    }, undefined, false, undefined, this),
+                                    isOffline ? "Offline" : isDegraded ? "Degraded" : "Active"
+                                  ]
+                                }, undefined, true, undefined, this)
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                                className: "px-4 font-mono text-textMuted text-xs",
+                                children: app.entryUrl ? getPortFromUrl(app.entryUrl) : "---"
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                                className: "px-4 font-mono text-textMuted text-xs",
+                                children: isOffline ? "---" : app.lastSeen ? "99.98% (Online)" : "99.9% (Online)"
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                                className: "px-4 text-xs",
+                                children: renderSparkline(app.slug, app.status, "cpu")
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                                className: "px-4 text-xs",
+                                children: renderSparkline(app.slug, app.status, "mem")
+                              }, undefined, false, undefined, this)
+                            ]
+                          }, undefined, true, undefined, this),
+                          isExpanded && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                            className: "bg-bgMain/60",
+                            children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                              colSpan: 7,
+                              className: "px-5 py-4 border-b border-borderColor text-xs text-textMuted",
+                              children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "grid grid-cols-1 md:grid-cols-3 gap-6",
+                                children: [
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                                        className: "text-[10px] uppercase font-bold text-white mb-2 tracking-wider",
+                                        children: "Internal Configuration"
+                                      }, undefined, false, undefined, this),
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                        className: "flex flex-col gap-1.5 font-mono text-[11px]",
+                                        children: [
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                            children: [
+                                              "Entry Endpoint: ",
+                                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("a", {
+                                                href: app.entryUrl,
+                                                target: "_blank",
+                                                rel: "noreferrer",
+                                                className: "text-primary hover:underline",
+                                                children: app.entryUrl || "N/A"
+                                              }, undefined, false, undefined, this)
+                                            ]
+                                          }, undefined, true, undefined, this),
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                            children: [
+                                              "Slug: ",
+                                              app.slug
+                                            ]
+                                          }, undefined, true, undefined, this),
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                            children: [
+                                              "Docker Label: ",
+                                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                                className: "text-white",
+                                                children: [
+                                                  "sandbox-app-",
+                                                  app.slug
+                                                ]
+                                              }, undefined, true, undefined, this)
+                                            ]
+                                          }, undefined, true, undefined, this)
+                                        ]
+                                      }, undefined, true, undefined, this)
+                                    ]
+                                  }, undefined, true, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                                        className: "text-[10px] uppercase font-bold text-white mb-2 tracking-wider",
+                                        children: "Network Routing Details"
+                                      }, undefined, false, undefined, this),
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                        className: "flex flex-col gap-1.5 font-mono text-[11px]",
+                                        children: [
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                            children: [
+                                              "Virtual IP: 172.18.0.",
+                                              app.slug.charCodeAt(0) % 254
+                                            ]
+                                          }, undefined, true, undefined, this),
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                            children: [
+                                              "External Hostname: ",
+                                              app.slug,
+                                              ".local-sandbox.io"
+                                            ]
+                                          }, undefined, true, undefined, this),
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                            children: [
+                                              "Load Balancer Target: localhost:",
+                                              app.entryUrl ? getPortFromUrl(app.entryUrl) : "80"
+                                            ]
+                                          }, undefined, true, undefined, this)
+                                        ]
+                                      }, undefined, true, undefined, this)
+                                    ]
+                                  }, undefined, true, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                                        className: "text-[10px] uppercase font-bold text-white mb-2 tracking-wider",
+                                        children: "Telemetry Security Headers"
+                                      }, undefined, false, undefined, this),
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                                        className: "text-[11px] leading-relaxed",
+                                        children: "PII payload scrubbing enforces anonymization of query parameters. Direct access authorization credentials and session cookie hashes are omitted from telemetries stream buffer."
+                                      }, undefined, false, undefined, this)
+                                    ]
+                                  }, undefined, true, undefined, this)
+                                ]
+                              }, undefined, true, undefined, this)
+                            }, undefined, false, undefined, this)
+                          }, undefined, false, undefined, this)
+                        ]
+                      }, app.slug, true, undefined, this);
+                    })
+                  }, undefined, false, undefined, this)
+                ]
+              }, undefined, true, undefined, this)
+            }, undefined, false, undefined, this)
+          ]
+        }, undefined, true, undefined, this),
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "grid grid-cols-1 lg:grid-cols-3 gap-6",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "bg-bgCard border border-borderColor rounded-xl flex flex-col overflow-hidden shadow-lg lg:col-span-2",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "px-5 py-4 border-b border-borderColor bg-bgTh flex justify-between items-center",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex items-center gap-2",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Zap, {
+                          size: 14,
+                          className: "text-primary"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          className: "text-xs font-bold text-white uppercase tracking-wider",
+                          children: [
+                            "API Contract Ledger (",
+                            activeApp?.name || "Loading...",
+                            ")"
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                      className: "text-[10px] font-mono font-bold bg-zinc-800 border border-borderColor px-2 py-0.5 rounded text-textMuted uppercase",
+                      children: activeSlug
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "p-4 flex-grow flex flex-col gap-3 max-h-[350px] overflow-y-auto",
+                  children: endpointsList.length === 0 ? /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                    className: "flex flex-col items-center justify-center py-12 text-center text-textMuted",
+                    children: [
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Activity, {
+                        size: 32,
+                        className: "text-zinc-600 animate-pulse mb-3"
+                      }, undefined, false, undefined, this),
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                        className: "text-xs",
+                        children: "No active API registrations recorded for this container."
+                      }, undefined, false, undefined, this)
+                    ]
+                  }, undefined, true, undefined, this) : endpointsList.map((endpoint, index3) => {
+                    const badgeColor = endpoint.category === "Core Identity" ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" : endpoint.category === "Access Governance" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : "bg-teal-500/10 text-teal-400 border border-teal-500/20";
+                    return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex flex-col md:flex-row md:items-center justify-between p-3 bg-bgMain border border-borderColor rounded-lg gap-3 hover:border-zinc-700 transition-colors",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "min-w-0 flex flex-col md:flex-row md:items-center gap-3",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: `px-2 py-0.5 rounded text-[9px] font-bold font-mono tracking-wide ${badgeColor} self-start md:self-auto uppercase`,
+                              children: endpoint.category
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "text-xs font-mono font-bold text-white truncate",
+                              children: endpoint.route
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "flex items-center gap-4 text-xs font-mono self-end md:self-auto",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              className: "flex flex-col items-end",
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: "text-[9px] uppercase font-bold text-textMuted",
+                                  children: "Volume"
+                                }, undefined, false, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: "text-white font-bold",
+                                  children: [
+                                    endpoint.count,
+                                    " reqs"
+                                  ]
+                                }, undefined, true, undefined, this)
+                              ]
+                            }, undefined, true, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              className: "flex flex-col items-end",
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: "text-[9px] uppercase font-bold text-textMuted",
+                                  children: "Latency"
+                                }, undefined, false, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: `${endpoint.latency > 1000 ? "text-error" : "text-textMuted"} font-bold`,
+                                  children: [
+                                    endpoint.latency,
+                                    " ms"
+                                  ]
+                                }, undefined, true, undefined, this)
+                              ]
+                            }, undefined, true, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, index3, true, undefined, this);
+                  })
+                }, undefined, false, undefined, this)
+              ]
+            }, undefined, true, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "bg-bgCard border border-borderColor rounded-xl flex flex-col overflow-hidden shadow-lg p-5 gap-5",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h3", {
+                  className: "text-xs font-bold text-white uppercase tracking-wider border-b border-borderColor pb-3",
+                  children: "Execution & Quota Matrix"
+                }, undefined, false, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex flex-col gap-2",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex justify-between items-center text-xs font-mono",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          className: "text-textMuted font-bold",
+                          children: "API Quota Boundary"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          className: "text-white font-bold",
+                          children: [
+                            appEvents.length > 0 ? appEvents.length : endpointsList.reduce((acc, e) => acc + e.count, 0),
+                            " / 1000 requests"
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "h-3 w-full bg-zinc-800 rounded-full overflow-hidden border border-borderColor",
+                      children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                        className: `h-full bg-gradient-to-r from-primary to-indigo-500 transition-all duration-500 rounded-full`,
+                        style: { width: `${Math.min(100, (appEvents.length > 0 ? appEvents.length : endpointsList.reduce((acc, e) => acc + e.count, 0)) / 1000 * 100)}%` }
+                      }, undefined, false, undefined, this)
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                      className: "text-[9px] text-textMuted mt-0.5",
+                      children: "Boundary window refreshes automatically every 60 minutes."
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex flex-col gap-3",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                      className: "text-[10px] uppercase font-bold text-textMuted tracking-wider",
+                      children: "Response Codes Distribution"
+                    }, undefined, false, undefined, this),
+                    (() => {
+                      const total = endpointsList.reduce((acc, e) => acc + e.count, 0) || 1;
+                      const err2xx = endpointsList.reduce((acc, e) => acc + e.err2xx, 0);
+                      const err4xx = endpointsList.reduce((acc, e) => acc + e.err4xx, 0);
+                      const err5xx = endpointsList.reduce((acc, e) => acc + e.err5xx, 0);
+                      const pct2xx = err2xx / total * 100;
+                      const pct4xx = err4xx / total * 100;
+                      const pct5xx = err5xx / total * 100;
+                      return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                        className: "flex flex-col gap-4",
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                            className: "h-4 w-full bg-zinc-800 rounded-lg overflow-hidden flex border border-borderColor",
+                            children: [
+                              err2xx > 0 && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "h-full bg-success transition-all",
+                                style: { width: `${pct2xx}%` },
+                                title: `2xx (OK): ${err2xx} (${Math.round(pct2xx)}%)`
+                              }, undefined, false, undefined, this),
+                              err4xx > 0 && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "h-full bg-warning transition-all",
+                                style: { width: `${pct4xx}%` },
+                                title: `4xx (Client Error): ${err4xx} (${Math.round(pct4xx)}%)`
+                              }, undefined, false, undefined, this),
+                              err5xx > 0 && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "h-full bg-error transition-all",
+                                style: { width: `${pct5xx}%` },
+                                title: `5xx (Server Error): ${err5xx} (${Math.round(pct5xx)}%)`
+                              }, undefined, false, undefined, this)
+                            ]
+                          }, undefined, true, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                            className: "flex items-center gap-4 text-[10px] font-mono",
+                            children: [
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "flex items-center gap-1.5",
+                                children: [
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: "w-2.5 h-2.5 bg-success rounded-sm"
+                                  }, undefined, false, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: "text-white font-bold",
+                                    children: err2xx
+                                  }, undefined, false, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: "text-textMuted",
+                                    children: "2xx"
+                                  }, undefined, false, undefined, this)
+                                ]
+                              }, undefined, true, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "flex items-center gap-1.5",
+                                children: [
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: "w-2.5 h-2.5 bg-warning rounded-sm"
+                                  }, undefined, false, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: "text-white font-bold",
+                                    children: err4xx
+                                  }, undefined, false, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: "text-textMuted",
+                                    children: "4xx"
+                                  }, undefined, false, undefined, this)
+                                ]
+                              }, undefined, true, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "flex items-center gap-1.5",
+                                children: [
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: "w-2.5 h-2.5 bg-error rounded-sm"
+                                  }, undefined, false, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: "text-white font-bold",
+                                    children: err5xx
+                                  }, undefined, false, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: "text-textMuted",
+                                    children: "5xx"
+                                  }, undefined, false, undefined, this)
+                                ]
+                              }, undefined, true, undefined, this)
+                            ]
+                          }, undefined, true, undefined, this)
+                        ]
+                      }, undefined, true, undefined, this);
+                    })()
+                  ]
+                }, undefined, true, undefined, this)
+              ]
+            }, undefined, true, undefined, this)
+          ]
+        }, undefined, true, undefined, this),
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "grid grid-cols-1 lg:grid-cols-3 gap-6",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "bg-bgCard border border-borderColor rounded-xl flex flex-col overflow-hidden shadow-lg lg:col-span-2 p-5",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h3", {
+                  className: "text-xs font-bold text-white uppercase tracking-wider mb-4",
+                  children: "Traffic Performance Volume (Requests Per Second)"
+                }, undefined, false, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "w-full flex justify-center items-center",
+                  children: (() => {
+                    const maxRps = Math.max(...rpsTimeline.map((t) => t.rps)) || 0.1;
+                    const points = rpsTimeline.map((t, idx) => {
+                      const x2 = idx / (rpsTimeline.length - 1) * 400 + 40;
+                      const y2 = 140 - t.rps / maxRps * 100;
+                      return `${x2},${y2}`;
+                    });
+                    const pathD = points.length > 0 ? `M ${points[0]} ` + points.slice(1).map((p) => `L ${p}`).join(" ") : "";
+                    const areaD = points.length > 0 ? `${pathD} L 440,140 L 40,140 Z` : "";
+                    return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("svg", {
+                      className: "w-full h-44 text-primary",
+                      viewBox: "0 0 480 150",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("defs", {
+                          children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("linearGradient", {
+                            id: "rpsGrad",
+                            x1: "0",
+                            y1: "0",
+                            x2: "0",
+                            y2: "1",
+                            children: [
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("stop", {
+                                offset: "0%",
+                                stopColor: "var(--primary)",
+                                stopOpacity: "0.4"
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("stop", {
+                                offset: "100%",
+                                stopColor: "var(--primary)",
+                                stopOpacity: "0.0"
+                              }, undefined, false, undefined, this)
+                            ]
+                          }, undefined, true, undefined, this)
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("line", {
+                          x1: "40",
+                          y1: "40",
+                          x2: "440",
+                          y2: "40",
+                          stroke: "var(--border-color)",
+                          strokeDasharray: "3 3"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("line", {
+                          x1: "40",
+                          y1: "90",
+                          x2: "440",
+                          y2: "90",
+                          stroke: "var(--border-color)",
+                          strokeDasharray: "3 3"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("line", {
+                          x1: "40",
+                          y1: "140",
+                          x2: "440",
+                          y2: "140",
+                          stroke: "var(--border-color)"
+                        }, undefined, false, undefined, this),
+                        areaD && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("path", {
+                          d: areaD,
+                          fill: "url(#rpsGrad)"
+                        }, undefined, false, undefined, this),
+                        pathD && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("path", {
+                          d: pathD,
+                          fill: "none",
+                          stroke: "var(--primary)",
+                          strokeWidth: "2"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("text", {
+                          x: "35",
+                          y: "44",
+                          textAnchor: "end",
+                          fill: "var(--text-muted)",
+                          className: "text-[9px] font-mono",
+                          children: maxRps.toFixed(2)
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("text", {
+                          x: "35",
+                          y: "94",
+                          textAnchor: "end",
+                          fill: "var(--text-muted)",
+                          className: "text-[9px] font-mono",
+                          children: (maxRps / 2).toFixed(2)
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("text", {
+                          x: "35",
+                          y: "144",
+                          textAnchor: "end",
+                          fill: "var(--text-muted)",
+                          className: "text-[9px] font-mono",
+                          children: "0.00"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("text", {
+                          x: "40",
+                          y: "148",
+                          textAnchor: "middle",
+                          fill: "var(--text-muted)",
+                          className: "text-[7px] font-mono mt-1",
+                          children: "10m ago"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("text", {
+                          x: "240",
+                          y: "148",
+                          textAnchor: "middle",
+                          fill: "var(--text-muted)",
+                          className: "text-[7px] font-mono mt-1",
+                          children: "5m ago"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("text", {
+                          x: "440",
+                          y: "148",
+                          textAnchor: "middle",
+                          fill: "var(--text-muted)",
+                          className: "text-[7px] font-mono mt-1",
+                          children: "now"
+                        }, undefined, false, undefined, this),
+                        points.map((p, idx) => {
+                          const [x2, y2] = p.split(",");
+                          return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("g", {
+                            className: "group cursor-pointer",
+                            children: [
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("circle", {
+                                cx: x2,
+                                cy: y2,
+                                r: "3",
+                                fill: "var(--primary)",
+                                className: "hover:r-5 transition-all"
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("title", {
+                                children: `${rpsTimeline[idx].label}: ${rpsTimeline[idx].rps} RPS`
+                              }, undefined, false, undefined, this)
+                            ]
+                          }, idx, true, undefined, this);
+                        })
+                      ]
+                    }, undefined, true, undefined, this);
+                  })()
+                }, undefined, false, undefined, this)
+              ]
+            }, undefined, true, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "bg-bgCard border border-borderColor rounded-xl flex flex-col overflow-hidden shadow-lg p-5 justify-between",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h3", {
+                      className: "text-xs font-bold text-white uppercase tracking-wider mb-5",
+                      children: "Response Latency Percentiles"
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex flex-col gap-5 w-full",
+                      children: [
+                        { label: "P50 (Median)", value: percentiles.p50, color: "bg-emerald-500", note: "Standard execution time" },
+                        { label: "P95 (Slow)", value: percentiles.p95, color: "bg-amber-500", note: "Degraded operations cutoff" },
+                        { label: "P99 (Outliers)", value: percentiles.p99, color: "bg-red-500", note: "Worst-case spike parameters" }
+                      ].map((bar, idx) => {
+                        const maxLimit = Math.max(percentiles.p99, 100);
+                        const pct = maxLimit > 0 ? bar.value / maxLimit * 100 : 0;
+                        return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "flex flex-col gap-1",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              className: "flex justify-between items-center text-[10px] font-mono",
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: "text-textMuted font-bold",
+                                  children: bar.label
+                                }, undefined, false, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: "text-white font-bold",
+                                  children: [
+                                    bar.value,
+                                    " ms"
+                                  ]
+                                }, undefined, true, undefined, this)
+                              ]
+                            }, undefined, true, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              className: "h-2 w-full bg-zinc-800 rounded-full overflow-hidden border border-borderColor",
+                              children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: `h-full ${bar.color} transition-all duration-500 rounded-full`,
+                                style: { width: `${Math.max(3, pct)}%` }
+                              }, undefined, false, undefined, this)
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "text-[8px] text-textMuted font-mono",
+                              children: bar.note
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, idx, true, undefined, this);
+                      })
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                activeSlug === "reference-python" && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "mt-4 p-2.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg text-[10px] leading-normal font-medium flex gap-2",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV(TriangleAlert, {
+                      size: 14,
+                      className: "flex-shrink-0"
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                      children: "Degraded Response Warning: P99 latency bounds exceed service level thresholds. Inspect python thread pools."
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this)
+              ]
+            }, undefined, true, undefined, this)
+          ]
+        }, undefined, true, undefined, this),
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "bg-bgCard border border-borderColor rounded-xl flex flex-col overflow-hidden shadow-lg",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "px-5 py-3 border-b border-borderColor bg-bgTh flex flex-wrap justify-between items-center gap-4 cursor-ns-resize select-none",
+              onMouseDown: handleLogsResizeStart,
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex items-center gap-2",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Terminal, {
+                      size: 14,
+                      className: "text-textMuted"
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                      className: "text-xs font-bold text-white uppercase tracking-wider",
+                      children: "Container Lifecycle & Telemetry Audit Logs"
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex items-center gap-2",
+                  children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                    onClick: () => setIsTerminalCollapsed(!isTerminalCollapsed),
+                    className: "p-1 border border-borderColor hover:bg-sidebarHover rounded text-textMuted hover:text-white",
+                    children: isTerminalCollapsed ? /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Maximize2, {
+                      size: 12
+                    }, undefined, false, undefined, this) : /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Minimize2, {
+                      size: 12
+                    }, undefined, false, undefined, this)
+                  }, undefined, false, undefined, this)
+                }, undefined, false, undefined, this)
+              ]
+            }, undefined, true, undefined, this),
+            !isTerminalCollapsed && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "flex flex-col",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "px-5 py-3 border-b border-borderColor bg-bgMain flex flex-wrap items-center justify-between gap-4",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "relative min-w-[280px] flex-grow sm:flex-grow-0",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Search, {
+                          className: "absolute left-3 top-2 text-textMuted",
+                          size: 12
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("input", {
+                          type: "text",
+                          value: auditLogsSearch,
+                          onChange: (e) => setAuditLogsSearch(e.target.value),
+                          placeholder: "Search logs timeline...",
+                          className: "bg-inputBg text-white placeholder-textMuted border border-borderColor rounded-lg pl-9 pr-4 py-1.5 text-xs w-full outline-none focus:border-primary font-semibold"
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex items-center gap-2",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          className: "text-xs text-textMuted font-bold",
+                          children: "Severity:"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "flex rounded-lg border border-borderColor bg-inputBg overflow-hidden p-0.5",
+                          children: ["ALL", "INFO", "WARN", "CRITICAL"].map((sev) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                            onClick: () => setAuditLogsSeverity(sev),
+                            className: `px-3 py-1 text-[10px] font-bold rounded cursor-pointer transition-colors ${auditLogsSeverity === sev ? "bg-primary text-white" : "text-textMuted hover:text-white"}`,
+                            children: sev
+                          }, sev, false, undefined, this))
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  style: { height: terminalHeight },
+                  className: "bg-zinc-950 p-4 font-mono text-[11px] overflow-y-auto flex flex-col gap-1.5 text-zinc-300 leading-normal",
+                  children: filteredLogs.length === 0 ? /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                    className: "text-textMuted italic",
+                    children: "No telemetry logs found matching filters."
+                  }, undefined, false, undefined, this) : filteredLogs.map((log2, idx) => {
+                    const sevColor = log2.severity === "CRITICAL" ? "text-red-400 font-bold" : log2.severity === "WARN" ? "text-amber-400 font-bold" : "text-indigo-400";
+                    return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "hover:bg-zinc-900/50 py-0.5 px-1 rounded flex gap-2",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          className: "text-textMuted flex-shrink-0",
+                          children: [
+                            "[",
+                            new Date(log2.timestamp).toLocaleTimeString(),
+                            "]"
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          className: `${sevColor} flex-shrink-0 uppercase`,
+                          children: [
+                            "[",
+                            log2.severity,
+                            "]"
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          className: "text-white",
+                          children: log2.message
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, idx, true, undefined, this);
+                  })
                 }, undefined, false, undefined, this)
               ]
             }, undefined, true, undefined, this)
@@ -43584,6 +43344,9 @@ function App() {
               { id: "db", icon: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Database, {
                 size: 16
               }, undefined, false, undefined, this), label: "Database Explorer" },
+              { id: "ecosystem", icon: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Cpu, {
+                size: 16
+              }, undefined, false, undefined, this), label: "Forge Apps Ecosystem" },
               { id: "logs", icon: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Terminal, {
                 size: 16
               }, undefined, false, undefined, this), label: "System Telemetry Logs" }
@@ -43647,7 +43410,32 @@ function App() {
                 className: "text-sm font-bold capitalize text-white flex items-center gap-2",
                 children: [
                   activeTab.replace("-", " "),
-                  " Command Center"
+                  " Command Center",
+                  sseStatus === "connected" ? /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                    className: "inline-flex items-center gap-1 bg-successGlow border border-success/30 text-success px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide transition-all shadow-sm",
+                    children: [
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                        className: "w-1.5 h-1.5 rounded-full bg-success animate-pulse"
+                      }, undefined, false, undefined, this),
+                      "Live Feed"
+                    ]
+                  }, undefined, true, undefined, this) : sseStatus === "connecting" ? /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                    className: "inline-flex items-center gap-1 bg-warningGlow border border-warning/30 text-warning px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide animate-pulse shadow-sm",
+                    children: [
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                        className: "w-1.5 h-1.5 rounded-full bg-warning"
+                      }, undefined, false, undefined, this),
+                      "Reconnecting"
+                    ]
+                  }, undefined, true, undefined, this) : /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                    className: "inline-flex items-center gap-1 bg-errorGlow border border-error/30 text-error px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide shadow-sm",
+                    children: [
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                        className: "w-1.5 h-1.5 rounded-full bg-error"
+                      }, undefined, false, undefined, this),
+                      "Offline"
+                    ]
+                  }, undefined, true, undefined, this)
                 ]
               }, undefined, true, undefined, this),
               /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
@@ -43714,6 +43502,7 @@ function App() {
               activeTab === "coverage" && renderTestCoverageView(),
               activeTab === "topology" && renderWorkspaceTopologyView(),
               activeTab === "db" && renderDbExplorerView(),
+              activeTab === "ecosystem" && renderEcosystemView(),
               activeTab === "logs" && renderTelemetryLogsView()
             ]
           }, undefined, true, undefined, this)

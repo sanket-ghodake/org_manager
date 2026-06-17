@@ -18,7 +18,8 @@ let lastTestRun: {
 
 // File system watcher & telemetry state management
 const dirtyFiles = new Set<string>();
-const clients = new Map<number, ReadableStreamDefaultController>();
+const clients = new Map<number, any>();
+const activeStreams = new Map<number, ReadableStream>();
 
 const DOCS_MAPPING = [
   {
@@ -357,33 +358,207 @@ function getWorkspaceTopology() {
   return { tree, details };
 }
 
-function getTelemetryState() {
+interface TelemetryEvent {
+  appSlug: string;
+  endpointRoute: string;
+  httpMethod: string;
+  statusCode: number;
+  latencyMs: number;
+  payloadSizeBytes: number;
+  timestamp: number;
+}
+
+interface LifecycleLog {
+  timestamp: string;
+  severity: 'INFO' | 'WARN' | 'CRITICAL';
+  message: string;
+}
+
+let telemetryBuffer: TelemetryEvent[] = [];
+const ONE_HOUR = 60 * 60 * 1000;
+
+let lifecycleLogs: LifecycleLog[] = [
+  { timestamp: new Date(Date.now() - 45 * 60000).toISOString(), severity: 'INFO', message: 'Ecosystem Telemetry Proxy Engine active' },
+  { timestamp: new Date(Date.now() - 40 * 60000).toISOString(), severity: 'INFO', message: 'Container reference-expenses initialized' },
+  { timestamp: new Date(Date.now() - 39 * 60000).toISOString(), severity: 'INFO', message: 'Container reference-go initialized' },
+  { timestamp: new Date(Date.now() - 38 * 60000).toISOString(), severity: 'INFO', message: 'Container reference-python initialized' },
+  { timestamp: new Date(Date.now() - 37 * 60000).toISOString(), severity: 'INFO', message: 'Container apex-expenses initialized' },
+];
+
+let lastKnownStatuses = new Map<string, string>();
+
+function addTelemetryEvent(event: TelemetryEvent) {
+  telemetryBuffer.push(event);
+  const cutoff = Date.now() - ONE_HOUR;
+  telemetryBuffer = telemetryBuffer.filter(e => e.timestamp >= cutoff);
+  
+  // Log request metrics to lifecycle log
+  let severity: 'INFO' | 'WARN' | 'CRITICAL' = 'INFO';
+  if (event.statusCode >= 500) {
+    severity = 'CRITICAL';
+  } else if (event.statusCode >= 400) {
+    severity = 'WARN';
+  }
+
+  // Generate a friendly timeline message
+  let detailMessage = `App "${event.appSlug}" executed ${event.httpMethod} ${event.endpointRoute} (${event.statusCode})`;
+  if (event.endpointRoute.includes('/auth/exchange')) {
+    detailMessage = `App "${event.appSlug}" executed OAuth Auth Exchange Handshake`;
+  }
+  
+  lifecycleLogs.push({
+    timestamp: new Date(event.timestamp).toISOString(),
+    severity,
+    message: detailMessage,
+  });
+
+  // Keep logs list bounded
+  if (lifecycleLogs.length > 200) {
+    lifecycleLogs.shift();
+  }
+
+  broadcastTelemetry();
+}
+
+let cachedEcosystemState: any = { apps: [], buffer: [], logs: [] };
+
+async function getEcosystemState() {
+  try {
+    const appsResult = await db.execute(sql`
+      SELECT id, name, slug, entry_url as "entryUrl", is_enabled as "isEnabled", status, last_seen as "lastSeen"
+      FROM forge_apps
+    `);
+    const apps = (appsResult.rows || appsResult) as any[];
+
+    // Detect status changes and log them
+    for (const app of apps) {
+      const prev = lastKnownStatuses.get(app.slug);
+      if (prev !== undefined && prev !== app.status) {
+        let severity: 'INFO' | 'WARN' | 'CRITICAL' = 'INFO';
+        let msg = `Container ${app.slug} is back online`;
+        if (app.status === 'offline') {
+          severity = 'CRITICAL';
+          msg = `Container ${app.slug} is offline / unreachable`;
+        } else if (app.status === 'degraded') {
+          severity = 'WARN';
+          msg = `Container ${app.slug} is degraded (slow response)`;
+        }
+        lifecycleLogs.push({
+          timestamp: new Date().toISOString(),
+          severity,
+          message: msg,
+        });
+      }
+      lastKnownStatuses.set(app.slug, app.status);
+    }
+
+    cachedEcosystemState = {
+      apps,
+      buffer: telemetryBuffer,
+      logs: lifecycleLogs,
+    };
+    return cachedEcosystemState;
+  } catch (err) {
+    console.error("Error generating ecosystem state:", err);
+    return cachedEcosystemState;
+  }
+}
+
+// Background updates to prevent querying database synchronously in SSE loops
+setInterval(() => {
+  getEcosystemState();
+}, 5000);
+getEcosystemState();
+
+async function getTelemetryState() {
   const docsDrift = analyzeDocsDrift();
   const testCoverage = getCoverageMatrix(dirtyFiles);
   const workspaceTopology = getWorkspaceTopology();
-  return { docsDrift, testCoverage, workspaceTopology };
+  const ecosystem = await getEcosystemState();
+  return { docsDrift, testCoverage, workspaceTopology, ecosystem };
+}
+
+function getTelemetryStateSync() {
+  const docsDrift = analyzeDocsDrift();
+  const testCoverage = getCoverageMatrix(dirtyFiles);
+  const workspaceTopology = getWorkspaceTopology();
+  return { docsDrift, testCoverage, workspaceTopology, ecosystem: cachedEcosystemState };
 }
 
 function broadcastTelemetry() {
-  const data = JSON.stringify(getTelemetryState());
-  const encoder = new TextEncoder();
-  const packet = encoder.encode(`data: ${data}\n\n`);
-  
-  for (const [id, controller] of clients.entries()) {
-    try {
-      controller.enqueue(packet);
-    } catch (e) {
-      clients.delete(id);
+  try {
+    const state = getTelemetryStateSync();
+    const data = JSON.stringify(state);
+    const encoder = new TextEncoder();
+    const packet = encoder.encode(`data: ${data}\n\n`);
+    
+    for (const [id, controller] of clients.entries()) {
+      try {
+        controller.enqueue(packet);
+      } catch (e) {
+        clients.delete(id);
+        activeStreams.delete(id);
+      }
     }
+  } catch (err) {
+    console.error("Error broadcasting telemetry:", err);
   }
 }
+
+// Keep-alive heartbeat to prevent SSE connection timeouts
+setInterval(() => {
+  const pingPacket = new TextEncoder().encode(": ping\n\n");
+  for (const [id, controller] of clients.entries()) {
+    try {
+      controller.enqueue(pingPacket);
+    } catch (e) {
+      clients.delete(id);
+      activeStreams.delete(id);
+    }
+  }
+}, 15000);
+
+// Background proxy telemetry SSE connection
+function connectToProxyTelemetry() {
+  const ESClass = (globalThis as any).EventSource;
+  if (!ESClass) {
+    console.warn("[Telemetry Sync] EventSource is not available, retrying in 5 seconds...");
+    setTimeout(connectToProxyTelemetry, 5000);
+    return;
+  }
+
+  console.log("[Telemetry Sync] Connecting to proxy telemetry stream on port 3003...");
+  try {
+    const es = new ESClass("http://localhost:3003/api/telemetry/proxy-stream");
+    es.onmessage = (event: any) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data && data.appSlug) {
+          addTelemetryEvent(data);
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    es.onerror = () => {
+      es.close();
+      setTimeout(connectToProxyTelemetry, 5000);
+    };
+  } catch (err) {
+    console.error("[Telemetry Sync] Error constructing EventSource:", err);
+    setTimeout(connectToProxyTelemetry, 5000);
+  }
+}
+
+// Kick off connection to proxy stream
+setTimeout(connectToProxyTelemetry, 3000);
 
 function isAuthenticated(req: Request): boolean {
   const cookieHeader = req.headers.get('cookie') || '';
   return cookieHeader.includes(`${COOKIE_NAME}=${COOKIE_VALUE}`);
 }
 
-export async function handleRequest(req: Request): Promise<Response> {
+export async function handleRequest(req: Request, server?: any): Promise<Response> {
   const url = new URL(req.url);
 
   // Serve static dashboard CSS/JS assets before auth checks
@@ -467,7 +642,7 @@ export async function handleRequest(req: Request): Promise<Response> {
       const tablesRes = await db.execute(sql`
         SELECT table_name 
         FROM information_schema.tables 
-        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+        WHERE table_schema = 'public' AND table_type IN ('BASE TABLE', 'VIEW')
       `);
       const tables = tablesRes.rows || tablesRes;
 
@@ -496,12 +671,15 @@ export async function handleRequest(req: Request): Promise<Response> {
         });
       }
 
+      const ecosystem = await getEcosystemState();
+
       return new Response(
         JSON.stringify({
           tableCount: tables.length,
           logsCount,
           lastTestRun,
           tables: tablesOverview,
+          ecosystem,
         }),
         { headers: { 'Content-Type': 'application/json' } }
       );
@@ -519,7 +697,7 @@ export async function handleRequest(req: Request): Promise<Response> {
       const tablesRes = await db.execute(sql`
         SELECT table_name 
         FROM information_schema.tables 
-        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+        WHERE table_schema = 'public' AND table_type IN ('BASE TABLE', 'VIEW')
       `);
       const tables = tablesRes.rows || tablesRes;
       
@@ -695,33 +873,94 @@ export async function handleRequest(req: Request): Promise<Response> {
 
   // 9. GET /api/telemetry - SSE Stream
   if (req.method === 'GET' && url.pathname === '/api/telemetry') {
-    const stream = new ReadableStream({
-      start(controller) {
-        const clientId = Date.now();
-        clients.set(clientId, controller);
-        
-        // Push initial state
-        try {
-          const data = JSON.stringify(getTelemetryState());
-          controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
-        } catch (e) {
-          clients.delete(clientId);
+    if (server && typeof server.timeout === 'function') {
+      server.timeout(req, 0); // Disable connection idle timeout
+    }
+    const clientId = Date.now();
+    const queue: Uint8Array[] = [];
+    let resolvePull: (() => void) | null = null;
+    let isClosed = false;
+
+    const client = {
+      enqueue(packet: Uint8Array) {
+        if (isClosed) return;
+        queue.push(packet);
+        if (resolvePull) {
+          resolvePull();
+          resolvePull = null;
         }
-        
-        req.signal.addEventListener('abort', () => {
-          clients.delete(clientId);
+      },
+      close() {
+        if (isClosed) return;
+        isClosed = true;
+        if (resolvePull) {
+          resolvePull();
+          resolvePull = null;
+        }
+      }
+    };
+
+    clients.set(clientId, client);
+
+    // Push initial state
+    try {
+      const state = getTelemetryStateSync();
+      const data = JSON.stringify(state);
+      client.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
+    } catch (e) {
+      clients.delete(clientId);
+    }
+
+    const stream = new ReadableStream({
+      pull(controller) {
+        if (isClosed) {
+          try {
+            controller.close();
+          } catch (e) {}
+          return;
+        }
+        if (queue.length > 0) {
+          while (queue.length > 0) {
+            controller.enqueue(queue.shift()!);
+          }
+          return;
+        }
+        return new Promise<void>((resolve) => {
+          resolvePull = () => {
+            if (isClosed) {
+              try {
+                controller.close();
+              } catch (e) {}
+            } else {
+              while (queue.length > 0) {
+                controller.enqueue(queue.shift()!);
+              }
+            }
+            resolve();
+          };
         });
       },
       cancel() {
-        // Clean up
+        client.close();
+        clients.delete(clientId);
+        activeStreams.delete(clientId);
       }
+    });
+
+    activeStreams.set(clientId, stream);
+
+    req.signal.addEventListener('abort', () => {
+      client.close();
+      clients.delete(clientId);
+      activeStreams.delete(clientId);
     });
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
         'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
       }
     });
   }
