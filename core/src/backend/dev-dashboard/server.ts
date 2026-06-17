@@ -49,21 +49,12 @@ const DOCS_MAPPING = [
   }
 ];
 
-const TOPOLOGY_PATHS = [
+const BASE_TOPOLOGY_PATHS = [
   { path: 'core', desc: 'Core platform systems and administrative control services.' },
   { path: 'core/src/database', desc: 'Database connections, initializations, and drizzle schema definitions.' },
   { path: 'core/src/backend/dev-dashboard', desc: 'Developer Command Center control server and SSE telemetry feeds.' },
   { path: 'packages/sdk', desc: 'SG Forge Client Software Development Kit (SDK) modules.' },
   { path: 'sandbox', desc: 'Development sandbox environment containing isolated test cases.' },
-  { path: 'sandbox/apps/apex-expenses', desc: 'Reference App: Expense management and ledger accounting flows.' },
-  { path: 'sandbox/apps/billing', desc: 'Reference App: Invoice dispatching and subscription billing controllers.' },
-  { path: 'sandbox/apps/employees', desc: 'Reference App: Personnel directories, access rules, and staffing profiles.' },
-  { path: 'sandbox/apps/example-forge-app', desc: 'Boilerplate reference application illustrating extension hook capabilities.' },
-  { path: 'sandbox/apps/manager-operations', desc: 'Reference App: Resource coordination and managerial status updates.' },
-  { path: 'sandbox/apps/nexus-provisioning', desc: 'Reference App: Infrastructure configuration pipelines.' },
-  { path: 'sandbox/apps/reference-expenses', desc: 'Reference App: Standalone API endpoint simulating expense databases.' },
-  { path: 'sandbox/apps/reference-go', desc: 'Reference App: High performance service written in Go.' },
-  { path: 'sandbox/apps/reference-python', desc: 'Reference App: Data processing workflows written in Python.' }
 ];
 
 // Helper to recursively watch files on Linux (since native recursive fs.watch can fail)
@@ -307,8 +298,39 @@ function getReadmeSnippet(dirPath: string): string {
 
 function getWorkspaceTopology() {
   const details: Record<string, any> = {};
-  
-  for (const topo of TOPOLOGY_PATHS) {
+  const activeTopologyPaths = [...BASE_TOPOLOGY_PATHS];
+  const tree = [
+    { id: 'core', label: '/core', parent: null, desc: 'Core Systems' },
+    { id: 'core/src/database', label: 'src/database', parent: 'core', desc: 'Database Core' },
+    { id: 'core/src/backend/dev-dashboard', label: 'src/backend/dev-dashboard', parent: 'core', desc: 'DevCenter console' },
+    { id: 'packages/sdk', label: '/packages/sdk', parent: null, desc: 'Client SDK' },
+    { id: 'sandbox', label: '/sandbox', parent: null, desc: 'Sandbox apps parent' },
+  ];
+
+  const appsDir = path.resolve(process.cwd(), 'sandbox/apps');
+  if (fs.existsSync(appsDir)) {
+    const items = fs.readdirSync(appsDir);
+    for (const item of items) {
+      const fullPath = path.join(appsDir, item);
+      if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
+        const manifestPath = path.join(fullPath, 'app.json');
+        let desc = 'Modular custom plugin / application folder.';
+        if (fs.existsSync(manifestPath)) {
+          try {
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            desc = manifest.description || `${manifest.name || item} Application`;
+          } catch (e) {
+            // ignore
+          }
+        }
+        const topoPath = `sandbox/apps/${item}`;
+        activeTopologyPaths.push({ path: topoPath, desc });
+        tree.push({ id: topoPath, label: item, parent: 'sandbox', desc });
+      }
+    }
+  }
+
+  for (const topo of activeTopologyPaths) {
     const dirFullPath = path.resolve(process.cwd(), topo.path);
     if (fs.existsSync(dirFullPath)) {
       const stats = getFolderStats(dirFullPath);
@@ -337,23 +359,6 @@ function getWorkspaceTopology() {
       };
     }
   }
-  
-  const tree = [
-    { id: 'core', label: '/core', parent: null, desc: 'Core Systems' },
-    { id: 'core/src/database', label: 'src/database', parent: 'core', desc: 'Database Core' },
-    { id: 'core/src/backend/dev-dashboard', label: 'src/backend/dev-dashboard', parent: 'core', desc: 'DevCenter console' },
-    { id: 'packages/sdk', label: '/packages/sdk', parent: null, desc: 'Client SDK' },
-    { id: 'sandbox', label: '/sandbox', parent: null, desc: 'Sandbox apps parent' },
-    { id: 'sandbox/apps/apex-expenses', label: 'apex-expenses', parent: 'sandbox', desc: 'Expense Management' },
-    { id: 'sandbox/apps/billing', label: 'billing', parent: 'sandbox', desc: 'Subscription billing' },
-    { id: 'sandbox/apps/employees', label: 'employees', parent: 'sandbox', desc: 'Personnel directory' },
-    { id: 'sandbox/apps/example-forge-app', label: 'example-forge-app', parent: 'sandbox', desc: 'Extension boilerplate' },
-    { id: 'sandbox/apps/manager-operations', label: 'manager-operations', parent: 'sandbox', desc: 'Operational flow' },
-    { id: 'sandbox/apps/nexus-provisioning', label: 'nexus-provisioning', parent: 'sandbox', desc: 'Infrastructure config' },
-    { id: 'sandbox/apps/reference-expenses', label: 'reference-expenses', parent: 'sandbox', desc: 'Standalone API simulation' },
-    { id: 'sandbox/apps/reference-go', label: 'reference-go', parent: 'sandbox', desc: 'Go reference service' },
-    { id: 'sandbox/apps/reference-python', label: 'reference-python', parent: 'sandbox', desc: 'Python reference service' }
-  ];
   
   return { tree, details };
 }

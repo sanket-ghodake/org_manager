@@ -1,0 +1,135 @@
+// scripts/dynamic-app-runner.ts
+import { spawn, ChildProcess } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+
+const isDev = process.env.NODE_ENV === 'development';
+const appsDir = path.resolve(process.cwd(), 'sandbox/apps');
+
+const activeProcesses: { slug: string; process: ChildProcess }[] = [];
+
+// Clean up all spawned app processes on exit
+function cleanup() {
+  console.log('\n[App Runner] Stopping all background microservices...');
+  for (const { slug, process } of activeProcesses) {
+    try {
+      console.log(`[App Runner] Killing process for ${slug} (PID: ${process.pid})`);
+      process.kill('SIGTERM');
+    } catch (err) {
+      // ignore
+    }
+  }
+}
+
+process.on('SIGINT', () => {
+  cleanup();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  cleanup();
+  process.exit(0);
+});
+
+process.on('exit', () => {
+  cleanup();
+});
+
+// Run a command
+function startAppServer(slug: string, cmd: string, args: string[], cwd: string) {
+  console.log(`[App Runner] Starting server for "${slug}" in ${cwd} via: ${cmd} ${args.join(' ')}`);
+  
+  const proc = spawn(cmd, args, {
+    cwd,
+    shell: true,
+    env: { ...process.env, PORTAL_URL: process.env.PORTAL_URL || 'http://localhost:3001' }
+  });
+
+  proc.stdout?.on('data', (data) => {
+    const lines = data.toString().trim().split('\n');
+    for (const line of lines) {
+      if (line) console.log(`[App: ${slug}] ${line}`);
+    }
+  });
+
+  proc.stderr?.on('data', (data) => {
+    const lines = data.toString().trim().split('\n');
+    for (const line of lines) {
+      if (line) console.error(`[App: ${slug}] [ERROR] ${line}`);
+    }
+  });
+
+  proc.on('close', (code) => {
+    console.log(`[App Runner] App "${slug}" exited with code ${code}`);
+  });
+
+  activeProcesses.push({ slug, process: proc });
+}
+
+function scanAndStartApps() {
+  if (!fs.existsSync(appsDir)) {
+    console.warn(`[App Runner] Apps directory not found: ${appsDir}`);
+    return;
+  }
+
+  const items = fs.readdirSync(appsDir);
+  for (const item of items) {
+    const appPath = path.join(appsDir, item);
+    if (!fs.statSync(appPath).isDirectory()) continue;
+
+    const manifestPath = path.join(appPath, 'app.json');
+    if (!fs.existsSync(manifestPath)) continue;
+
+    let manifest: any = {};
+    try {
+      manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    } catch (e) {
+      console.error(`[App Runner] Failed to parse app.json in ${item}`);
+      continue;
+    }
+
+    const slug = manifest.slug || item;
+
+    // Check if manifest has custom run/dev command
+    const customCommand = isDev 
+      ? (manifest.devCommand || manifest.runCommand) 
+      : manifest.runCommand;
+
+    if (customCommand) {
+      const parts = customCommand.split(' ');
+      const cmd = parts[0];
+      const args = parts.slice(1);
+      startAppServer(slug, cmd, args, appPath);
+      continue;
+    }
+
+    // Auto-detect files
+    if (fs.existsSync(path.join(appPath, 'server.ts'))) {
+      if (isDev) {
+        startAppServer(slug, 'bun', ['--watch', 'server.ts'], appPath);
+      } else {
+        startAppServer(slug, 'bun', ['server.ts'], appPath);
+      }
+    } else if (fs.existsSync(path.join(appPath, 'server.js'))) {
+      startAppServer(slug, 'node', ['server.js'], appPath);
+    } else if (fs.existsSync(path.join(appPath, 'server.py'))) {
+      startAppServer(slug, 'python3', ['server.py'], appPath);
+    } else if (fs.existsSync(path.join(appPath, 'main.py'))) {
+      startAppServer(slug, 'python3', ['main.py'], appPath);
+    } else if (fs.existsSync(path.join(appPath, 'main.go'))) {
+      // In production inside docker, check if precompiled binary exists
+      const prodBin = path.join(appPath, `${slug}-bin`);
+      if (!isDev && fs.existsSync(prodBin)) {
+        startAppServer(slug, prodBin, [], appPath);
+      } else {
+        startAppServer(slug, 'go', ['run', 'main.go'], appPath);
+      }
+    }
+  }
+}
+
+console.log('[App Runner] Scanning and initiating dynamic sandboxed application servers...');
+scanAndStartApps();
+
+// Keep process alive
+setInterval(() => {}, 1000);

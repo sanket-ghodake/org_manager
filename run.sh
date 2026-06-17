@@ -183,31 +183,11 @@ else
   fi
   PIDS+=($!)
   
-  # 2. Reference Expenses (port 8085)
-  if [ "$NODE_ENV" = "development" ]; then
-    bun --watch sandbox/apps/reference-expenses/server.ts &
-  else
-    bun sandbox/apps/reference-expenses/server.ts &
-  fi
+  # 2. Dynamic Sandbox App Runner
+  bun scripts/dynamic-app-runner.ts &
   PIDS+=($!)
   
-  # 3. Reference Python (port 8087)
-  if command -v python3 &>/dev/null; then
-    python3 sandbox/apps/reference-python/server.py &
-    PIDS+=($!)
-  else
-    echo -e "${YELLOW}⚠️ Python3 not found; reference-python app will be skipped.${RESET}"
-  fi
-  
-  # 4. Reference Go (port 8086)
-  if command -v go &>/dev/null; then
-    (cd sandbox/apps/reference-go && go run main.go) &
-    PIDS+=($!)
-  else
-    echo -e "${YELLOW}⚠️ Go compiler not found; reference-go app will be skipped.${RESET}"
-  fi
-  
-  # 5. Developer Portal Proxy (port 3003)
+  # 3. Developer Portal Proxy (port 3003)
   bun scripts/developer-proxy.ts &
   PIDS+=($!)
   

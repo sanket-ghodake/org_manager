@@ -26,18 +26,10 @@ echo "Starting SG Forge Portal Services in Development (Hot-Reloading)..."
 # 1. Start Dev-Dashboard (port 3002)
 bun --watch core/src/backend/dev-dashboard/server.ts &
 
-# 2. Start Reference Expenses App (port 8085)
-bun --watch sandbox/apps/reference-expenses/server.ts &
+# 2. Start Dynamic Sandbox App Runner
+bun scripts/dynamic-app-runner.ts &
 
-# 3. Start Reference Python App (port 8087)
-python3 sandbox/apps/reference-python/server.py &
-
-# 4. Start Reference Go App (port 8086)
-cd sandbox/apps/reference-go
-go run main.go &
-cd /app
-
-# 5. Start Next.js Developer Portal Proxy (port 3003)
+# 3. Start Next.js Developer Portal Proxy (port 3003)
 bun run scripts/developer-proxy.ts &
 
 # 6. Start Next.js Frontend Portal (port 3001) in development mode
