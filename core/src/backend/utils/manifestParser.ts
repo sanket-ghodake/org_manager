@@ -245,14 +245,19 @@ export async function parseAndRegisterManifests(): Promise<AppManifest[]> {
       if (isIsolated && manifest.database?.schemaName) {
         const schemaName = manifest.database.schemaName;
         if (/^[a-zA-Z0-9_]+$/.test(schemaName)) {
-          await db.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`));
-          
-          await db.execute(sql`
-            INSERT INTO forge_app_storage (app_id, custom_schema_namespace, allow_base_read_access)
-            VALUES (${appId}, ${schemaName}, false)
-            ON CONFLICT (custom_schema_namespace) DO UPDATE SET
-              app_id = EXCLUDED.app_id
-          `);
+          try {
+            await db.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS ${schemaName}`));
+            
+            await db.execute(sql`
+              INSERT INTO forge_app_storage (app_id, custom_schema_namespace, allow_base_read_access)
+              VALUES (${appId}, ${schemaName}, false)
+              ON CONFLICT (custom_schema_namespace) DO UPDATE SET
+                app_id = EXCLUDED.app_id
+            `);
+          } catch (schemaErr: any) {
+            console.warn(`[MANIFEST PARSER WARN] Could not provision database schema namespace '${schemaName}' for app '${name}'.`);
+            console.warn(`Reason: ${schemaErr.message || schemaErr}. Assuming schema is managed externally or on a separate DB server.`);
+          }
         }
       }
 

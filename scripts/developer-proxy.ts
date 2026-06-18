@@ -3,8 +3,8 @@ import { serve } from "bun";
 import { Client } from "pg";
 
 const PORT = 3003;
-const TARGET = "http://localhost:3001";
-const TARGET_WS = "ws://localhost:3001";
+const TARGET = process.env.PORTAL_URL || "http://localhost:3001";
+const TARGET_WS = process.env.PORTAL_WS_URL || TARGET.replace(/^http/, "ws");
 
 // Database client connection pool helper
 let dbClient: Client | null = null;
@@ -234,7 +234,8 @@ serve<{ pathname: string; search: string; upstreamWs?: WebSocket }>({
 
     // Clone request headers and update Host to target server
     const headers = new Headers(req.headers);
-    headers.set("host", "localhost:3001");
+    const targetHost = new URL(TARGET).host;
+    headers.set("host", targetHost);
     headers.set("x-from-developer-proxy", "true");
 
     const hasBody = !["GET", "HEAD"].includes(req.method) && req.body;

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 // Helper to print with colors
 const GREEN = '\x1b[32m';
@@ -106,6 +107,9 @@ fs.mkdirSync(targetDir, { recursive: true });
 
 // Create app.json
 const schemaName = `forge_${appSlug.replace(/-/g, '_')}`;
+const generatedClientId = 'client_' + Math.random().toString(36).substring(2, 15);
+const generatedClientSecret = 'secret_' + crypto.randomUUID().replace(/-/g, '');
+
 const manifest = {
   id: `app_${appSlug.replace(/-/g, '_')}_dev`,
   slug: appSlug,
@@ -116,6 +120,8 @@ const manifest = {
   roles: ['super_admin', 'admin', 'user'],
   entryPoint: `http://localhost:${selectedPort}`,
   routingMode: 'iframe',
+  clientId: generatedClientId,
+  clientSecret: generatedClientSecret,
   database: {
     requiresIsolatedSchema: true,
     schemaName: schemaName
@@ -172,8 +178,8 @@ class CustomAppHandler(http.server.BaseHTTPRequestHandler):
                     url = f"{PORTAL_URL}/api/v1/auth/exchange"
                     payload = json.dumps({
                         "code": code,
-                        "client_id": "${manifest.id}",
-                        "client_secret": "my-client-secret"
+                        "client_id": "${generatedClientId}",
+                        "client_secret": "${generatedClientSecret}"
                     }).encode("utf-8")
                     
                     req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
@@ -239,7 +245,7 @@ class CustomAppHandler(http.server.BaseHTTPRequestHandler):
     }}
   </style>
   <!-- Forge SDK Loader -->
-  <script src="https://cdn.jsdelivr.net/npm/@packages/sdk/dist/sdk.umd.js" onerror="console.warn('SDK from absolute package path was offline, fallback to postMessage interface')"></script>
+  <script src="/sdk/forge-sdk.js" onerror="console.warn('Local SDK was offline, fallback to postMessage interface')"></script>
 </head>
 <body>
   <div class="container">
@@ -329,8 +335,8 @@ const server = serve({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               code,
-              client_id: "${manifest.id}",
-              client_secret: "my-client-secret"
+              client_id: "${generatedClientId}",
+              client_secret: "${generatedClientSecret}"
             })
           });
 

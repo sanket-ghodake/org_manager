@@ -238,3 +238,10 @@ export class ForgeBackendClient {
     return await response.json();
   }
 }
+
+// Expose browser globals for direct script tag loading
+if (typeof window !== 'undefined') {
+  (window as any).ForgeClient = ForgeClient;
+  (window as any).ForgeBackendClient = ForgeBackendClient;
+}
+

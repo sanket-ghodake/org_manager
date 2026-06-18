@@ -209,6 +209,10 @@ else
   # Initialize database schemas
   echo -e "${BLUE}Syncing database schemas...${RESET}"
   bun core/src/database/initialize-local-db.ts
+
+  # Build/Bundle Forge SDK
+  echo -e "${BLUE}Bundling Forge SDK...${RESET}"
+  bun build --target=browser --format=iife --outfile=core/src/frontend/public/sdk/forge-sdk.js packages/sdk/forge-sdk.ts
   
   # Launch other processes
   echo -e "${BLUE}Launching microservice platforms...${RESET}"

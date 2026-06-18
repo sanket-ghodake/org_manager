@@ -13,6 +13,9 @@ echo "Database is ready!"
 echo "Initializing database schema and seeding data..."
 bun run core/src/database/initialize-local-db.ts
 
+echo "Bundling Forge SDK..."
+bun build --target=browser --format=iife --outfile=core/src/frontend/public/sdk/forge-sdk.js packages/sdk/forge-sdk.ts
+
 echo "Starting SG Forge Portal Services in Production..."
 
 # 1. Start Dev-Dashboard (port 3002)
