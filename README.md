@@ -41,6 +41,22 @@ For detailed instructions, see the [Installation & Setup Guide](file:///home/san
 
 ---
 
+### ⚡ 3. Custom App Development & "Vibe Coding"
+Scaffold and run a new micro-frontend app instantly with zero manual configuration.
+
+*   **Scaffold App Boilerplate**:
+    ```bash
+    bun run create-app "My New App" --lang=ts
+    ```
+    This automatically scans for allocated ports, assigns the next free port, and generates files under `sandbox/apps/my-new-app/`.
+*   **Run Platform Dev Servers**:
+    ```bash
+    ./run.sh docker dev     # Or ./run.sh portable dev
+    ```
+*   **Hot-Reload & Live Logs**: Code changes in `sandbox/apps/` refresh automatically. Monitor live logs and database tables at the **Developer Dashboard** (`http://localhost:3002`).
+
+---
+
 ## ⚙️ System Independence & Performance Optimizations
 
 ### 1. System Independence
@@ -82,12 +98,22 @@ Run tests, security checks, linter suites, and document compilers inside the Doc
 
 ## 📁 Project Documentation & Architecture
 
-Active design specifications and setup documentations are organized in the `docs/` folder:
+Active design specifications, guidelines, and setup documentations are organized in the `docs/` folder:
 
+*   **[Onboarding Analysis Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/onboarding_analysis.md)**: Real evaluation of setup portability, platform quirks, and developer onboarding friction points.
+*   **[App Integration & Prototyping](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/app-integration.md)**: Step-by-step tutorial for integrating internal (zero-port-exposure) and externally hosted microservices, using scaffolding scripts, and "Vibe Coding" hot-reloading configurations.
 *   **[Installation & Setup](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/installation.md)**: Bootstrapping host databases and runtime engines.
+*   **[App Developer Specs](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/app-developer.md)**: Detailed specifications for app manifests, API schemas, and utilizing parent communication SDKs.
 *   **[Docker Architecture](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/docker.md)**: Container services overview and ports mapping.
 *   **[Docker Optimization](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/docker_optimization.md)**: Multi-stage environment builds and parity structures.
 *   **[WSL Setup Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/wsl.md)**: Port forwarding and systemd networking inside WSL2.
-*   **[App Developer Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/app-developer.md)**: Creating micro-apps, declaring manifest scopes, and utilizing parent communication SDKs.
-*   **[App Integration Guide](file:///home/sanket/Desktop/Sanket/org_website/docs/guides/app-integration.md)**: Detailed step-by-step tutorial for integrating internal (zero-port-exposure) and externally hosted microservices using OAuth/SSO handshakes.
 *   **[Script Folders Overview](file:///home/sanket/Desktop/Sanket/org_website/scripts/README.md)**: List of convenience scripts and utility functions.
+
+### 🔍 Core Files to Check:
+*   **App Scaffolder CLI**: [scripts/create-forge-app.ts](file:///home/sanket/Desktop/Sanket/org_website/scripts/create-forge-app.ts) — Unused port scanning and workspace bootstrapping.
+*   **Central Orchestrator**: [run.sh](file:///home/sanket/Desktop/Sanket/org_website/run.sh) — Starts platform targets (Docker or Portable) and containerized linting/testing toolchains.
+*   **Local Installer Setup**: [scripts/portable/development/setup.sh](file:///home/sanket/Desktop/Sanket/org_website/scripts/portable/development/setup.sh) — Downloads isolated bun binaries and seeds local database.
+*   **Proxy Gateway**: [scripts/developer-proxy.ts](file:///home/sanket/Desktop/Sanket/org_website/scripts/developer-proxy.ts) — Internal routing without exposing ports.
+*   **Dynamic App Runner**: [scripts/dynamic-app-runner.ts](file:///home/sanket/Desktop/Sanket/org_website/scripts/dynamic-app-runner.ts) — Background runner scanning directory structure.
+*   **Manifest Sync Engine**: [core/src/backend/utils/manifestParser.ts](file:///home/sanket/Desktop/Sanket/org_website/core/src/backend/utils/manifestParser.ts) — Automated app registry parser, schema provisioning, and cleanup.
+*   **OAuth Auth Exchange**: [core/src/frontend/app/api/v1/auth/exchange/route.ts](file:///home/sanket/Desktop/Sanket/org_website/core/src/frontend/app/api/v1/auth/exchange/route.ts) — Handles backend code exchange for secure JWT session tokens.

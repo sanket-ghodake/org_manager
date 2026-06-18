@@ -52,8 +52,16 @@ These are apps hosted on external servers (e.g. `https://custom-app.mycompany.co
 
 ## 🛠️ 3. Step-by-Step Integration Walkthrough
 
-### Step 1: Create the Application Directory
-Create a folder for your application inside `sandbox/apps/`:
+### Step 1: Create the Application Directory & Scaffold (Fast Path)
+The easiest way to bootstrap a new Forge App is to use the **Scaffolding CLI**, which automatically allocates an unused port, creates the folder, and generates a container-ready template server:
+
+```bash
+bun run create-app "My Custom App" --lang=ts
+```
+
+This generates `sandbox/apps/my-custom-app/` with a pre-configured `app.json` manifest, a fully functional Bun/TypeScript server, and a README.
+
+Alternatively, you can manually create the directory:
 ```bash
 mkdir -p sandbox/apps/my-custom-app
 ```
@@ -335,3 +343,43 @@ If your application is hosted externally (`Model B`):
 | **Connection Refused inside container / sidebar** | The app server is binding to `127.0.0.1`. | Change the server binding option to `0.0.0.0` (all network interfaces). |
 | **App doesn't show in launchpad directory** | The manifest schema validation failed, or the slug is misaligned. | Check the server logs on startup. Keep your slug lowercase and remove dashes in `schemaName`. |
 | **Auth Exchange fails with certificate error** | Secure SSL mismatch during HTTPS backchannel exchange. | Set up trusted root CA certificates on your external server or disable local SSL checks in non-prod. |
+
+---
+
+## ⚡ 6. 'Vibe Coding' & Rapid Prototyping Guide
+
+"Vibe Coding" is the practice of fast, AI-assisted, flow-state software development. SG Forge has been heavily optimized to allow you to write code, test hypotheses, and verify app integrations within seconds.
+
+### A. The Vibe Coding Workflow
+1. **Scaffold instantly**: Run `bun run create-app "My Prototype"` to automatically generate files and reserve a port.
+2. **Launch the platform**: Run `./run.sh docker dev` or `./run.sh portable dev`.
+3. **Write code & hot-reload**:
+   - For **Docker**: Changes in `sandbox/apps/` are live-mounted into the app container. The dynamic runner detects file changes and automatically restarts your app's server in the background. Next.js pages automatically reload.
+   - For **Portable**: Runtimes run natively on your machine with near-zero latency, automatically watching and hot-reloading code as you type.
+4. **Monitor logs in real-time**: Open the Developer Dashboard at `http://localhost:3002/` to view process status and read application logs.
+
+### B. Setup Guides for App Development
+
+#### Target 1: Docker-Based App Setup
+If you want to keep your development completely containerized with zero local environment pollution:
+1. Ensure your custom application server binds to interface `0.0.0.0`.
+2. Do **not** expose host ports in a `docker-compose.yaml` file. The SG Forge Developer Proxy Gateway (`developer-proxy.ts` on port 3003) routes requests from the frontend portal directly to your application's container port internally.
+3. Keep the developer orchestrator running in your terminal:
+   ```bash
+   ./run.sh docker dev
+   ```
+
+#### Target 2: Portable-Based App Setup
+If you prefer native speed and debugging directly in your host IDE:
+1. Ensure you have the runtime dependencies for your application installed on your host machine (e.g. Bun, Python, or Go).
+2. Start the core platform services on your host:
+   ```bash
+   ./run.sh portable dev
+   ```
+3. The platform will automatically spin up the detached Postgres container on port `5433` and execute the dynamic runner, letting you edit and run your code natively on your local machine.
+
+### C. Live Mocking and Testing
+To rapidly test security checks or user permissions during prototype phase:
+* **Swap Roles**: Open the Dev Dashboard (`http://localhost:3002/`) and use the database view or user-switching tools to run queries or change active mock profiles.
+* **Inspect Handshakes**: Monitor requests traversing through the gateway proxy at `http://localhost:3003/forge-apps/<your-slug>` to inspect HTTP headers, cookie values, and backchannel token exchange payloads.
+* **Bypass OAuth During Early Dev**: You can bypass the SSO exchange during early prototyping by returning mock session payloads directly from your server. Ensure you toggle it back to the `/api/v1/auth/exchange` call before pushing to production.

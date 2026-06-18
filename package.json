@@ -13,6 +13,7 @@
     "setup": "bash scripts/portable/development/setup.sh",
     "run-dev": "./run.sh portable dev",
     "run-docker": "./run.sh docker dev",
+    "create-app": "bun scripts/create-forge-app.ts",
     "test": "bun test test/unit test/integration",
     "docs:dev": ".venv/bin/mkdocs serve",
     "docs:build": ".venv/bin/mkdocs build",

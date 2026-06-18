@@ -134,6 +134,44 @@ else
   echo -e "${YELLOW}⚠️ Environment configuration file ${ENV_FILE} not found. Running with default shell environment.${RESET}"
 fi
 
+# Pre-flight port checks to avoid silent errors or next.js port fallback bugs
+check_port() {
+  local port=$1
+  if (exec 3<>/dev/tcp/127.0.0.1/$port) &>/dev/null; then
+    exec 3>&-
+    return 1
+  fi
+  if command -v nc &>/dev/null; then
+    if nc -z 127.0.0.1 $port &>/dev/null; then
+      return 1
+    fi
+  fi
+  if command -v lsof &>/dev/null; then
+    if lsof -Pi :$port -sTCP:LISTEN -t &>/dev/null; then
+      return 1
+    fi
+  fi
+  return 0
+}
+
+ports_to_check=(${PORT:-3001} 3002 3003)
+if [ "$PLATFORM" = "portable" ]; then
+  ports_to_check+=(5433)
+fi
+
+occupied_ports=()
+for port in "${ports_to_check[@]}"; do
+  if ! check_port $port; then
+    occupied_ports+=($port)
+  fi
+done
+
+if [ ${#occupied_ports[@]} -ne 0 ]; then
+  echo -e "${RED}❌ Error: The following ports required by SG Forge are already in use: ${occupied_ports[*]}${RESET}"
+  echo -e "${YELLOW}Please free up these ports before starting the platform (e.g. check other running dev processes).${RESET}"
+  exit 1
+fi
+
 # Ensure docker network exists
 docker network create sgforge-network 2>/dev/null || true
 
