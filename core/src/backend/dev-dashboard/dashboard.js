@@ -40271,6 +40271,9 @@ function App() {
   const [selectedAppSlug, setSelectedAppSlug] = import_react50.useState("");
   const [expandedAppRow, setExpandedAppRow] = import_react50.useState(null);
   const [isCompactRow, setIsCompactRow] = import_react50.useState(false);
+  const [microserviceLogs, setMicroserviceLogs] = import_react50.useState({});
+  const [fetchingLogsSlug, setFetchingLogsSlug] = import_react50.useState(null);
+  const [actionLoadingSlug, setActionLoadingSlug] = import_react50.useState(null);
   const [columnWidths, setColumnWidths] = import_react50.useState({
     name: 180,
     slug: 140,
@@ -40314,6 +40317,20 @@ function App() {
   const [coverageSearch, setCoverageSearch] = import_react50.useState("");
   const [coverageFilterLow, setCoverageFilterLow] = import_react50.useState(false);
   const [sseStatus, setSseStatus] = import_react50.useState("connecting");
+  const [toastMessage, setToastMessage] = import_react50.useState(null);
+  const [toastType, setToastType] = import_react50.useState(null);
+  const toastTimeoutRef = import_react50.useRef(null);
+  const showToast = (message, type = "info") => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastMessage(message);
+    setToastType(type);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+      setToastType(null);
+    }, 4500);
+  };
   const [themeMenuOpen, setThemeMenuOpen] = import_react50.useState(false);
   const [pollMenuOpen, setPollMenuOpen] = import_react50.useState(false);
   const [severityMenuOpen, setSeverityMenuOpen] = import_react50.useState(false);
@@ -40525,6 +40542,43 @@ function App() {
       console.error(e);
     } finally {
       setLogsLoading(false);
+    }
+  };
+  const fetchMicroserviceLogs = async (slug) => {
+    setFetchingLogsSlug(slug);
+    try {
+      const res = await fetch(`/api/microservices/logs?slug=${slug}`);
+      const data = await res.json();
+      if (data.logs) {
+        setMicroserviceLogs((prev) => ({ ...prev, [slug]: data.logs }));
+      } else if (data.error) {
+        setMicroserviceLogs((prev) => ({ ...prev, [slug]: `Error: ${data.error}` }));
+      }
+    } catch (e) {
+      setMicroserviceLogs((prev) => ({ ...prev, [slug]: `Failed to fetch logs: ${e.message}` }));
+    } finally {
+      setFetchingLogsSlug(null);
+    }
+  };
+  const handleMicroserviceAction = async (slug, action) => {
+    setActionLoadingSlug(slug);
+    try {
+      const res = await fetch("/api/microservices/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug, action })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Container "${slug}" successfully triggered: ${action}`, "success");
+        setTimeout(() => fetchMicroserviceLogs(slug), 1000);
+      } else if (data.error) {
+        showToast(`Failed: ${data.error}`, "error");
+      }
+    } catch (e) {
+      showToast(`Error running action: ${e.message}`, "error");
+    } finally {
+      setActionLoadingSlug(null);
     }
   };
   const timer = import_react50.useRef(null);
@@ -42108,7 +42162,11 @@ function App() {
                           /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
                             onClick: () => {
                               setSelectedAppSlug(app.slug);
-                              setExpandedAppRow(isExpanded ? null : app.slug);
+                              const nextExpanded = isExpanded ? null : app.slug;
+                              setExpandedAppRow(nextExpanded);
+                              if (nextExpanded) {
+                                fetchMicroserviceLogs(app.slug);
+                              }
                             },
                             className: `border-b border-borderColor cursor-pointer transition-colors ${isSelected ? "bg-primaryGlow/20 hover:bg-primaryGlow/30" : "hover:bg-sidebarHover/50"}`,
                             children: [
@@ -42156,7 +42214,7 @@ function App() {
                               colSpan: 7,
                               className: "px-5 py-4 border-b border-borderColor text-xs text-textMuted",
                               children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                className: "grid grid-cols-1 md:grid-cols-3 gap-6",
+                                className: "grid grid-cols-1 md:grid-cols-4 gap-6",
                                 children: [
                                   /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
                                     children: [
@@ -42196,38 +42254,12 @@ function App() {
                                                 ]
                                               }, undefined, true, undefined, this)
                                             ]
-                                          }, undefined, true, undefined, this)
-                                        ]
-                                      }, undefined, true, undefined, this)
-                                    ]
-                                  }, undefined, true, undefined, this),
-                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                    children: [
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
-                                        className: "text-[10px] uppercase font-bold text-white mb-2 tracking-wider",
-                                        children: "Network Routing Details"
-                                      }, undefined, false, undefined, this),
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                        className: "flex flex-col gap-1.5 font-mono text-[11px]",
-                                        children: [
+                                          }, undefined, true, undefined, this),
                                           /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
                                             children: [
                                               "Virtual IP: 172.18.0.",
                                               app.slug.charCodeAt(0) % 254
                                             ]
-                                          }, undefined, true, undefined, this),
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                            children: [
-                                              "External Hostname: ",
-                                              app.slug,
-                                              ".local-sandbox.io"
-                                            ]
-                                          }, undefined, true, undefined, this),
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                            children: [
-                                              "Load Balancer Target: localhost:",
-                                              app.entryUrl ? getPortFromUrl(app.entryUrl) : "80"
-                                            ]
                                           }, undefined, true, undefined, this)
                                         ]
                                       }, undefined, true, undefined, this)
@@ -42237,11 +42269,97 @@ function App() {
                                     children: [
                                       /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
                                         className: "text-[10px] uppercase font-bold text-white mb-2 tracking-wider",
-                                        children: "Telemetry Security Headers"
+                                        children: "Security & Routing"
                                       }, undefined, false, undefined, this),
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
-                                        className: "text-[11px] leading-relaxed",
-                                        children: "PII payload scrubbing enforces anonymization of query parameters. Direct access authorization credentials and session cookie hashes are omitted from telemetries stream buffer."
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                        className: "flex flex-col gap-1.5 text-[11px] leading-relaxed",
+                                        children: [
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                            children: [
+                                              "Hostname: ",
+                                              app.slug,
+                                              ".local-sandbox.io"
+                                            ]
+                                          }, undefined, true, undefined, this),
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                            children: "PII scrubbing active. Auth headers omitted from stream buffer."
+                                          }, undefined, false, undefined, this)
+                                        ]
+                                      }, undefined, true, undefined, this)
+                                    ]
+                                  }, undefined, true, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                                        className: "text-[10px] uppercase font-bold text-white mb-2 tracking-wider",
+                                        children: "Lifecycle Operations"
+                                      }, undefined, false, undefined, this),
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                        className: "flex flex-wrap gap-2 mt-2",
+                                        children: [
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                            disabled: actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false,
+                                            onClick: (e) => {
+                                              e.stopPropagation();
+                                              handleMicroserviceAction(app.slug, "start");
+                                            },
+                                            className: `px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status === "offline" ? "bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer" : "bg-zinc-800 text-zinc-600 cursor-not-allowed"}`,
+                                            children: "Start"
+                                          }, undefined, false, undefined, this),
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                            disabled: actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false,
+                                            onClick: (e) => {
+                                              e.stopPropagation();
+                                              handleMicroserviceAction(app.slug, "stop");
+                                            },
+                                            className: `px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status !== "offline" ? "bg-red-600 hover:bg-red-500 text-white cursor-pointer" : "bg-zinc-800 text-zinc-600 cursor-not-allowed"}`,
+                                            children: "Stop"
+                                          }, undefined, false, undefined, this),
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                            disabled: actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false,
+                                            onClick: (e) => {
+                                              e.stopPropagation();
+                                              handleMicroserviceAction(app.slug, "restart");
+                                            },
+                                            className: `px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status !== "offline" ? "bg-amber-600 hover:bg-amber-500 text-white cursor-pointer" : "bg-zinc-800 text-zinc-600 cursor-not-allowed"}`,
+                                            children: "Restart"
+                                          }, undefined, false, undefined, this)
+                                        ]
+                                      }, undefined, true, undefined, this),
+                                      app.isIsolatedLifecycle === false && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-[9px] text-amber-400 block mt-1.5 font-bold uppercase tracking-wider",
+                                        children: "Natively Integrated (Portal Managed)"
+                                      }, undefined, false, undefined, this),
+                                      actionLoadingSlug === app.slug && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-[10px] text-primary animate-pulse block mt-1.5 font-bold",
+                                        children: "Applying action..."
+                                      }, undefined, false, undefined, this)
+                                    ]
+                                  }, undefined, true, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                    className: "flex flex-col gap-2 min-h-[120px]",
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                        className: "flex justify-between items-center",
+                                        children: [
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                                            className: "text-[10px] uppercase font-bold text-white tracking-wider",
+                                            children: "Console Output Logs"
+                                          }, undefined, false, undefined, this),
+                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                            disabled: fetchingLogsSlug === app.slug,
+                                            onClick: (e) => {
+                                              e.stopPropagation();
+                                              fetchMicroserviceLogs(app.slug);
+                                            },
+                                            className: "px-2 py-0.5 border border-borderColor hover:border-primary bg-bgMain hover:text-white rounded text-[9px] font-bold cursor-pointer transition-colors",
+                                            children: fetchingLogsSlug === app.slug ? "Fetching..." : "Refresh Logs"
+                                          }, undefined, false, undefined, this)
+                                        ]
+                                      }, undefined, true, undefined, this),
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                        className: "bg-zinc-950 p-2 font-mono text-[9px] text-zinc-400 rounded border border-borderColor overflow-auto h-28 max-w-full leading-normal whitespace-pre",
+                                        children: microserviceLogs[app.slug] || "No logs fetched yet."
                                       }, undefined, false, undefined, this)
                                     ]
                                   }, undefined, true, undefined, this)
@@ -43621,6 +43739,60 @@ function App() {
                 className: "bg-primary hover:bg-primaryHover text-white px-4 py-2 rounded-lg font-bold text-xs transition-colors",
                 children: "Acknowledge & Close"
               }, undefined, false, undefined, this)
+            }, undefined, false, undefined, this)
+          ]
+        }, undefined, true, undefined, this)
+      }, undefined, false, undefined, this),
+      toastMessage && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+        className: "fixed bottom-6 right-6 z-[9999] animate-slideIn",
+        children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: `flex items-center gap-3 px-5 py-3.5 rounded-xl border shadow-2xl backdrop-blur-md ${toastType === "error" ? "bg-red-950/90 border-red-500/40 text-red-200 shadow-red-950/20" : toastType === "success" ? "bg-emerald-950/90 border-emerald-500/40 text-emerald-200 shadow-emerald-950/20" : "bg-zinc-900/90 border-borderColor text-white"}`,
+          children: [
+            toastType === "error" ? /* @__PURE__ */ jsx_dev_runtime.jsxDEV("svg", {
+              className: "w-4 h-4 text-red-400 shrink-0 animate-pulse",
+              fill: "none",
+              stroke: "currentColor",
+              viewBox: "0 0 24 24",
+              children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("path", {
+                strokeLinecap: "round",
+                strokeLinejoin: "round",
+                strokeWidth: "2",
+                d: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              }, undefined, false, undefined, this)
+            }, undefined, false, undefined, this) : toastType === "success" ? /* @__PURE__ */ jsx_dev_runtime.jsxDEV("svg", {
+              className: "w-4 h-4 text-emerald-400 shrink-0",
+              fill: "none",
+              stroke: "currentColor",
+              viewBox: "0 0 24 24",
+              children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("path", {
+                strokeLinecap: "round",
+                strokeLinejoin: "round",
+                strokeWidth: "2",
+                d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              }, undefined, false, undefined, this)
+            }, undefined, false, undefined, this) : /* @__PURE__ */ jsx_dev_runtime.jsxDEV("svg", {
+              className: "w-4 h-4 text-primary shrink-0",
+              fill: "none",
+              stroke: "currentColor",
+              viewBox: "0 0 24 24",
+              children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("path", {
+                strokeLinecap: "round",
+                strokeLinejoin: "round",
+                strokeWidth: "2",
+                d: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              }, undefined, false, undefined, this)
+            }, undefined, false, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+              className: "text-xs font-semibold tracking-wide",
+              children: toastMessage
+            }, undefined, false, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+              onClick: () => {
+                setToastMessage(null);
+                setToastType(null);
+              },
+              className: "text-textMuted hover:text-white font-bold text-xs pl-2 border-l border-borderColor/30 ml-2 transition-colors cursor-pointer",
+              children: "✕"
             }, undefined, false, undefined, this)
           ]
         }, undefined, true, undefined, this)

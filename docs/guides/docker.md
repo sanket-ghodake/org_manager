@@ -62,3 +62,27 @@ Stop services and completely clear the database volume to start fresh:
 docker compose -f docker/development/docker-compose.yaml down -v
 ```
 
+---
+
+## 🔌 Microservice Lifecycle & Native App Integration
+
+The Dev Center Dashboard allows developer monitoring and control of the workspace application ecosystem. Apps are classified into two distinct types:
+
+### 1. Isolated Lifecycle Apps
+*   **Examples**: `reference-expenses`, `reference-go`, `reference-python`, `telemetry-dashboard`.
+*   **Architecture**: Run as independent, standalone Docker containers alongside the main portal.
+*   **Dashboard Controls**: Full start, stop, and restart controls are enabled. In Docker mode, these execute commands directly against their corresponding container (e.g. `docker start reference-go`).
+*   **Health Checks**: Periodically pinged on their target URL (e.g. `/api/health`).
+
+### 2. Natively Integrated Apps
+*   **Examples**: `manager-operations`, `employees`, `billing`.
+*   **Architecture**: Bundled and executed natively as client-side React modules within the core Portal container. They do not run separate processes or contain separate Docker containers.
+*   **Dashboard Controls**: Lifecycle action buttons are disabled with the label `Natively Integrated (Portal Managed)` as they are implicitly online when the portal is running.
+*   **Health Checks**: Automatically marked as `ACTIVE` by the health monitoring worker without querying any endpoints.
+
+### ⚠️ Troubleshooting Container Control Issues
+If a container is not running or not found in the environment:
+*   **Action API**: Rejects requests with `404 Not Found` or `400 Bad Request` instead of triggering a server-side 500 error.
+*   **Logs API**: Gracefully returns a message stating the container is not found/running, preventing unhandled exceptions.
+
+

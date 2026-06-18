@@ -18,39 +18,50 @@ export async function runHealthCheck() {
       const slug = app.slug as string;
       const entryUrl = app.entryUrl as string;
       
-      // Resolve health check url
-      const targetUrl = app.healthCheckUrl || (entryUrl.replace(/\/$/, '') + '/api/health');
+      const isHttp = entryUrl && (entryUrl.startsWith('http://') || entryUrl.startsWith('https://'));
       
       let newStatus: 'active' | 'offline' | 'degraded' = 'offline';
       const start = Date.now();
 
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 seconds timeout
-
-        const response = await fetch(targetUrl, {
-          method: 'GET',
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-        const duration = Date.now() - start;
-
-        if (response.status === 200) {
-          if (duration > 3000) {
-            newStatus = 'degraded';
-            console.log(`[HEALTH CHECK] App "${appName}" (${slug}) response slow (${duration}ms) -> DEGRADED`);
-          } else {
-            newStatus = 'active';
-            console.log(`[HEALTH CHECK] App "${appName}" (${slug}) responds in ${duration}ms -> ACTIVE`);
-          }
-        } else {
-          newStatus = 'degraded';
-          console.log(`[HEALTH CHECK] App "${appName}" (${slug}) status ${response.status} -> DEGRADED`);
+      if (!isHttp) {
+        newStatus = 'active';
+        console.log(`[HEALTH CHECK] App "${appName}" (${slug}) is a local/static component -> ACTIVE`);
+      } else {
+        // Resolve health check url
+        let resolvedEntryUrl = entryUrl;
+        if (process.env.RUNNING_IN_DOCKER === 'true') {
+          resolvedEntryUrl = entryUrl.replace('localhost', slug).replace('127.0.0.1', slug);
         }
-      } catch (err: any) {
-        newStatus = 'offline';
-        console.log(`[HEALTH CHECK] App "${appName}" (${slug}) connection failed: ${err.message} -> OFFLINE`);
+        const targetUrl = app.healthCheckUrl || (resolvedEntryUrl.replace(/\/$/, '') + '/api/health');
+
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 seconds timeout
+
+          const response = await fetch(targetUrl, {
+            method: 'GET',
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+          const duration = Date.now() - start;
+
+          if (response.status === 200) {
+            if (duration > 3000) {
+              newStatus = 'degraded';
+              console.log(`[HEALTH CHECK] App "${appName}" (${slug}) response slow (${duration}ms) -> DEGRADED`);
+            } else {
+              newStatus = 'active';
+              console.log(`[HEALTH CHECK] App "${appName}" (${slug}) responds in ${duration}ms -> ACTIVE`);
+            }
+          } else {
+            newStatus = 'degraded';
+            console.log(`[HEALTH CHECK] App "${appName}" (${slug}) status ${response.status} -> DEGRADED`);
+          }
+        } catch (err: any) {
+          newStatus = 'offline';
+          console.log(`[HEALTH CHECK] App "${appName}" (${slug}) connection failed: ${err.message} -> OFFLINE`);
+        }
       }
 
       // 2. Update status and last_seen timestamp in database

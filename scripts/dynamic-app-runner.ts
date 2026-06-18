@@ -4,6 +4,12 @@ import fs from 'fs';
 import path from 'path';
 
 const isDev = process.env.NODE_ENV === 'development';
+
+if (process.env.RUNNING_IN_DOCKER === 'true') {
+  console.log('[App Runner] Running in Docker mode. Microservices are managed as separate Docker containers. Native runner disabled.');
+  process.exit(0);
+}
+
 const appsDir = path.resolve(process.cwd(), 'sandbox/apps');
 
 const activeProcesses: { slug: string; process: ChildProcess }[] = [];
@@ -45,17 +51,28 @@ function startAppServer(slug: string, cmd: string, args: string[], cwd: string) 
     env: { ...process.env, PORTAL_URL: process.env.PORTAL_URL || 'http://localhost:3001' }
   });
 
+  const logFile = path.join(cwd, 'app.log');
+  // Clear file first or open in write mode
+  fs.writeFileSync(logFile, '');
+  const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+
   proc.stdout?.on('data', (data) => {
     const lines = data.toString().trim().split('\n');
     for (const line of lines) {
-      if (line) console.log(`[App: ${slug}] ${line}`);
+      if (line) {
+        console.log(`[App: ${slug}] ${line}`);
+        logStream.write(`${new Date().toISOString()} [INFO] ${line}\n`);
+      }
     }
   });
 
   proc.stderr?.on('data', (data) => {
     const lines = data.toString().trim().split('\n');
     for (const line of lines) {
-      if (line) console.error(`[App: ${slug}] [ERROR] ${line}`);
+      if (line) {
+        console.error(`[App: ${slug}] [ERROR] ${line}`);
+        logStream.write(`${new Date().toISOString()} [ERROR] ${line}\n`);
+      }
     }
   });
 

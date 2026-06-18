@@ -311,9 +311,14 @@ func main() {
 		}
 	}
 
+	portalURL := os.Getenv("PORTAL_URL")
+	if portalURL == "" {
+		portalURL = "http://localhost:3001"
+	}
+
 	config = Config{
 		DatabaseURL: dbURL,
-		PortalURL:   "http://localhost:3001",
+		PortalURL:   portalURL,
 	}
 
 	initDB()

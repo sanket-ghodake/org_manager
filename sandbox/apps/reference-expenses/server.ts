@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 
 const PORT = 8085;
 const connectionString = process.env.DATABASE_URL || 'postgres://lifeos:change_me_db_password@localhost:5432/org_db';
+const PORTAL_URL = process.env.PORTAL_URL || 'http://localhost:3001';
 
 const pool = new Pool({
   connectionString,
@@ -38,7 +39,7 @@ initializeSchema();
 // Helper to write audit logs to main portal
 async function writePortalAuditLog(accessToken: string, action: string, severity: string, payload: any) {
   try {
-    await fetch('http://localhost:3001/api/v1/audit/log', {
+    await fetch(`${PORTAL_URL}/api/v1/audit/log`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -109,7 +110,7 @@ const server = Bun.serve({
             const { client_id, client_secret } = appRes.rows[0];
             
             // Exchange code for access token via main portal
-            const exchangeRes = await fetch('http://localhost:3001/api/v1/auth/exchange', {
+            const exchangeRes = await fetch(`${PORTAL_URL}/api/v1/auth/exchange`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

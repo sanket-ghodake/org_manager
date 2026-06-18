@@ -80,7 +80,10 @@ async function handleProxy(
     return new NextResponse('Application not found', { status: 404 });
   }
 
-  const entryUrl = rows[0].entry_url as string;
+  let entryUrl = rows[0].entry_url as string;
+  if (process.env.RUNNING_IN_DOCKER === 'true') {
+    entryUrl = entryUrl.replace('localhost', slug).replace('127.0.0.1', slug);
+  }
   const pathStr = subpath ? subpath.join('/') : '';
   const queryStr = request.nextUrl.search;
   
@@ -90,11 +93,25 @@ async function handleProxy(
 
   try {
     const headers = new Headers();
-    request.headers.forEach((value, key) => {
-      if (!['host', 'cookie', 'connection', 'origin', 'referer'].includes(key.toLowerCase())) {
-        headers.set(key, value);
+    if (request.headers && typeof request.headers.entries === 'function') {
+      for (const [key, value] of request.headers.entries()) {
+        if (!['host', 'cookie', 'connection', 'origin', 'referer'].includes(key.toLowerCase())) {
+          headers.set(key, value);
+        }
       }
-    });
+    } else if (request.headers && typeof (request.headers as any).forEach === 'function') {
+      (request.headers as any).forEach((value: string, key: string) => {
+        if (!['host', 'cookie', 'connection', 'origin', 'referer'].includes(key.toLowerCase())) {
+          headers.set(key, value);
+        }
+      });
+    } else if (request.headers) {
+      for (const key of Object.keys(request.headers)) {
+        if (!['host', 'cookie', 'connection', 'origin', 'referer'].includes(key.toLowerCase())) {
+          headers.set(key, (request.headers as any)[key]);
+        }
+      }
+    }
 
     const body = request.body && ['POST', 'PUT', 'PATCH'].includes(request.method)
       ? await request.arrayBuffer()
@@ -114,11 +131,23 @@ async function handleProxy(
     clearTimeout(timeoutId);
 
     const responseHeaders = new Headers();
-    response.headers.forEach((value, key) => {
-      responseHeaders.set(key, value);
-    });
+    if (response.headers && typeof response.headers.entries === 'function') {
+      for (const [key, value] of response.headers.entries()) {
+        responseHeaders.set(key, value);
+      }
+    } else if (response.headers && typeof (response.headers as any).forEach === 'function') {
+      (response.headers as any).forEach((value: string, key: string) => {
+        responseHeaders.set(key, value);
+      });
+    } else if (response.headers) {
+      for (const key of Object.keys(response.headers)) {
+        responseHeaders.set(key, (response.headers as any)[key]);
+      }
+    }
 
-    const origin = request.headers.get('origin') || '*';
+    const origin = request.headers && typeof request.headers.get === 'function'
+      ? request.headers.get('origin') || '*'
+      : '*';
     responseHeaders.set('Access-Control-Allow-Origin', origin);
 
     const responseBody = await response.arrayBuffer();

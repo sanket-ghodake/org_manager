@@ -69,6 +69,9 @@ function App() {
   const [selectedAppSlug, setSelectedAppSlug] = useState<string>('');
   const [expandedAppRow, setExpandedAppRow] = useState<string | null>(null);
   const [isCompactRow, setIsCompactRow] = useState<boolean>(false);
+  const [microserviceLogs, setMicroserviceLogs] = useState<Record<string, string>>({});
+  const [fetchingLogsSlug, setFetchingLogsSlug] = useState<string | null>(null);
+  const [actionLoadingSlug, setActionLoadingSlug] = useState<string | null>(null);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
     name: 180,
     slug: 140,
@@ -126,6 +129,23 @@ function App() {
 
   // SSE Stream connection status
   const [sseStatus, setSseStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
+
+  // Custom Toast State
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'info' | 'error' | 'success' | null>(null);
+  const toastTimeoutRef = useRef<any>(null);
+
+  const showToast = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToastMessage(message);
+    setToastType(type);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+      setToastType(null);
+    }, 4500);
+  };
 
   // Dropdown States
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
@@ -358,6 +378,45 @@ function App() {
       console.error(e);
     } finally {
       setLogsLoading(false);
+    }
+  };
+  
+  const fetchMicroserviceLogs = async (slug: string) => {
+    setFetchingLogsSlug(slug);
+    try {
+      const res = await fetch(`/api/microservices/logs?slug=${slug}`);
+      const data = await res.json();
+      if (data.logs) {
+        setMicroserviceLogs(prev => ({ ...prev, [slug]: data.logs }));
+      } else if (data.error) {
+        setMicroserviceLogs(prev => ({ ...prev, [slug]: `Error: ${data.error}` }));
+      }
+    } catch (e: any) {
+      setMicroserviceLogs(prev => ({ ...prev, [slug]: `Failed to fetch logs: ${e.message}` }));
+    } finally {
+      setFetchingLogsSlug(null);
+    }
+  };
+
+  const handleMicroserviceAction = async (slug: string, action: 'start' | 'stop' | 'restart') => {
+    setActionLoadingSlug(slug);
+    try {
+      const res = await fetch('/api/microservices/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, action })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Container "${slug}" successfully triggered: ${action}`, 'success');
+        setTimeout(() => fetchMicroserviceLogs(slug), 1000);
+      } else if (data.error) {
+        showToast(`Failed: ${data.error}`, 'error');
+      }
+    } catch (e: any) {
+      showToast(`Error running action: ${e.message}`, 'error');
+    } finally {
+      setActionLoadingSlug(null);
     }
   };
 
@@ -1510,7 +1569,11 @@ function App() {
                       <tr 
                         onClick={() => {
                           setSelectedAppSlug(app.slug);
-                          setExpandedAppRow(isExpanded ? null : app.slug);
+                          const nextExpanded = isExpanded ? null : app.slug;
+                          setExpandedAppRow(nextExpanded);
+                          if (nextExpanded) {
+                            fetchMicroserviceLogs(app.slug);
+                          }
                         }}
                         className={`border-b border-borderColor cursor-pointer transition-colors ${isSelected ? 'bg-primaryGlow/20 hover:bg-primaryGlow/30' : 'hover:bg-sidebarHover/50'}`}
                       >
@@ -1544,28 +1607,71 @@ function App() {
                       {isExpanded && (
                         <tr className="bg-bgMain/60">
                           <td colSpan={7} className="px-5 py-4 border-b border-borderColor text-xs text-textMuted">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                               <div>
                                 <h4 className="text-[10px] uppercase font-bold text-white mb-2 tracking-wider">Internal Configuration</h4>
                                 <div className="flex flex-col gap-1.5 font-mono text-[11px]">
                                   <div>Entry Endpoint: <a href={app.entryUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">{app.entryUrl || 'N/A'}</a></div>
                                   <div>Slug: {app.slug}</div>
                                   <div>Docker Label: <span className="text-white">sandbox-app-{app.slug}</span></div>
-                                </div>
-                              </div>
-                              <div>
-                                <h4 className="text-[10px] uppercase font-bold text-white mb-2 tracking-wider">Network Routing Details</h4>
-                                <div className="flex flex-col gap-1.5 font-mono text-[11px]">
                                   <div>Virtual IP: 172.18.0.{app.slug.charCodeAt(0) % 254}</div>
-                                  <div>External Hostname: {app.slug}.local-sandbox.io</div>
-                                  <div>Load Balancer Target: localhost:{app.entryUrl ? getPortFromUrl(app.entryUrl) : '80'}</div>
                                 </div>
                               </div>
                               <div>
-                                <h4 className="text-[10px] uppercase font-bold text-white mb-2 tracking-wider">Telemetry Security Headers</h4>
-                                <p className="text-[11px] leading-relaxed">
-                                  PII payload scrubbing enforces anonymization of query parameters. Direct access authorization credentials and session cookie hashes are omitted from telemetries stream buffer.
-                                </p>
+                                <h4 className="text-[10px] uppercase font-bold text-white mb-2 tracking-wider">Security & Routing</h4>
+                                <div className="flex flex-col gap-1.5 text-[11px] leading-relaxed">
+                                  <div>Hostname: {app.slug}.local-sandbox.io</div>
+                                  <div>PII scrubbing active. Auth headers omitted from stream buffer.</div>
+                                </div>
+                              </div>
+                              <div>
+                                <h4 className="text-[10px] uppercase font-bold text-white mb-2 tracking-wider">Lifecycle Operations</h4>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  <button
+                                    disabled={actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false}
+                                    onClick={(e) => { e.stopPropagation(); handleMicroserviceAction(app.slug, 'start'); }}
+                                    className={`px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status === 'offline' ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
+                                  >
+                                    Start
+                                  </button>
+                                  <button
+                                    disabled={actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false}
+                                    onClick={(e) => { e.stopPropagation(); handleMicroserviceAction(app.slug, 'stop'); }}
+                                    className={`px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status !== 'offline' ? 'bg-red-600 hover:bg-red-500 text-white cursor-pointer' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
+                                  >
+                                    Stop
+                                  </button>
+                                  <button
+                                    disabled={actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false}
+                                    onClick={(e) => { e.stopPropagation(); handleMicroserviceAction(app.slug, 'restart'); }}
+                                    className={`px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status !== 'offline' ? 'bg-amber-600 hover:bg-amber-500 text-white cursor-pointer' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
+                                  >
+                                    Restart
+                                  </button>
+                                </div>
+                                {app.isIsolatedLifecycle === false && (
+                                  <span className="text-[9px] text-amber-400 block mt-1.5 font-bold uppercase tracking-wider">
+                                    Natively Integrated (Portal Managed)
+                                  </span>
+                                )}
+                                {actionLoadingSlug === app.slug && (
+                                  <span className="text-[10px] text-primary animate-pulse block mt-1.5 font-bold">Applying action...</span>
+                                )}
+                              </div>
+                              <div className="flex flex-col gap-2 min-h-[120px]">
+                                <div className="flex justify-between items-center">
+                                  <h4 className="text-[10px] uppercase font-bold text-white tracking-wider">Console Output Logs</h4>
+                                  <button
+                                    disabled={fetchingLogsSlug === app.slug}
+                                    onClick={(e) => { e.stopPropagation(); fetchMicroserviceLogs(app.slug); }}
+                                    className="px-2 py-0.5 border border-borderColor hover:border-primary bg-bgMain hover:text-white rounded text-[9px] font-bold cursor-pointer transition-colors"
+                                  >
+                                    {fetchingLogsSlug === app.slug ? 'Fetching...' : 'Refresh Logs'}
+                                  </button>
+                                </div>
+                                <div className="bg-zinc-950 p-2 font-mono text-[9px] text-zinc-400 rounded border border-borderColor overflow-auto h-28 max-w-full leading-normal whitespace-pre">
+                                  {microserviceLogs[app.slug] || 'No logs fetched yet.'}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -2414,6 +2520,39 @@ function App() {
                 Acknowledge & Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[9999] animate-slideIn">
+          <div className={`flex items-center gap-3 px-5 py-3.5 rounded-xl border shadow-2xl backdrop-blur-md ${
+            toastType === 'error' 
+              ? 'bg-red-950/90 border-red-500/40 text-red-200 shadow-red-950/20' 
+              : toastType === 'success'
+              ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200 shadow-emerald-950/20'
+              : 'bg-zinc-900/90 border-borderColor text-white'
+          }`}>
+            {toastType === 'error' ? (
+              <svg className="w-4 h-4 text-red-400 shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ) : toastType === 'success' ? (
+              <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            <span className="text-xs font-semibold tracking-wide">{toastMessage}</span>
+            <button 
+              onClick={() => { setToastMessage(null); setToastType(null); }}
+              className="text-textMuted hover:text-white font-bold text-xs pl-2 border-l border-borderColor/30 ml-2 transition-colors cursor-pointer"
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}

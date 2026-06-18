@@ -36,21 +36,92 @@ services:
       - PORT=3001
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
+      - RUNNING_IN_DOCKER=true
     ports:
       - "3001:3001"
       - "3002:3002"
       - "3003:3003"
-      - "8085:8085"
-      - "8086:8086"
-      - "8087:8087"
     volumes:
       - ../..:/app
       - /app/node_modules
       - /app/core/src/frontend/node_modules
       - /app/core/src/frontend/.next
+      - /var/run/docker.sock:/var/run/docker.sock
     restart: always
     networks:
       - sgforge-network
+
+  reference-expenses:
+    build:
+      context: ../../sandbox/apps/reference-expenses
+      dockerfile: Dockerfile
+    container_name: reference-expenses
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
+      - PORT=8085
+      - PORTAL_URL=http://app:3001
+    ports:
+      - "8085:8085"
+    networks:
+      - sgforge-network
+    restart: always
+
+  reference-go:
+    build:
+      context: ../../sandbox/apps/reference-go
+      dockerfile: Dockerfile
+    container_name: reference-go
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
+      - PORT=8086
+      - PORTAL_URL=http://app:3001
+    ports:
+      - "8086:8086"
+    networks:
+      - sgforge-network
+    restart: always
+
+  reference-python:
+    build:
+      context: ../../sandbox/apps/reference-python
+      dockerfile: Dockerfile
+    container_name: reference-python
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
+      - PORT=8087
+      - PORTAL_URL=http://app:3001
+    ports:
+      - "8087:8087"
+    networks:
+      - sgforge-network
+    restart: always
+
+  telemetry-dashboard:
+    build:
+      context: ../../sandbox/apps/telemetry-dashboard
+      dockerfile: Dockerfile
+    container_name: telemetry-dashboard
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
+      - PORT=8080
+      - PORTAL_URL=http://app:3001
+    ports:
+      - "8080:8080"
+    networks:
+      - sgforge-network
+    restart: always
 
 networks:
   sgforge-network:

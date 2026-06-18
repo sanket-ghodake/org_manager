@@ -576,13 +576,53 @@ function addTelemetryEvent(event: TelemetryEvent) {
 
 let cachedEcosystemState: any = { apps: [], buffer: [], logs: [] };
 
+function queryDockerContainerMetrics(): Map<string, { cpu: number; mem: number }> {
+  const metricsMap = new Map<string, { cpu: number; mem: number }>();
+  try {
+    const statsOut = execSync('docker stats --no-stream --format "{{.Name}} {{.CPUPerc}} {{.MemUsage}}"', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    const lines = statsOut.trim().split('\n');
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length >= 3) {
+        const name = parts[0];
+        const cpuStr = parts[1].replace('%', '');
+        const cpu = parseFloat(cpuStr) || 0.0;
+        
+        const memStr = parts[2].toLowerCase();
+        let mem = parseFloat(memStr) || 0.0;
+        if (memStr.includes('gib')) {
+          mem = mem * 1024;
+        } else if (memStr.includes('kib')) {
+          mem = mem / 1024;
+        } else if (memStr.includes('mib')) {
+          // already in MiB
+        } else if (memStr.endsWith('b')) {
+          mem = mem / (1024 * 1024);
+        }
+        
+        metricsMap.set(name, { cpu, mem });
+      }
+    }
+  } catch (e) {
+    // Graceful fallback if docker socket or command is unavailable
+  }
+  return metricsMap;
+}
+
 async function getEcosystemState() {
   try {
     const appsResult = await db.execute(sql`
-      SELECT id, name, slug, entry_url as "entryUrl", is_enabled as "isEnabled", status, last_seen as "lastSeen"
+      SELECT id, name, slug, entry_url as "entryUrl", is_enabled as "isEnabled", status, last_seen as "lastSeen", is_isolated_lifecycle as "isIsolatedLifecycle"
       FROM forge_apps
     `);
     const apps = (appsResult.rows || appsResult) as any[];
+
+    const dockerMetrics = process.env.RUNNING_IN_DOCKER === 'true'
+      ? queryDockerContainerMetrics()
+      : null;
 
     // Detect status changes and log them
     for (const app of apps) {
@@ -602,35 +642,41 @@ async function getEcosystemState() {
       lastKnownStatuses.set(app.slug, app.status);
 
       // Collect real-time process metrics
-      if (app.status !== 'offline' && app.entryUrl) {
-        const port = getPortFromUrl(app.entryUrl);
-        if (port) {
-          const metrics = queryRealAppMetrics(port);
-          if (metrics) {
-            app.cpu = metrics.cpu;
-            app.mem = metrics.mem;
-            
-            // Manage rolling history buffers (length 12)
-            if (!appCpuHistory.has(app.slug)) appCpuHistory.set(app.slug, Array(12).fill(0.0));
-            if (!appMemHistory.has(app.slug)) appMemHistory.set(app.slug, Array(12).fill(0.0));
-            
-            const cpuHist = appCpuHistory.get(app.slug)!;
-            const memHist = appMemHistory.get(app.slug)!;
-            
-            cpuHist.push(metrics.cpu);
-            if (cpuHist.length > 12) cpuHist.shift();
-            
-            memHist.push(metrics.mem);
-            if (memHist.length > 12) memHist.shift();
-            
-            app.cpuHistory = [...cpuHist];
-            app.memHistory = [...memHist];
-          } else {
-            app.cpu = 0.0;
-            app.mem = 0.0;
-            app.cpuHistory = appCpuHistory.get(app.slug) || Array(12).fill(0.0);
-            app.memHistory = appMemHistory.get(app.slug) || Array(12).fill(0.0);
+      if (app.status !== 'offline') {
+        let metrics: { cpu: number; mem: number } | null = null;
+        if (dockerMetrics) {
+          metrics = dockerMetrics.get(app.slug) || null;
+        } else if (app.entryUrl) {
+          const port = getPortFromUrl(app.entryUrl);
+          if (port) {
+            metrics = queryRealAppMetrics(port);
           }
+        }
+
+        if (metrics) {
+          app.cpu = metrics.cpu;
+          app.mem = metrics.mem;
+          
+          // Manage rolling history buffers (length 12)
+          if (!appCpuHistory.has(app.slug)) appCpuHistory.set(app.slug, Array(12).fill(0.0));
+          if (!appMemHistory.has(app.slug)) appMemHistory.set(app.slug, Array(12).fill(0.0));
+          
+          const cpuHist = appCpuHistory.get(app.slug)!;
+          const memHist = appMemHistory.get(app.slug)!;
+          
+          cpuHist.push(metrics.cpu);
+          if (cpuHist.length > 12) cpuHist.shift();
+          
+          memHist.push(metrics.mem);
+          if (memHist.length > 12) memHist.shift();
+          
+          app.cpuHistory = [...cpuHist];
+          app.memHistory = [...memHist];
+        } else {
+          app.cpu = 0.0;
+          app.mem = 0.0;
+          app.cpuHistory = appCpuHistory.get(app.slug) || Array(12).fill(0.0);
+          app.memHistory = appMemHistory.get(app.slug) || Array(12).fill(0.0);
         }
       } else {
         app.cpu = 0.0;
@@ -711,40 +757,143 @@ setInterval(() => {
   }
 }, 15000);
 
-// Background proxy telemetry SSE connection
-function connectToProxyTelemetry() {
-  const ESClass = (globalThis as any).EventSource;
-  if (!ESClass) {
-    console.warn("[Telemetry Sync] EventSource is not available, retrying in 5 seconds...");
-    setTimeout(connectToProxyTelemetry, 5000);
-    return;
-  }
-
+// Background proxy telemetry SSE connection using fetch reader fallback
+async function connectToProxyTelemetry() {
   console.log("[Telemetry Sync] Connecting to proxy telemetry stream on port 3003...");
   try {
-    const es = new ESClass("http://localhost:3003/api/telemetry/proxy-stream");
-    es.onmessage = (event: any) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data && data.appSlug) {
-          addTelemetryEvent(data);
+    const response = await fetch("http://localhost:3003/api/telemetry/proxy-stream", {
+      headers: { "Accept": "text/event-stream" }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("Response body is not readable");
+    }
+    const decoder = new TextDecoder();
+    let buffer = "";
+    
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const dataStr = line.slice(6).trim();
+            const data = JSON.parse(dataStr);
+            if (data && data.appSlug) {
+              addTelemetryEvent(data);
+            }
+          } catch (err) {
+            // ignore
+          }
         }
-      } catch (err) {
-        // ignore
       }
-    };
-    es.onerror = () => {
-      es.close();
-      setTimeout(connectToProxyTelemetry, 5000);
-    };
-  } catch (err) {
-    console.error("[Telemetry Sync] Error constructing EventSource:", err);
-    setTimeout(connectToProxyTelemetry, 5000);
+    }
+  } catch (err: any) {
+    console.error("[Telemetry Sync] Connection to proxy telemetry stream lost or failed:", err.message);
   }
+  // Retry connection after 5 seconds
+  setTimeout(connectToProxyTelemetry, 5000);
 }
 
 // Kick off connection to proxy stream
 setTimeout(connectToProxyTelemetry, 3000);
+
+function getAppPid(port: number): number | null {
+  try {
+    const ssOut = execSync(`ss -lptn sport = :${port}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const match = ssOut.match(/pid=(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function startAppServerLocal(slug: string) {
+  const appPath = path.resolve(process.cwd(), 'sandbox/apps', slug);
+  if (!fs.existsSync(appPath) || !fs.statSync(appPath).isDirectory()) {
+    throw new Error(`App path does not exist: ${appPath}`);
+  }
+
+  const manifestPath = path.join(appPath, 'app.json');
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(`App manifest not found at: ${manifestPath}`);
+  }
+
+  let manifest: any = {};
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (e) {
+    throw new Error(`Failed to parse app.json: ${e}`);
+  }
+
+  const isDev = process.env.NODE_ENV === 'development';
+  const customCommand = isDev 
+    ? (manifest.devCommand || manifest.runCommand) 
+    : manifest.runCommand;
+
+  let cmd = '';
+  let args: string[] = [];
+
+  if (customCommand) {
+    const parts = customCommand.split(' ');
+    cmd = parts[0];
+    args = parts.slice(1);
+  } else if (fs.existsSync(path.join(appPath, 'server.ts'))) {
+    cmd = 'bun';
+    args = isDev ? ['--watch', 'server.ts'] : ['server.ts'];
+  } else if (fs.existsSync(path.join(appPath, 'server.js'))) {
+    cmd = 'node';
+    args = ['server.js'];
+  } else if (fs.existsSync(path.join(appPath, 'server.py'))) {
+    cmd = 'python3';
+    args = ['server.py'];
+  } else if (fs.existsSync(path.join(appPath, 'main.py'))) {
+    cmd = 'python3';
+    args = ['main.py'];
+  } else if (fs.existsSync(path.join(appPath, 'main.go'))) {
+    const prodBin = path.join(appPath, `${slug}-bin`);
+    if (!isDev && fs.existsSync(prodBin)) {
+      cmd = prodBin;
+      args = [];
+    } else {
+      cmd = 'go';
+      args = ['run', 'main.go'];
+    }
+  } else {
+    throw new Error(`No runnable server file detected in ${appPath}`);
+  }
+
+  console.log(`[Dashboard] Starting app "${slug}" locally via: ${cmd} ${args.join(' ')}`);
+
+  const proc = spawn(cmd, args, {
+    cwd: appPath,
+    shell: true,
+    detached: true,
+    env: { ...process.env, PORTAL_URL: process.env.PORTAL_URL || 'http://localhost:3001' }
+  });
+
+  const logFile = path.join(appPath, 'app.log');
+  fs.writeFileSync(logFile, '');
+  const logStream = fs.createWriteStream(logFile, { flags: 'a' });
+
+  proc.stdout?.on('data', (data) => {
+    logStream.write(`${new Date().toISOString()} [INFO] ${data.toString()}`);
+  });
+
+  proc.stderr?.on('data', (data) => {
+    logStream.write(`${new Date().toISOString()} [ERROR] ${data.toString()}`);
+  });
+
+  proc.unref();
+}
 
 function isAuthenticated(req: Request): boolean {
   const cookieHeader = req.headers.get('cookie') || '';
@@ -1242,6 +1391,168 @@ export async function handleRequest(req: Request, server?: any): Promise<Respons
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+  }
+
+  // 11. POST /api/microservices/action - Control start, stop, restart for microservices
+  if (req.method === 'POST' && url.pathname === '/api/microservices/action') {
+    try {
+      const body = await req.json();
+      const { slug, action } = body;
+
+      if (!slug || !action || !['start', 'stop', 'restart'].includes(action)) {
+        return new Response(JSON.stringify({ error: 'Invalid payload parameters' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (process.env.RUNNING_IN_DOCKER === 'true') {
+        try {
+          // Check if container exists
+          try {
+            execSync(`docker inspect ${slug}`, { stdio: 'ignore' });
+          } catch (inspectErr) {
+            const isLocal = ['manager-operations', 'employees', 'billing'].includes(slug);
+            if (isLocal) {
+              return new Response(JSON.stringify({ error: `Application "${slug}" runs natively as a local React component within the portal bundle. No separate Docker container exists.` }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            } else {
+              return new Response(JSON.stringify({ error: `Docker container "${slug}" was not found on this system. Make sure the container is defined and created.` }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+          }
+
+          execSync(`docker ${action} ${slug}`, { stdio: 'ignore' });
+          pushDashboardLog('INFO', 'lifecycle', `Microservice container "${slug}" requested to ${action}`);
+          return new Response(JSON.stringify({ success: true, message: `Container "${slug}" successfully triggered: ${action}` }), {
+            headers: { 'Content-Type': 'application/json' },
+          });
+        } catch (dockerErr: any) {
+          return new Response(JSON.stringify({ error: `Docker control execution failed: ${dockerErr.message}` }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      } else {
+        const PORT_MAP: Record<string, number> = {
+          'reference-expenses': 8085,
+          'reference-go': 8086,
+          'reference-python': 8087,
+          'telemetry-dashboard': 8080,
+        };
+        const port = PORT_MAP[slug];
+        if (!port) {
+          return new Response(JSON.stringify({ error: `Unknown application slug: ${slug}` }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        const stopLocal = (appPort: number) => {
+          const pid = getAppPid(appPort);
+          if (pid) {
+            console.log(`[Dashboard] Stopping local process ${pid} on port ${appPort}`);
+            try {
+              process.kill(pid, 'SIGKILL');
+            } catch (killErr) {
+              try {
+                execSync(`kill -9 ${pid}`, { stdio: 'ignore' });
+              } catch (e) {}
+            }
+          }
+        };
+
+        if (action === 'stop' || action === 'restart') {
+          stopLocal(port);
+        }
+
+        if (action === 'start' || action === 'restart') {
+          try {
+            startAppServerLocal(slug);
+          } catch (startErr: any) {
+            return new Response(JSON.stringify({ error: `Failed to start local app server: ${startErr.message}` }), {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+        }
+
+        pushDashboardLog('INFO', 'lifecycle', `Microservice local process "${slug}" requested to ${action}`);
+        return new Response(JSON.stringify({ success: true, message: `Local microservice "${slug}" successfully triggered: ${action}` }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    } catch (err: any) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // 12. GET /api/microservices/logs - Fetch tail logs for a given microservice
+  if (req.method === 'GET' && url.pathname === '/api/microservices/logs') {
+    const slug = url.searchParams.get('slug') || '';
+    if (!slug) {
+      return new Response(JSON.stringify({ error: 'Missing slug parameter' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (process.env.RUNNING_IN_DOCKER === 'true') {
+      try {
+        try {
+          execSync(`docker inspect ${slug}`, { stdio: 'ignore' });
+        } catch (inspectErr) {
+          const isLocal = ['manager-operations', 'employees', 'billing'].includes(slug);
+          if (isLocal) {
+            return new Response(JSON.stringify({ logs: `Application "${slug}" runs natively as a local React component within the portal bundle. No separate Docker container exists.` }), {
+              headers: { 'Content-Type': 'application/json' },
+            });
+          } else {
+            return new Response(JSON.stringify({ logs: `Docker container "${slug}" is not running or not found on this system.` }), {
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+        }
+
+        const dockerLogs = execSync(`docker logs --tail 150 ${slug}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+        return new Response(JSON.stringify({ logs: dockerLogs }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: `Failed to fetch docker logs: ${err.message}` }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      try {
+        const logFile = path.resolve(process.cwd(), 'sandbox/apps', slug, 'app.log');
+        if (fs.existsSync(logFile)) {
+          const content = fs.readFileSync(logFile, 'utf8');
+          const lines = content.split('\n');
+          const lastLines = lines.slice(-150).join('\n');
+          return new Response(JSON.stringify({ logs: lastLines }), {
+            headers: { 'Content-Type': 'application/json' },
+          });
+        } else {
+          return new Response(JSON.stringify({ logs: `No log file found for ${slug} yet.` }), {
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: `Failed to read log file: ${err.message}` }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
     }
   }
 

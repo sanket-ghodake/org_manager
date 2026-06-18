@@ -1,6 +1,7 @@
 import { expect, test, describe, spyOn, afterEach } from "bun:test";
 import { handleRequest } from "@backend/dev-dashboard/server";
 import { db } from "@database/connection";
+import cp from "child_process";
 
 // Setup mocks for database execute
 const mockDbExecute = spyOn(db, "execute").mockImplementation(async (sqlObj: any) => {
@@ -208,5 +209,105 @@ describe("SG Forge DevCenter Dashboard Server Router Pipeline", () => {
     expect(response.headers.get("Content-Type")).toBe("application/javascript");
     const body = await response.text();
     expect(body).toContain("activeTabId");
+  });
+
+  test("POST /api/microservices/action validation works", async () => {
+    const req = new Request("http://localhost:3002/api/microservices/action", {
+      method: "POST",
+      headers: {
+        "Cookie": "dev_session=authenticated_sunil_dev",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ slug: "manager-operations", action: "invalid-action" })
+    });
+
+    const response = await handleRequest(req);
+    expect(response.status).toBe(400);
+    const data = await response.json();
+    expect(data.error).toBe("Invalid payload parameters");
+  });
+
+  test("POST /api/microservices/action with local React app in Docker mode", async () => {
+    const originalEnv = process.env.RUNNING_IN_DOCKER;
+    process.env.RUNNING_IN_DOCKER = "true";
+    
+    // Mock execSync to throw error for check (docker inspect manager-operations fails)
+    const execSpy = spyOn(cp, "execSync").mockImplementation(() => {
+      throw new Error("Command failed: docker inspect manager-operations");
+    });
+
+    try {
+      const req = new Request("http://localhost:3002/api/microservices/action", {
+        method: "POST",
+        headers: {
+          "Cookie": "dev_session=authenticated_sunil_dev",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ slug: "manager-operations", action: "start" })
+      });
+
+      const response = await handleRequest(req);
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.error).toContain("runs natively as a local React component");
+    } finally {
+      execSpy.mockRestore();
+      process.env.RUNNING_IN_DOCKER = originalEnv;
+    }
+  });
+
+  test("POST /api/microservices/action with missing container in Docker mode", async () => {
+    const originalEnv = process.env.RUNNING_IN_DOCKER;
+    process.env.RUNNING_IN_DOCKER = "true";
+    
+    // Mock execSync to throw error for check (docker inspect invalid-app fails)
+    const execSpy = spyOn(cp, "execSync").mockImplementation(() => {
+      throw new Error("Command failed: docker inspect invalid-app");
+    });
+
+    try {
+      const req = new Request("http://localhost:3002/api/microservices/action", {
+        method: "POST",
+        headers: {
+          "Cookie": "dev_session=authenticated_sunil_dev",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ slug: "invalid-app", action: "start" })
+      });
+
+      const response = await handleRequest(req);
+      expect(response.status).toBe(404);
+      const data = await response.json();
+      expect(data.error).toContain("was not found on this system");
+    } finally {
+      execSpy.mockRestore();
+      process.env.RUNNING_IN_DOCKER = originalEnv;
+    }
+  });
+
+  test("GET /api/microservices/logs with missing container in Docker mode", async () => {
+    const originalEnv = process.env.RUNNING_IN_DOCKER;
+    process.env.RUNNING_IN_DOCKER = "true";
+    
+    const execSpy = spyOn(cp, "execSync").mockImplementation(() => {
+      throw new Error("Command failed: docker inspect invalid-app");
+    });
+
+    try {
+      const req = new Request("http://localhost:3002/api/microservices/logs?slug=invalid-app", {
+        method: "GET",
+        headers: {
+          "Cookie": "dev_session=authenticated_sunil_dev"
+        }
+      });
+
+      const response = await handleRequest(req);
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.logs).toContain("is not running or not found");
+    } finally {
+      execSpy.mockRestore();
+      process.env.RUNNING_IN_DOCKER = originalEnv;
+    }
   });
 });

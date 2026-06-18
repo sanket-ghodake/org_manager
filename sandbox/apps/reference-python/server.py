@@ -8,7 +8,7 @@ import sys
 from urllib.parse import urlparse, parse_qs
 
 PORT = 8087
-PORTAL_URL = "http://localhost:3001"
+PORTAL_URL = os.environ.get("PORTAL_URL", "http://localhost:3001")
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgres://lifeos:change_me_db_password@localhost:5432/org_db")
 
 # In-memory document storage
