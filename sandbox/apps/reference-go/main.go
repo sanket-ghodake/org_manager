@@ -177,14 +177,20 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 
 	code := r.URL.Query().Get("code")
 	var session *SessionData
-	clientID := "reference-go" // Default fallback
+	
+	// 2026 Security Standards: Read credentials directly from environment variables if present
+	clientID := os.Getenv("CLIENT_ID")
+	clientSecret := os.Getenv("CLIENT_SECRET")
 
-	// Fetch credentials
-	var clientSecret string
-	err := db.QueryRow("SELECT client_id, client_secret FROM forge_apps WHERE slug = 'reference-go'").Scan(&clientID, &clientSecret)
-	if err != nil {
-		log.Printf("Error getting credentials: %v", err)
-	} else if code != "" {
+	if clientID == "" || clientSecret == "" {
+		clientID = "client_reference_go" // Default fallback slug/id
+		err := db.QueryRow("SELECT client_id, client_secret FROM forge_apps WHERE slug = 'reference-go'").Scan(&clientID, &clientSecret)
+		if err != nil {
+			log.Printf("Error getting credentials from database: %v", err)
+		}
+	}
+
+	if code != "" {
 		exchangeURL := fmt.Sprintf("%s/api/v1/auth/exchange", config.PortalURL)
 		exchangeBody, _ := json.Marshal(map[string]string{
 			"code":          code,

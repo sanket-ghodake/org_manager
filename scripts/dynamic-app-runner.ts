@@ -41,14 +41,46 @@ process.on('exit', () => {
   cleanup();
 });
 
+// Map of known microservices to their database roles and passwords
+const appRoleMap: Record<string, { user: string; pass: string }> = {
+  'reference-expenses': { user: 'app_reference_expenses', pass: 'change_me_expenses_password' },
+  'reference-go': { user: 'app_reference_go', pass: 'change_me_go_password' },
+  'reference-python': { user: 'app_reference_python', pass: 'change_me_python_password' },
+};
+
+function getAppDatabaseUrl(slug: string, baseDbUrl: string | undefined): string | undefined {
+  if (!baseDbUrl) return undefined;
+  const roleInfo = appRoleMap[slug];
+  if (!roleInfo) return baseDbUrl;
+
+  try {
+    const urlPattern = /^(postgres(?:ql)?:\/\/)([^:]+):([^@]+)(@.+)$/;
+    const match = baseDbUrl.match(urlPattern);
+    if (match) {
+      const [, protocol, oldUser, oldPass, rest] = match;
+      return `${protocol}${roleInfo.user}:${roleInfo.pass}${rest}`;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return baseDbUrl;
+}
+
 // Run a command
-function startAppServer(slug: string, cmd: string, args: string[], cwd: string) {
+function startAppServer(slug: string, cmd: string, args: string[], cwd: string, clientId?: string, clientSecret?: string) {
   console.log(`[App Runner] Starting server for "${slug}" in ${cwd} via: ${cmd} ${args.join(' ')}`);
   
+  const appDbUrl = getAppDatabaseUrl(slug, process.env.DATABASE_URL);
   const proc = spawn(cmd, args, {
     cwd,
     shell: true,
-    env: { ...process.env, PORTAL_URL: process.env.PORTAL_URL || 'http://localhost:3001' }
+    env: { 
+      ...process.env, 
+      PORTAL_URL: process.env.PORTAL_URL || 'http://localhost:3001',
+      ...(appDbUrl ? { DATABASE_URL: appDbUrl } : {}),
+      ...(clientId ? { CLIENT_ID: clientId } : {}),
+      ...(clientSecret ? { CLIENT_SECRET: clientSecret } : {})
+    }
   });
 
   const logFile = path.join(cwd, 'app.log');
@@ -103,6 +135,10 @@ function startAppByPath(appPath: string) {
   const alreadyRunning = activeProcesses.some(p => p.slug === slug);
   if (alreadyRunning) return;
 
+  // Extract client credentials if declared
+  const clientId = manifest.clientId;
+  const clientSecret = manifest.clientSecret;
+
   // Check if manifest has custom run/dev command
   const customCommand = isDev 
     ? (manifest.devCommand || manifest.runCommand) 
@@ -112,30 +148,30 @@ function startAppByPath(appPath: string) {
     const parts = customCommand.split(' ');
     const cmd = parts[0];
     const args = parts.slice(1);
-    startAppServer(slug, cmd, args, appPath);
+    startAppServer(slug, cmd, args, appPath, clientId, clientSecret);
     return;
   }
 
   // Auto-detect files
   if (fs.existsSync(path.join(appPath, 'server.ts'))) {
     if (isDev) {
-      startAppServer(slug, 'bun', ['--watch', 'server.ts'], appPath);
+      startAppServer(slug, 'bun', ['--watch', 'server.ts'], appPath, clientId, clientSecret);
     } else {
-      startAppServer(slug, 'bun', ['server.ts'], appPath);
+      startAppServer(slug, 'bun', ['server.ts'], appPath, clientId, clientSecret);
     }
   } else if (fs.existsSync(path.join(appPath, 'server.js'))) {
-    startAppServer(slug, 'node', ['server.js'], appPath);
+    startAppServer(slug, 'node', ['server.js'], appPath, clientId, clientSecret);
   } else if (fs.existsSync(path.join(appPath, 'server.py'))) {
-    startAppServer(slug, 'python3', ['server.py'], appPath);
+    startAppServer(slug, 'python3', ['server.py'], appPath, clientId, clientSecret);
   } else if (fs.existsSync(path.join(appPath, 'main.py'))) {
-    startAppServer(slug, 'python3', ['main.py'], appPath);
+    startAppServer(slug, 'python3', ['main.py'], appPath, clientId, clientSecret);
   } else if (fs.existsSync(path.join(appPath, 'main.go'))) {
     // In production inside docker, check if precompiled binary exists
     const prodBin = path.join(appPath, `${slug}-bin`);
     if (!isDev && fs.existsSync(prodBin)) {
-      startAppServer(slug, prodBin, [], appPath);
+      startAppServer(slug, prodBin, [], appPath, clientId, clientSecret);
     } else {
-      startAppServer(slug, 'go', ['run', 'main.go'], appPath);
+      startAppServer(slug, 'go', ['run', 'main.go'], appPath, clientId, clientSecret);
     }
   }
 }

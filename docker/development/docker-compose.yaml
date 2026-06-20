@@ -19,7 +19,9 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - sgforge-network
+      - db-core-net
+      - db-expenses-net
+      - db-go-net
 
   app:
     build:
@@ -50,6 +52,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: always
     networks:
+      - db-core-net
+      - portal-net
       - sgforge-network
 
   reference-expenses:
@@ -61,13 +65,16 @@ services:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
+      - DATABASE_URL=postgres://app_reference_expenses:change_me_expenses_password@db:5432/org_db
       - PORT=8085
       - PORTAL_URL=http://app:3001
+      - CLIENT_ID=client_reference_expenses
+      - CLIENT_SECRET=secret_reference_expenses_dev_key
     ports:
       - "8085:8085"
     networks:
-      - sgforge-network
+      - db-expenses-net
+      - portal-net
     restart: always
 
   reference-go:
@@ -79,13 +86,16 @@ services:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
+      - DATABASE_URL=postgres://app_reference_go:change_me_go_password@db:5432/org_db
       - PORT=8086
       - PORTAL_URL=http://app:3001
+      - CLIENT_ID=client_reference_go
+      - CLIENT_SECRET=secret_reference_go_dev_key
     ports:
       - "8086:8086"
     networks:
-      - sgforge-network
+      - db-go-net
+      - portal-net
     restart: always
 
   reference-python:
@@ -97,13 +107,15 @@ services:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
+      - DATABASE_URL=postgres://app_reference_python:change_me_python_password@db:5432/org_db
       - PORT=8087
       - PORTAL_URL=http://app:3001
+      - CLIENT_ID=client_reference_python
+      - CLIENT_SECRET=secret_reference_python_dev_key
     ports:
       - "8087:8087"
     networks:
-      - sgforge-network
+      - portal-net
     restart: always
 
   telemetry-dashboard:
@@ -115,19 +127,26 @@ services:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgres://lifeos:change_me_db_password@db:5432/org_db
       - PORT=8080
       - PORTAL_URL=http://app:3001
     ports:
       - "8080:8080"
     networks:
-      - sgforge-network
+      - portal-net
     restart: always
 
 networks:
   sgforge-network:
     name: sgforge-network
     external: true
+  portal-net:
+    name: sgforge-portal-net
+  db-core-net:
+    name: sgforge-db-core-net
+  db-expenses-net:
+    name: sgforge-db-expenses-net
+  db-go-net:
+    name: sgforge-db-go-net
 
 volumes:
   pgdata:

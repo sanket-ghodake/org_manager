@@ -907,6 +907,48 @@ async function main() {
     }
   }
 
+  // 2026 Security Standards: Database Role Segregation (Principle of Least Privilege)
+  console.log('Provisioning isolated database roles and schema permissions...');
+  
+  // Create roles if they don't exist
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'app_reference_expenses') THEN
+        CREATE ROLE app_reference_expenses WITH LOGIN PASSWORD 'change_me_expenses_password';
+      END IF;
+      IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'app_reference_go') THEN
+        CREATE ROLE app_reference_go WITH LOGIN PASSWORD 'change_me_go_password';
+      END IF;
+      IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'app_reference_python') THEN
+        CREATE ROLE app_reference_python WITH LOGIN PASSWORD 'change_me_python_password';
+      END IF;
+    END
+    $$;
+  `);
+
+  // Grant CREATE privileges on database to allow isolated schemas and schema-creation on boot
+  await db.execute(sql`GRANT CREATE ON DATABASE org_db TO app_reference_expenses;`);
+  await db.execute(sql`GRANT CREATE ON DATABASE org_db TO app_reference_go;`);
+  await db.execute(sql`GRANT CREATE ON DATABASE org_db TO app_reference_python;`);
+
+  // Drop and recreate schema under individual owners
+  await db.execute(sql`DROP SCHEMA IF EXISTS forge_reference_expenses CASCADE;`);
+  await db.execute(sql`DROP SCHEMA IF EXISTS forge_reference_go CASCADE;`);
+  await db.execute(sql`CREATE SCHEMA forge_reference_expenses AUTHORIZATION app_reference_expenses;`);
+  await db.execute(sql`CREATE SCHEMA forge_reference_go AUTHORIZATION app_reference_go;`);
+
+  // Grant read-only access to public core tables for JWT offline validation lookup
+  await db.execute(sql`GRANT USAGE ON SCHEMA public TO app_reference_expenses;`);
+  await db.execute(sql`GRANT SELECT ON public.users TO app_reference_expenses;`);
+  await db.execute(sql`GRANT SELECT ON public.forge_access_tokens TO app_reference_expenses;`);
+  await db.execute(sql`GRANT SELECT ON public.forge_apps TO app_reference_expenses;`);
+
+  await db.execute(sql`GRANT USAGE ON SCHEMA public TO app_reference_go;`);
+  await db.execute(sql`GRANT SELECT ON public.users TO app_reference_go;`);
+  await db.execute(sql`GRANT SELECT ON public.forge_access_tokens TO app_reference_go;`);
+  await db.execute(sql`GRANT SELECT ON public.forge_apps TO app_reference_go;`);
+
   console.log('Local database initialization completed successfully!');
   process.exit(0);
 }

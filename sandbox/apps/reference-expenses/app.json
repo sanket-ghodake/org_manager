@@ -9,6 +9,8 @@
   "sandboxEntryPoint": "http://127.0.0.1:8085/",
   "icon": "credit-card",
   "routingMode": "iframe",
+  "clientId": "client_reference_expenses",
+  "clientSecret": "secret_reference_expenses_dev_key",
   "database": {
     "requiresIsolatedSchema": true,
     "schemaName": "forge_reference_expenses"

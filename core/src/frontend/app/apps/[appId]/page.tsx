@@ -457,7 +457,7 @@ export default function AppContainerPage() {
               ) : (
                 <div className="relative w-full h-[600px] border border-border-accent rounded-xl overflow-hidden bg-black/5">
                   <iframe
-                    src={`/forge-apps/${appConfig.slug}?code=${authCode || ''}`}
+                    src={`/forge-apps/${appConfig.slug}`}
                     className="w-full h-full border-none"
                     sandbox="allow-scripts allow-forms"
                     onLoad={handleIframeLoad}

@@ -15,12 +15,42 @@ export interface ThemeChangePayload {
 
 export type ThemeChangeListener = (payload: ThemeChangePayload) => void;
 
+export interface AuthTokenPayload {
+  code: string | null;
+  token: string;
+  user: {
+    id: string;
+    eid: string;
+    name: string;
+    email: string;
+    role: string;
+  };
+}
+
+export type AuthTokenListener = (payload: AuthTokenPayload) => void;
+
 export class ForgeClient {
   private themeListener: ThemeChangeListener | null = null;
+  private authListener: AuthTokenListener | null = null;
   private parentOrigin: string;
 
   constructor() {
-    this.parentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+    let resolvedOrigin = '';
+    if (typeof window !== 'undefined') {
+      if (document.referrer) {
+        try {
+          resolvedOrigin = new URL(document.referrer).origin;
+        } catch {
+          resolvedOrigin = window.location.origin;
+        }
+      } else {
+        resolvedOrigin = window.location.origin;
+      }
+      if ((resolvedOrigin === 'null' || !resolvedOrigin) && (window as any).location.ancestorOrigins?.length > 0) {
+        resolvedOrigin = (window as any).location.ancestorOrigins[0];
+      }
+    }
+    this.parentOrigin = resolvedOrigin;
     this.initMessageListener();
   }
 
@@ -35,11 +65,21 @@ export class ForgeClient {
   }
 
   /**
+   * Register a callback to listen for authorization token/code handshake.
+   */
+  public onAuthToken(listener: AuthTokenListener): () => void {
+    this.authListener = listener;
+    return () => {
+      this.authListener = null;
+    };
+  }
+
+  /**
    * Request parent window to resize the iframe canvas or notify ready.
    */
   public notifyReady(): void {
     if (typeof window !== 'undefined' && window.parent) {
-      window.parent.postMessage({ type: 'FORGE_APP_READY' }, this.parentOrigin);
+      window.parent.postMessage({ type: 'FORGE_APP_READY' }, this.parentOrigin || '*');
     }
   }
 
@@ -48,7 +88,7 @@ export class ForgeClient {
    */
   public navigateParent(url: string): void {
     if (typeof window !== 'undefined' && window.parent) {
-      window.parent.postMessage({ type: 'FORGE_NAVIGATE', url }, this.parentOrigin);
+      window.parent.postMessage({ type: 'FORGE_NAVIGATE', url }, this.parentOrigin || '*');
     }
   }
 
@@ -56,8 +96,8 @@ export class ForgeClient {
     if (typeof window === 'undefined') return;
 
     window.addEventListener('message', (event) => {
-      // Security: validate parent origin
-      if (event.origin !== this.parentOrigin) {
+      // Security: validate parent origin if parentOrigin is resolved and not opaque
+      if (this.parentOrigin && this.parentOrigin !== 'null' && event.origin !== this.parentOrigin) {
         return;
       }
 
@@ -69,6 +109,16 @@ export class ForgeClient {
         document.documentElement.setAttribute('data-theme', data.theme);
         if (this.themeListener) {
           this.themeListener({ theme: data.theme });
+        }
+      }
+
+      if (data.type === 'FORGE_AUTH_TOKEN') {
+        if (this.authListener) {
+          this.authListener({
+            code: data.code || null,
+            token: data.token,
+            user: data.user
+          });
         }
       }
     });

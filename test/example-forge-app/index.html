@@ -200,9 +200,26 @@
     const slug = pathParts[0] === 'forge-apps' ? pathParts[1] : '';
     const apiPrefix = slug ? `${baseUrl}/forge-apps/${slug}/api` : `${baseUrl}/api`;
 
+    // Resolve parent origin securely for origin validation
+    let parentOrigin = '';
+    if (document.referrer) {
+      try {
+        parentOrigin = new URL(document.referrer).origin;
+      } catch (e) {}
+    }
+    if ((parentOrigin === 'null' || !parentOrigin) && window.location.ancestorOrigins && window.location.ancestorOrigins.length > 0) {
+      parentOrigin = window.location.ancestorOrigins[0];
+    }
+
     // Listen for global theme changes and auth payload from parent page postMessage
     window.addEventListener('message', async (e) => {
       if (!e.data) return;
+
+      // Security: Validate sender origin if we resolved it successfully
+      if (parentOrigin && parentOrigin !== 'null' && e.origin !== parentOrigin) {
+        console.warn('Blocked message event from unauthorized origin:', e.origin);
+        return;
+      }
 
       // Handle theme change event
       if (e.data.type === 'THEME_CHANGE') {
@@ -299,6 +316,18 @@
     }
 
     async function initSession() {
+      // 2026 Standards: If running inside an iframe, DO NOT automatically redirect to SSO.
+      // Wait for parent portal window to post the auth credentials securely.
+      if (window.self !== window.top) {
+        console.log('App running inside iframe, waiting for postMessage auth handshake from parent...');
+        setTimeout(() => {
+          if (!apiToken && !isExchanging) {
+            showAuthError('Handshake timeout: Did not receive secure credentials from parent portal.');
+          }
+        }, 5000);
+        return;
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       const codeFromUrl = urlParams.get('code');
       

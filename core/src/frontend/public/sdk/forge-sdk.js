@@ -1,31 +1,72 @@
 (() => {
+  var __create = Object.create;
+  var __getProtoOf = Object.getPrototypeOf;
   var __defProp = Object.defineProperty;
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __moduleCache = /* @__PURE__ */ new WeakMap;
+  function __accessProp(key) {
+    return this[key];
+  }
+  var __toESMCache_node;
+  var __toESMCache_esm;
+  var __toESM = (mod, isNodeMode, target) => {
+    var canCache = mod != null && typeof mod === "object";
+    if (canCache) {
+      var cache = isNodeMode ? __toESMCache_node ??= new WeakMap : __toESMCache_esm ??= new WeakMap;
+      var cached = cache.get(mod);
+      if (cached)
+        return cached;
+    }
+    target = mod != null ? __create(__getProtoOf(mod)) : {};
+    const to = isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target;
+    for (let key of __getOwnPropNames(mod))
+      if (!__hasOwnProp.call(to, key))
+        __defProp(to, key, {
+          get: __accessProp.bind(mod, key),
+          enumerable: true
+        });
+    if (canCache)
+      cache.set(mod, to);
+    return to;
+  };
   var __toCommonJS = (from) => {
-    var entry = __moduleCache.get(from), desc;
+    var entry = (__moduleCache ??= new WeakMap).get(from), desc;
     if (entry)
       return entry;
     entry = __defProp({}, "__esModule", { value: true });
-    if (from && typeof from === "object" || typeof from === "function")
-      __getOwnPropNames(from).map((key) => !__hasOwnProp.call(entry, key) && __defProp(entry, key, {
-        get: () => from[key],
-        enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
-      }));
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (var key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(entry, key))
+          __defProp(entry, key, {
+            get: __accessProp.bind(from, key),
+            enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
+          });
+    }
     __moduleCache.set(from, entry);
     return entry;
   };
+  var __moduleCache;
+  var __returnValue = (v) => v;
+  function __exportSetter(name, newValue) {
+    this[name] = __returnValue.bind(null, newValue);
+  }
   var __export = (target, all) => {
     for (var name in all)
       __defProp(target, name, {
         get: all[name],
         enumerable: true,
         configurable: true,
-        set: (newValue) => all[name] = () => newValue
+        set: __exportSetter.bind(all, name)
       });
   };
+  var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+    get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+  }) : x)(function(x) {
+    if (typeof require !== "undefined")
+      return require.apply(this, arguments);
+    throw Error('Dynamic require of "' + x + '" is not supported');
+  });
 
   // packages/sdk/forge-sdk.ts
   var exports_forge_sdk = {};
@@ -33,7 +74,6 @@
     ForgeClient: () => ForgeClient,
     ForgeBackendClient: () => ForgeBackendClient
   });
-
   // node_modules/jose/dist/browser/runtime/webcrypto.js
   var webcrypto_default = crypto;
   var isCryptoKey = (key) => key instanceof CryptoKey;
@@ -204,6 +244,45 @@
   }
   JWSSignatureVerificationFailed.code = "ERR_JWS_SIGNATURE_VERIFICATION_FAILED";
 
+  // node_modules/jose/dist/browser/runtime/subtle_dsa.js
+  function subtleDsa(alg, algorithm) {
+    const hash = `SHA-${alg.slice(-3)}`;
+    switch (alg) {
+      case "HS256":
+      case "HS384":
+      case "HS512":
+        return { hash, name: "HMAC" };
+      case "PS256":
+      case "PS384":
+      case "PS512":
+        return { hash, name: "RSA-PSS", saltLength: alg.slice(-3) >> 3 };
+      case "RS256":
+      case "RS384":
+      case "RS512":
+        return { hash, name: "RSASSA-PKCS1-v1_5" };
+      case "ES256":
+      case "ES384":
+      case "ES512":
+        return { hash, name: "ECDSA", namedCurve: algorithm.namedCurve };
+      case "Ed25519":
+        return { name: "Ed25519" };
+      case "EdDSA":
+        return { name: algorithm.name };
+      default:
+        throw new JOSENotSupported(`alg ${alg} is not supported either by JOSE or your javascript runtime`);
+    }
+  }
+
+  // node_modules/jose/dist/browser/runtime/check_key_length.js
+  var check_key_length_default = (alg, key) => {
+    if (alg.startsWith("RS") || alg.startsWith("PS")) {
+      const { modulusLength } = key.algorithm;
+      if (typeof modulusLength !== "number" || modulusLength < 2048) {
+        throw new TypeError(`${alg} requires key modulusLength to be 2048 bits or larger`);
+      }
+    }
+  };
+
   // node_modules/jose/dist/browser/lib/crypto_key.js
   function unusable(name, prop = "algorithm.name") {
     return new TypeError(`CryptoKey does not support this operation, its ${prop} must be ${name}`);
@@ -341,30 +420,6 @@
   };
   var types = ["CryptoKey"];
 
-  // node_modules/jose/dist/browser/lib/is_disjoint.js
-  var isDisjoint = (...headers) => {
-    const sources = headers.filter(Boolean);
-    if (sources.length === 0 || sources.length === 1) {
-      return true;
-    }
-    let acc;
-    for (const header of sources) {
-      const parameters = Object.keys(header);
-      if (!acc || acc.size === 0) {
-        acc = new Set(parameters);
-        continue;
-      }
-      for (const parameter of parameters) {
-        if (acc.has(parameter)) {
-          return false;
-        }
-        acc.add(parameter);
-      }
-    }
-    return true;
-  };
-  var is_disjoint_default = isDisjoint;
-
   // node_modules/jose/dist/browser/lib/is_object.js
   function isObjectLike(value) {
     return typeof value === "object" && value !== null;
@@ -382,16 +437,6 @@
     }
     return Object.getPrototypeOf(input) === proto;
   }
-
-  // node_modules/jose/dist/browser/runtime/check_key_length.js
-  var check_key_length_default = (alg, key) => {
-    if (alg.startsWith("RS") || alg.startsWith("PS")) {
-      const { modulusLength } = key.algorithm;
-      if (typeof modulusLength !== "number" || modulusLength < 2048) {
-        throw new TypeError(`${alg} requires key modulusLength to be 2048 bits or larger`);
-      }
-    }
-  };
 
   // node_modules/jose/dist/browser/lib/is_jwk.js
   function isJWK(key) {
@@ -577,29 +622,63 @@
   };
   var normalize_key_default = { normalizePublicKey, normalizePrivateKey };
 
-  // node_modules/jose/dist/browser/key/import.js
-  async function importJWK(jwk, alg) {
-    if (!isObject(jwk)) {
-      throw new TypeError("JWK must be an object");
+  // node_modules/jose/dist/browser/runtime/get_sign_verify_key.js
+  async function getCryptoKey(alg, key, usage) {
+    if (usage === "sign") {
+      key = await normalize_key_default.normalizePrivateKey(key, alg);
     }
-    alg || (alg = jwk.alg);
-    switch (jwk.kty) {
-      case "oct":
-        if (typeof jwk.k !== "string" || !jwk.k) {
-          throw new TypeError('missing "k" (Key Value) Parameter value');
-        }
-        return decode(jwk.k);
-      case "RSA":
-        if ("oth" in jwk && jwk.oth !== undefined) {
-          throw new JOSENotSupported('RSA JWK "oth" (Other Primes Info) Parameter value is not supported');
-        }
-      case "EC":
-      case "OKP":
-        return jwk_to_key_default({ ...jwk, alg });
-      default:
-        throw new JOSENotSupported('Unsupported "kty" (Key Type) Parameter value');
+    if (usage === "verify") {
+      key = await normalize_key_default.normalizePublicKey(key, alg);
     }
+    if (isCryptoKey(key)) {
+      checkSigCryptoKey(key, alg, usage);
+      return key;
+    }
+    if (key instanceof Uint8Array) {
+      if (!alg.startsWith("HS")) {
+        throw new TypeError(invalid_key_input_default(key, ...types));
+      }
+      return webcrypto_default.subtle.importKey("raw", key, { hash: `SHA-${alg.slice(-3)}`, name: "HMAC" }, false, [usage]);
+    }
+    throw new TypeError(invalid_key_input_default(key, ...types, "Uint8Array", "JSON Web Key"));
   }
+
+  // node_modules/jose/dist/browser/runtime/verify.js
+  var verify = async (alg, key, signature, data) => {
+    const cryptoKey = await getCryptoKey(alg, key, "verify");
+    check_key_length_default(alg, cryptoKey);
+    const algorithm = subtleDsa(alg, cryptoKey.algorithm);
+    try {
+      return await webcrypto_default.subtle.verify(algorithm, cryptoKey, signature, data);
+    } catch {
+      return false;
+    }
+  };
+  var verify_default = verify;
+
+  // node_modules/jose/dist/browser/lib/is_disjoint.js
+  var isDisjoint = (...headers) => {
+    const sources = headers.filter(Boolean);
+    if (sources.length === 0 || sources.length === 1) {
+      return true;
+    }
+    let acc;
+    for (const header of sources) {
+      const parameters = Object.keys(header);
+      if (!acc || acc.size === 0) {
+        acc = new Set(parameters);
+        continue;
+      }
+      for (const parameter of parameters) {
+        if (acc.has(parameter)) {
+          return false;
+        }
+        acc.add(parameter);
+      }
+    }
+    return true;
+  };
+  var is_disjoint_default = isDisjoint;
 
   // node_modules/jose/dist/browser/lib/check_key_type.js
   var tag = (key) => key?.[Symbol.toStringTag];
@@ -717,68 +796,29 @@
   };
   var validate_algorithms_default = validateAlgorithms;
 
-  // node_modules/jose/dist/browser/runtime/subtle_dsa.js
-  function subtleDsa(alg, algorithm) {
-    const hash = `SHA-${alg.slice(-3)}`;
-    switch (alg) {
-      case "HS256":
-      case "HS384":
-      case "HS512":
-        return { hash, name: "HMAC" };
-      case "PS256":
-      case "PS384":
-      case "PS512":
-        return { hash, name: "RSA-PSS", saltLength: alg.slice(-3) >> 3 };
-      case "RS256":
-      case "RS384":
-      case "RS512":
-        return { hash, name: "RSASSA-PKCS1-v1_5" };
-      case "ES256":
-      case "ES384":
-      case "ES512":
-        return { hash, name: "ECDSA", namedCurve: algorithm.namedCurve };
-      case "Ed25519":
-        return { name: "Ed25519" };
-      case "EdDSA":
-        return { name: algorithm.name };
+  // node_modules/jose/dist/browser/key/import.js
+  async function importJWK(jwk, alg) {
+    if (!isObject(jwk)) {
+      throw new TypeError("JWK must be an object");
+    }
+    alg || (alg = jwk.alg);
+    switch (jwk.kty) {
+      case "oct":
+        if (typeof jwk.k !== "string" || !jwk.k) {
+          throw new TypeError('missing "k" (Key Value) Parameter value');
+        }
+        return decode(jwk.k);
+      case "RSA":
+        if ("oth" in jwk && jwk.oth !== undefined) {
+          throw new JOSENotSupported('RSA JWK "oth" (Other Primes Info) Parameter value is not supported');
+        }
+      case "EC":
+      case "OKP":
+        return jwk_to_key_default({ ...jwk, alg });
       default:
-        throw new JOSENotSupported(`alg ${alg} is not supported either by JOSE or your javascript runtime`);
+        throw new JOSENotSupported('Unsupported "kty" (Key Type) Parameter value');
     }
   }
-
-  // node_modules/jose/dist/browser/runtime/get_sign_verify_key.js
-  async function getCryptoKey(alg, key, usage) {
-    if (usage === "sign") {
-      key = await normalize_key_default.normalizePrivateKey(key, alg);
-    }
-    if (usage === "verify") {
-      key = await normalize_key_default.normalizePublicKey(key, alg);
-    }
-    if (isCryptoKey(key)) {
-      checkSigCryptoKey(key, alg, usage);
-      return key;
-    }
-    if (key instanceof Uint8Array) {
-      if (!alg.startsWith("HS")) {
-        throw new TypeError(invalid_key_input_default(key, ...types));
-      }
-      return webcrypto_default.subtle.importKey("raw", key, { hash: `SHA-${alg.slice(-3)}`, name: "HMAC" }, false, [usage]);
-    }
-    throw new TypeError(invalid_key_input_default(key, ...types, "Uint8Array", "JSON Web Key"));
-  }
-
-  // node_modules/jose/dist/browser/runtime/verify.js
-  var verify = async (alg, key, signature, data) => {
-    const cryptoKey = await getCryptoKey(alg, key, "verify");
-    check_key_length_default(alg, cryptoKey);
-    const algorithm = subtleDsa(alg, cryptoKey.algorithm);
-    try {
-      return await webcrypto_default.subtle.verify(algorithm, cryptoKey, signature, data);
-    } catch {
-      return false;
-    }
-  };
-  var verify_default = verify;
 
   // node_modules/jose/dist/browser/jws/flattened/verify.js
   async function flattenedVerify(jws, key, options) {
@@ -1074,6 +1114,40 @@
     }
     return result;
   }
+  // node_modules/jose/dist/browser/runtime/fetch_jwks.js
+  var fetchJwks = async (url, timeout, options) => {
+    let controller;
+    let id;
+    let timedOut = false;
+    if (typeof AbortController === "function") {
+      controller = new AbortController;
+      id = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, timeout);
+    }
+    const response = await fetch(url.href, {
+      signal: controller ? controller.signal : undefined,
+      redirect: "manual",
+      headers: options.headers
+    }).catch((err) => {
+      if (timedOut)
+        throw new JWKSTimeout;
+      throw err;
+    });
+    if (id !== undefined)
+      clearTimeout(id);
+    if (response.status !== 200) {
+      throw new JOSEError("Expected 200 OK from the JSON Web Key Set HTTP response");
+    }
+    try {
+      return await response.json();
+    } catch {
+      throw new JOSEError("Failed to parse the JSON Web Key Set HTTP response as JSON");
+    }
+  };
+  var fetch_jwks_default = fetchJwks;
+
   // node_modules/jose/dist/browser/jwks/local.js
   function getKtyFromAlg(alg) {
     switch (typeof alg === "string" && alg.slice(0, 2)) {
@@ -1193,40 +1267,6 @@
     });
     return localJWKSet;
   }
-
-  // node_modules/jose/dist/browser/runtime/fetch_jwks.js
-  var fetchJwks = async (url, timeout, options) => {
-    let controller;
-    let id;
-    let timedOut = false;
-    if (typeof AbortController === "function") {
-      controller = new AbortController;
-      id = setTimeout(() => {
-        timedOut = true;
-        controller.abort();
-      }, timeout);
-    }
-    const response = await fetch(url.href, {
-      signal: controller ? controller.signal : undefined,
-      redirect: "manual",
-      headers: options.headers
-    }).catch((err) => {
-      if (timedOut)
-        throw new JWKSTimeout;
-      throw err;
-    });
-    if (id !== undefined)
-      clearTimeout(id);
-    if (response.status !== 200) {
-      throw new JOSEError("Expected 200 OK from the JSON Web Key Set HTTP response");
-    }
-    try {
-      return await response.json();
-    } catch {
-      throw new JOSEError("Failed to parse the JSON Web Key Set HTTP response as JSON");
-    }
-  };
-  var fetch_jwks_default = fetchJwks;
 
   // node_modules/jose/dist/browser/jwks/remote.js
   function isCloudflareWorkers() {
@@ -1353,9 +1393,25 @@
   // packages/sdk/forge-sdk.ts
   class ForgeClient {
     themeListener = null;
+    authListener = null;
     parentOrigin;
     constructor() {
-      this.parentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      let resolvedOrigin = "";
+      if (typeof window !== "undefined") {
+        if (document.referrer) {
+          try {
+            resolvedOrigin = new URL(document.referrer).origin;
+          } catch {
+            resolvedOrigin = window.location.origin;
+          }
+        } else {
+          resolvedOrigin = window.location.origin;
+        }
+        if ((resolvedOrigin === "null" || !resolvedOrigin) && window.location.ancestorOrigins?.length > 0) {
+          resolvedOrigin = window.location.ancestorOrigins[0];
+        }
+      }
+      this.parentOrigin = resolvedOrigin;
       this.initMessageListener();
     }
     onThemeChange(listener) {
@@ -1364,21 +1420,27 @@
         this.themeListener = null;
       };
     }
+    onAuthToken(listener) {
+      this.authListener = listener;
+      return () => {
+        this.authListener = null;
+      };
+    }
     notifyReady() {
       if (typeof window !== "undefined" && window.parent) {
-        window.parent.postMessage({ type: "FORGE_APP_READY" }, this.parentOrigin);
+        window.parent.postMessage({ type: "FORGE_APP_READY" }, this.parentOrigin || "*");
       }
     }
     navigateParent(url) {
       if (typeof window !== "undefined" && window.parent) {
-        window.parent.postMessage({ type: "FORGE_NAVIGATE", url }, this.parentOrigin);
+        window.parent.postMessage({ type: "FORGE_NAVIGATE", url }, this.parentOrigin || "*");
       }
     }
     initMessageListener() {
       if (typeof window === "undefined")
         return;
       window.addEventListener("message", (event) => {
-        if (event.origin !== this.parentOrigin) {
+        if (this.parentOrigin && this.parentOrigin !== "null" && event.origin !== this.parentOrigin) {
           return;
         }
         const { data } = event;
@@ -1388,6 +1450,15 @@
           document.documentElement.setAttribute("data-theme", data.theme);
           if (this.themeListener) {
             this.themeListener({ theme: data.theme });
+          }
+        }
+        if (data.type === "FORGE_AUTH_TOKEN") {
+          if (this.authListener) {
+            this.authListener({
+              code: data.code || null,
+              token: data.token,
+              user: data.user
+            });
           }
         }
       });

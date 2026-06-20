@@ -101,18 +101,24 @@ const server = Bun.serve({
     if (req.method === 'GET' && url.pathname === '/') {
       const code = url.searchParams.get('code');
       let sessionData = null;
-      let clientId = 'reference-expenses';
+      
+      // 2026 Security Standards: Read credentials directly from environment variables if present
+      let clientId = Bun.env.CLIENT_ID;
+      let clientSecret = Bun.env.CLIENT_SECRET;
 
       try {
-        // Query client_id and client_secret from database
-        const appRes = await pool.query("SELECT client_id, client_secret FROM forge_apps WHERE slug = 'reference-expenses'");
-        if (appRes.rows.length > 0) {
-          const { client_id, client_secret } = appRes.rows[0];
-          clientId = client_id;
-          
-          if (code) {
-            // Exchange code for access token via main portal
-            const exchangeRes = await fetch(`${PORTAL_URL}/api/v1/auth/exchange`, {
+        if (!clientId || !clientSecret) {
+          // Query client_id and client_secret from database
+          const appRes = await pool.query("SELECT client_id, client_secret FROM forge_apps WHERE slug = 'reference-expenses'");
+          if (appRes.rows.length > 0) {
+            clientId = appRes.rows[0].client_id;
+            clientSecret = appRes.rows[0].client_secret;
+          }
+        }
+
+        if (code) {
+          // Exchange code for access token via main portal
+          const exchangeRes = await fetch(`${PORTAL_URL}/api/v1/auth/exchange`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

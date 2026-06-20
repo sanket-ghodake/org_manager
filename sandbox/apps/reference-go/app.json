@@ -9,6 +9,8 @@
   "sandboxEntryPoint": "http://127.0.0.1:8086/",
   "icon": "terminal",
   "routingMode": "iframe",
+  "clientId": "client_reference_go",
+  "clientSecret": "secret_reference_go_dev_key",
   "database": {
     "requiresIsolatedSchema": true,
     "schemaName": "forge_reference_go"
