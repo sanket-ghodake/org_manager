@@ -133,6 +133,7 @@ export async function getMatchedAppsForUser(userId: string, user: any): Promise<
       roles: diskApp.roles || [],
       entryPoint: diskApp.entryPoint || diskApp.entryUrl || appRow.entryUrl || '',
       directoryName: diskApp.directoryName || slug,
+      entryUrl: appRow.entryUrl || diskApp.entryUrl || diskApp.entryPoint || '',
       ...({
         routingMode: diskApp.routingMode || 'iframe',
         targetRules: rules

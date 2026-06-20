@@ -1753,7 +1753,7 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                             </div>
                           </div>
 
-                          <div className="pt-6">
+                          <div className="pt-6 flex flex-col gap-2">
                             <Link 
                               href={`/apps/${app.id}`}
                               target={app.routingMode === 'standalone' ? '_blank' : undefined}
@@ -1761,6 +1761,16 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
                             >
                               Launch Application 🡥
                             </Link>
+                            {app.entryUrl && (app.routingMode === 'iframe' || app.entryUrl.startsWith('http')) && (
+                              <a
+                                href={app.entryUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-full py-2 bg-surface-elevated hover:bg-surface-card border border-border-accent text-text-primary text-xs font-black rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                Direct Webpage 🔗
+                              </a>
+                            )}
                           </div>
                         </div>
                       ))}

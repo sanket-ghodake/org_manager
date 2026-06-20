@@ -177,29 +177,28 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 
 	code := r.URL.Query().Get("code")
 	var session *SessionData
+	clientID := "reference-go" // Default fallback
 
-	if code != "" {
-		// Fetch credentials
-		var clientID, clientSecret string
-		err := db.QueryRow("SELECT client_id, client_secret FROM forge_apps WHERE slug = 'reference-go'").Scan(&clientID, &clientSecret)
-		if err != nil {
-			log.Printf("Error getting credentials: %v", err)
-		} else {
-			exchangeURL := fmt.Sprintf("%s/api/v1/auth/exchange", config.PortalURL)
-			exchangeBody, _ := json.Marshal(map[string]string{
-				"code":          code,
-				"client_id":     clientID,
-				"client_secret": clientSecret,
-			})
+	// Fetch credentials
+	var clientSecret string
+	err := db.QueryRow("SELECT client_id, client_secret FROM forge_apps WHERE slug = 'reference-go'").Scan(&clientID, &clientSecret)
+	if err != nil {
+		log.Printf("Error getting credentials: %v", err)
+	} else if code != "" {
+		exchangeURL := fmt.Sprintf("%s/api/v1/auth/exchange", config.PortalURL)
+		exchangeBody, _ := json.Marshal(map[string]string{
+			"code":          code,
+			"client_id":     clientID,
+			"client_secret": clientSecret,
+		})
 
-			resp, err := http.Post(exchangeURL, "application/json", bytes.NewBuffer(exchangeBody))
-			if err == nil {
-				defer resp.Body.Close()
-				if resp.StatusCode == http.StatusOK {
-					var res SessionData
-					if err := json.NewDecoder(resp.Body).Decode(&res); err == nil {
-						session = &res
-					}
+		resp, err := http.Post(exchangeURL, "application/json", bytes.NewBuffer(exchangeBody))
+		if err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				var res SessionData
+				if err := json.NewDecoder(resp.Body).Decode(&res); err == nil {
+					session = &res
 				}
 			}
 		}
@@ -216,7 +215,15 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 		sessionJSON = "null"
 	}
 
-	_ = tmpl.Execute(w, sessionJSON)
+	type TemplateData struct {
+		SessionJSON string
+		ClientID    string
+	}
+
+	_ = tmpl.Execute(w, TemplateData{
+		SessionJSON: sessionJSON,
+		ClientID:    clientID,
+	})
 }
 
 func handleTasks(w http.ResponseWriter, r *http.Request) {
@@ -464,7 +471,8 @@ const htmlTemplate = `<!DOCTYPE html>
   <div class="container">
     <div id="no-session" style="display: none; text-align: center; margin-top: 100px;">
       <h2 style="font-weight: 500; margin-bottom: 16px;">Connecting to SG Forge Session (Go app)...</h2>
-      <div style="color: var(--text-muted);">Please launch this application through the SG Forge Application Portal.</div>
+      <div style="color: var(--text-muted); margin-bottom: 24px;">Please launch this application through the SG Forge Application Portal, or sign in below.</div>
+      <button onclick="authorizeDirect()" class="btn" style="max-width: 280px; margin: 0 auto; display: block; background: linear-gradient(135deg, var(--primary), #3b82f6); box-shadow: 0 0 15px var(--glow);">Authorize via Org Manager</button>
     </div>
 
     <div id="session-active" style="display: none;">
@@ -513,7 +521,14 @@ const htmlTemplate = `<!DOCTYPE html>
   </div>
 
   <script>
-    const session = {{.}};
+    const session = {{.SessionJSON}};
+    const clientId = "{{.ClientID}}";
+
+    function authorizeDirect() {
+      const redirectUri = window.location.origin + '/';
+      const portalUrl = window.location.protocol + '//' + window.location.hostname + ':3001';
+      window.location.href = portalUrl + '/api/v1/auth/authorize?client_id=' + clientId + '&redirect_uri=' + encodeURIComponent(redirectUri) + '&state=direct_login&response_type=code';
+    }
 
     if (!session || !session.accessToken) {
       document.getElementById('no-session').style.display = 'block';

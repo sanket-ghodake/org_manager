@@ -110,10 +110,20 @@ const server = serve({
       <p><strong>Name:</strong> ${userName}</p>
       <p><strong>Role:</strong> ${userRole}</p>
       <p><strong>Email:</strong> ${userEmail}</p>
+      ${userName === 'Guest' ? `
+      <div style="margin-top: 20px; border-top: 1px solid rgba(102, 252, 241, 0.15); padding-top: 15px;">
+        <button onclick="authorizeDirect()" style="background: linear-gradient(90deg, #66fcf1, #45f3ff); color: #0b0c10; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer;">Authorize via Org Manager</button>
+      </div>` : ''}
     </div>
   </div>
 
   <script>
+    function authorizeDirect() {
+      const redirectUri = window.location.origin + '/';
+      const portalUrl = window.location.protocol + '//' + window.location.hostname + ':3001';
+      window.location.href = portalUrl + '/api/v1/auth/authorize?client_id=app_telemetry_dashboard_dev&redirect_uri=' + encodeURIComponent(redirectUri) + '&state=direct_login&response_type=code';
+    }
+
     // Theme alignment and Ready check
     document.addEventListener("DOMContentLoaded", function() {
       // Fallback postMessage handshakes

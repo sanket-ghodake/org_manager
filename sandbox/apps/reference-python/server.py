@@ -129,10 +129,9 @@ class ReferenceAppHandler(http.server.BaseHTTPRequestHandler):
             query_params = parse_qs(parsed_url.query)
             code = query_params.get("code", [None])[0]
             session_data = None
+            client_id, client_secret = query_app_credentials()
 
             if code:
-                client_id, client_secret = query_app_credentials()
-                
                 # Perform code exchange with host portal
                 url = f"{PORTAL_URL}/api/v1/auth/exchange"
                 body = json.dumps({
@@ -164,7 +163,7 @@ class ReferenceAppHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             
             session_str = json.dumps(session_data) if session_data else "null"
-            rendered_html = HTML_TEMPLATE.replace("{{SESSION_DATA}}", session_str)
+            rendered_html = HTML_TEMPLATE.replace("{{SESSION_DATA}}", session_str).replace("{{CLIENT_ID}}", client_id)
             self.wfile.write(rendered_html.encode("utf-8"))
             return
 
@@ -345,7 +344,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="container">
     <div id="no-session" style="display: none; text-align: center; margin-top: 100px;">
       <h2 style="font-weight: 500; margin-bottom: 16px;">Connecting to SG Forge Session (Python)...</h2>
-      <div style="color: var(--text-muted);">Please launch this application through the SG Forge Application Portal.</div>
+      <div style="color: var(--text-muted); margin-bottom: 24px;">Please launch this application through the SG Forge Application Portal or sign in below.</div>
+      <button onclick="authorizeDirect()" class="btn" style="max-width: 280px; margin: 0 auto; display: block; background: linear-gradient(135deg, var(--primary), #8b5cf6); box-shadow: 0 0 15px var(--glow);">Authorize via Org Manager</button>
     </div>
 
     <div id="session-active" style="display: none;">
@@ -395,6 +395,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   <script>
     const session = {{SESSION_DATA}};
+    const clientId = "{{CLIENT_ID}}";
+
+    function authorizeDirect() {
+      const redirectUri = window.location.origin + '/';
+      const portalUrl = window.location.protocol + '//' + window.location.hostname + ':3001';
+      window.location.href = portalUrl + '/api/v1/auth/authorize?client_id=' + clientId + '&redirect_uri=' + encodeURIComponent(redirectUri) + '&state=direct_login&response_type=code';
+    }
 
     if (!session || !session.accessToken) {
       document.getElementById('no-session').style.display = 'block';

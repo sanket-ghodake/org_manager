@@ -101,14 +101,16 @@ const server = Bun.serve({
     if (req.method === 'GET' && url.pathname === '/') {
       const code = url.searchParams.get('code');
       let sessionData = null;
+      let clientId = 'reference-expenses';
 
-      if (code) {
-        try {
-          // Query client_id and client_secret from database
-          const appRes = await pool.query("SELECT client_id, client_secret FROM forge_apps WHERE slug = 'reference-expenses'");
-          if (appRes.rows.length > 0) {
-            const { client_id, client_secret } = appRes.rows[0];
-            
+      try {
+        // Query client_id and client_secret from database
+        const appRes = await pool.query("SELECT client_id, client_secret FROM forge_apps WHERE slug = 'reference-expenses'");
+        if (appRes.rows.length > 0) {
+          const { client_id, client_secret } = appRes.rows[0];
+          clientId = client_id;
+          
+          if (code) {
             // Exchange code for access token via main portal
             const exchangeRes = await fetch(`${PORTAL_URL}/api/v1/auth/exchange`, {
               method: 'POST',
@@ -129,13 +131,13 @@ const server = Bun.serve({
               };
             }
           }
-        } catch (err) {
-          console.error('[reference-expenses] OAuth exchange failed:', err);
         }
+      } catch (err) {
+        console.error('[reference-expenses] Database or OAuth exchange failed:', err);
       }
 
       // Serve HTML UI
-      return new Response(getHtmlTemplate(sessionData), {
+      return new Response(getHtmlTemplate(sessionData, clientId), {
         headers: { 'Content-Type': 'text/html' },
       });
     }
@@ -262,7 +264,7 @@ const server = Bun.serve({
 
 console.log(`[reference-expenses] Server listening on port ${PORT}`);
 
-function getHtmlTemplate(session: any): string {
+function getHtmlTemplate(session: any, clientId: string): string {
   const sessionStr = JSON.stringify(session);
   return `<!DOCTYPE html>
 <html lang="en">
@@ -576,7 +578,8 @@ function getHtmlTemplate(session: any): string {
   <div class="container" id="app">
     <div id="no-session" style="display: none; text-align: center; margin-top: 100px;">
       <h2 style="font-weight: 500; margin-bottom: 16px;">Connecting to SG Forge Session...</h2>
-      <div style="color: var(--text-muted);">Please launch this application through the SG Forge Application Portal.</div>
+      <div style="color: var(--text-muted); margin-bottom: 24px;">Please launch this application through the SG Forge Application Portal, or sign in below.</div>
+      <button onclick="authorizeDirect()" class="btn" style="max-width: 280px; margin: 0 auto; display: block; background: linear-gradient(135deg, var(--primary), #ec4899); box-shadow: 0 0 15px var(--glow);">Authorize via Org Manager</button>
     </div>
 
     <div id="session-active" style="display: none;">
@@ -666,6 +669,13 @@ function getHtmlTemplate(session: any): string {
 
   <script>
     const session = ${sessionStr};
+    const clientId = "${clientId}";
+
+    function authorizeDirect() {
+      const redirectUri = window.location.origin + '/';
+      const portalUrl = window.location.protocol + '//' + window.location.hostname + ':3001';
+      window.location.href = portalUrl + '/api/v1/auth/authorize?client_id=' + clientId + '&redirect_uri=' + encodeURIComponent(redirectUri) + '&state=direct_login&response_type=code';
+    }
 
     function showToast(msg) {
       const toast = document.getElementById('error-toast');

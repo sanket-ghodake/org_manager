@@ -53,7 +53,16 @@ export async function GET(request: NextRequest) {
       try {
         const conf = new URL(configured);
         const req = new URL(requested);
-        const pathsMatch = req.pathname === '/callback' || req.pathname === conf.pathname;
+        const pathsMatch = req.pathname === '/callback' || req.pathname === conf.pathname || req.pathname === '/';
+        if (!pathsMatch) return false;
+
+        const reqHostClean = req.hostname;
+        // Allow localhost, 127.0.0.1, or app's slug as a hostname for local developer ease
+        const isLocalHost = reqHostClean === 'localhost' || reqHostClean === '127.0.0.1' || reqHostClean === app.slug;
+        if (isLocalHost) {
+          return true;
+        }
+
         const allowedHosts = [
           conf.host,
           'localhost:8090',
@@ -66,7 +75,7 @@ export async function GET(request: NextRequest) {
           'localhost:8081',
           'reference-go:8081'
         ];
-        return allowedHosts.includes(req.host) && pathsMatch;
+        return allowedHosts.includes(req.host);
       } catch {
         return configured === requested;
       }
