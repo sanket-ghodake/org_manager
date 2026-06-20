@@ -21,6 +21,12 @@ export default function LoginPage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (branding.name) {
+      document.title = `${branding.name} — Corporate Portal`;
+    }
+  }, [branding.name]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);

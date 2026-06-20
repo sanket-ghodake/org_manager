@@ -1,4 +1,4 @@
-import { expect, test, describe, spyOn, afterEach } from "bun:test";
+import { expect, test, describe, spyOn, afterEach, afterAll } from "bun:test";
 import { hasAppAccess } from "@backend/auth/permissionEngine";
 import { db } from "@database/connection";
 
@@ -7,6 +7,10 @@ const mockDbExecute = spyOn(db, "execute");
 
 afterEach(() => {
   mockDbExecute.mockClear();
+});
+
+afterAll(() => {
+  mockDbExecute.mockRestore();
 });
 
 const VALID_USER_ID = "10000000-0000-0000-0000-000000000099";

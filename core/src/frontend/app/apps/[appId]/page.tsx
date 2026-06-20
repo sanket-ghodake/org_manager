@@ -21,6 +21,15 @@ export default function AppContainerPage() {
   const [iframeLoading, setIframeLoading] = useState(false);
   const [authCode, setAuthCode] = useState<string | null>(null);
 
+  const [branding, setBranding] = useState({ name: 'SG Forge', logo: '' });
+
+  useEffect(() => {
+    fetch('/api/branding')
+      .then(res => res.json())
+      .then(data => setBranding(data))
+      .catch(() => {});
+  }, []);
+
   // Load initial theme on mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'default';
@@ -276,9 +285,16 @@ export default function AppContainerPage() {
       <header className="border-b border-border-accent bg-surface-card/60 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/" className="p-2 rounded-lg bg-gradient-to-tr from-[#ff007f] to-brand-accent text-white font-extrabold text-sm tracking-wider hover:opacity-90">
-              AC
-            </Link>
+            {branding.logo ? (
+              <div 
+                className="h-8 w-8 rounded-lg bg-surface-card p-1 border border-border-accent overflow-hidden flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:text-brand-accent"
+                dangerouslySetInnerHTML={{ __html: branding.logo }} 
+              />
+            ) : (
+              <Link href="/" className="p-2 rounded-lg bg-gradient-to-tr from-[#ff007f] to-brand-accent text-white font-extrabold text-sm tracking-wider hover:opacity-90">
+                {branding.name.substring(0, 2).toUpperCase()}
+              </Link>
+            )}
             <span className="font-bold text-sm tracking-tight text-text-tertiary">/</span>
             <span className="font-bold text-sm tracking-tight text-text-primary">{appConfig?.name || 'Application'}</span>
           </div>

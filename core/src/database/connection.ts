@@ -9,6 +9,7 @@ types.setTypeParser(1114, (stringValue) => {
 });
 
 const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/org_db';
+console.log('Database connection String:', connectionString);
 
 const pool = new Pool({
   connectionString,

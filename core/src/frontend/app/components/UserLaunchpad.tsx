@@ -181,6 +181,12 @@ export default function UserLaunchpad({ initialData, isAdmin }: UserLaunchpadPro
   const brandingTitle = companyMeta?.name || 'SG Forge';
   const brandingLogo = companyMeta?.extendedAttributes?.logo || '';
 
+  useEffect(() => {
+    if (brandingTitle) {
+      document.title = `${brandingTitle} — Member Portal`;
+    }
+  }, [brandingTitle]);
+
   // Theme & Font state synced with documentElement
   const [theme, setTheme] = useState('default');
   const [font, setFont] = useState('default');

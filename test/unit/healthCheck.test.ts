@@ -1,4 +1,4 @@
-import { expect, test, describe, spyOn, afterEach } from "bun:test";
+import { expect, test, describe, spyOn, afterEach, afterAll } from "bun:test";
 import { runHealthCheck } from "@backend/workers/healthCheck";
 import { db } from "@database/connection";
 
@@ -18,6 +18,11 @@ const mockFetch = spyOn(global, "fetch").mockImplementation(async (input: any, i
 afterEach(() => {
   mockDbExecute.mockClear();
   mockFetch.mockClear();
+});
+
+afterAll(() => {
+  mockDbExecute.mockRestore();
+  mockFetch.mockRestore();
 });
 
 describe("SG Forge Health Check Worker Pipeline", () => {

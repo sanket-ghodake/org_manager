@@ -1,4 +1,4 @@
-import { expect, test, describe, spyOn, afterEach } from "bun:test";
+import { expect, test, describe, spyOn, afterEach, afterAll } from "bun:test";
 import { handleRequest } from "@backend/dev-dashboard/server";
 import { db } from "@database/connection";
 import cp from "child_process";
@@ -13,6 +13,10 @@ const mockDbExecute = spyOn(db, "execute").mockImplementation(async (sqlObj: any
 
 afterEach(() => {
   mockDbExecute.mockClear();
+});
+
+afterAll(() => {
+  mockDbExecute.mockRestore();
 });
 
 describe("SG Forge DevCenter Dashboard Server Router Pipeline", () => {

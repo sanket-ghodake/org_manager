@@ -67,11 +67,15 @@ describe("Middleware Authentication Guard Pipeline", () => {
 
     const fetchSpy = spyOn(global, "fetch");
 
-    const response = await middleware(mockRequest);
-    expect(response).toBeDefined();
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost:3000/force-reset");
-    expect(fetchSpy).toHaveBeenCalled();
+    try {
+      const response = await middleware(mockRequest);
+      expect(response).toBeDefined();
+      expect(response.status).toBe(307);
+      expect(response.headers.get("location")).toBe("http://localhost:3000/force-reset");
+      expect(fetchSpy).toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   test("Allows request to proceed if password is changed", async () => {

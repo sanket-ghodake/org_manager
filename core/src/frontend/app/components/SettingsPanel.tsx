@@ -36,7 +36,7 @@ export default function SettingsPanel({
   const companyMeta = useMemo(() => metadata.find(m => m.type === 'company_name'), [metadata]);
   const [platformTitle, setPlatformTitle] = useState(companyMeta?.name || 'SG Forge');
   const [platformLogo, setPlatformLogo] = useState<string>(companyMeta?.extendedAttributes?.logo || '');
-  const [titleSaveDebounce, setTitleSaveDebounce] = useState<NodeJS.Timeout | null>(null);
+  const hasTitleChanged = platformTitle !== (companyMeta?.name || 'SG Forge');
 
   // Sync state with metadata updates
   React.useEffect(() => {
@@ -170,13 +170,7 @@ export default function SettingsPanel({
     finally { setPwLoading(false); }
   };
 
-  const handleTitleChange = (val: string) => {
-    setPlatformTitle(val);
-    if (titleSaveDebounce) clearTimeout(titleSaveDebounce);
-    setTitleSaveDebounce(setTimeout(() => {
-      saveBranding(val, platformLogo);
-    }, 500));
-  };
+  // Removed handleTitleChange due to manual save to prevent glitchy debounce
 
   const fakeSessions = [
     { device: 'Chrome v124 (Linux)', ip: '192.168.1.42', location: 'Current Session', current: true },
@@ -513,112 +507,239 @@ export default function SettingsPanel({
 
         {/* ── PLATFORM BRANDING (Admin) ── */}
         {tab === 'platform' && isSuperAdmin && (
-          <div className="space-y-8 max-w-2xl">
-            <div>
-              <h1 className="text-lg font-black text-text-primary">Platform Customization</h1>
-              <p className="text-xs text-text-secondary mt-0.5">Configure global metadata variables across the workspace</p>
+          <div className="space-y-8 max-w-5xl">
+            <div className="flex items-center justify-between border-b border-border-accent/40 pb-5">
+              <div>
+                <h1 className="text-xl font-black text-text-primary flex items-center gap-2">
+                  <span>🏢</span> Platform Customization & Branding
+                </h1>
+                <p className="text-xs text-text-secondary mt-1">Configure global white-label identity variables across the enterprise workspace</p>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest bg-brand-accent/10 text-brand-accent px-3 py-1 rounded-full border border-brand-accent/25">
+                Super Admin Privilege
+              </span>
             </div>
 
-            <div className="space-y-5">
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-text-secondary block mb-1.5">Enterprise Core System Title</label>
-                <input type="text" value={platformTitle} onChange={e => handleTitleChange(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-input-bg border border-input-border rounded-xl text-xs text-text-primary font-bold focus:outline-none focus:border-brand-accent" />
-                <p className="text-[9px] text-text-tertiary mt-1 italic">Changes propagate instantly with 500ms debounced save</p>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Form Controls Column */}
+              <div className="lg:col-span-7 space-y-6">
+                
+                {/* Enterprise Title Card */}
+                <div className="bg-surface-card border border-border-accent rounded-3xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">🏷️</span>
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-text-primary">Enterprise Title</h3>
+                      <p className="text-[10px] text-text-secondary">Used in webpage header, tabs, and login dashboards</p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <input 
+                        type="text" 
+                        value={platformTitle} 
+                        onChange={e => setPlatformTitle(e.target.value)}
+                        placeholder="Enter brand name"
+                        className="w-full pl-4 pr-12 py-3 bg-input-bg border border-input-border rounded-2xl text-xs text-text-primary font-bold focus:outline-none focus:border-brand-accent transition-all" 
+                      />
+                      {hasTitleChanged && (
+                        <span className="absolute right-3 top-1/2 transform -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-warning animate-pulse" title="Unsaved changes" />
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => saveBranding(platformTitle, platformLogo)}
+                      disabled={!hasTitleChanged}
+                      className={`px-5 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                        hasTitleChanged 
+                          ? 'bg-brand-accent text-white hover:bg-brand-hover shadow-lg shadow-brand-accent/20 cursor-pointer active:scale-95' 
+                          : 'bg-border-accent text-text-tertiary cursor-not-allowed'
+                      }`}
+                    >
+                      Save Title
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Logo Card */}
+                <div className="bg-surface-card border border-border-accent rounded-3xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">🖼️</span>
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-wider text-text-primary">Corporate SVG Logo</h3>
+                      <p className="text-[10px] text-text-secondary">Upload an SVG format vector asset to replace the system icon</p>
+                    </div>
+                  </div>
+
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-border-accent hover:border-brand-accent/40 rounded-2xl p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3 bg-background-portal/30 hover:bg-background-portal/50"
+                  >
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleLogoUpload} 
+                      accept=".svg" 
+                      className="hidden" 
+                    />
+                    {platformLogo ? (
+                      <div 
+                        className="w-16 h-16 flex items-center justify-center border border-border-accent/80 p-2.5 rounded-xl bg-surface-card overflow-hidden [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:text-brand-accent shadow-inner" 
+                        dangerouslySetInnerHTML={{ __html: platformLogo }} 
+                      />
+                    ) : (
+                      <div className="w-16 h-16 flex items-center justify-center rounded-xl bg-border-accent text-text-tertiary text-2xl font-black">
+                        🏢
+                      </div>
+                    )}
+                    
+                    <div className="space-y-1">
+                      <p className="text-xs text-text-secondary font-bold">
+                        {platformLogo ? 'Click to replace logo SVG' : 'Drop SVG asset or click to upload'}
+                      </p>
+                      <p className="text-[10px] text-text-tertiary">Vector SVG files only (recommened viewbox: 24x24)</p>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-text-secondary block mb-1.5">Custom Corporate Identity Logo</label>
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-border-accent rounded-xl p-8 text-center hover:border-brand-accent/40 transition-all cursor-pointer flex flex-col items-center justify-center gap-2"
-                >
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleLogoUpload} 
-                    accept=".svg" 
-                    className="hidden" 
-                  />
-                  {platformLogo ? (
-                    <div className="w-16 h-16 flex items-center justify-center border border-border-accent p-2 rounded-lg bg-surface-card overflow-hidden [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:text-brand-accent" dangerouslySetInnerHTML={{ __html: platformLogo }} />
-                  ) : (
-                    <span className="text-2xl">🏢</span>
-                  )}
-                  <p className="text-xs text-text-secondary font-bold">
-                    {platformLogo ? 'Click to replace logo SVG' : 'Drop SVG asset or click to upload'}
-                  </p>
-                  <p className="text-[10px] text-text-tertiary">Replaces the default SG logo at runtime</p>
+              {/* Preview Column */}
+              <div className="lg:col-span-5 space-y-6">
+                <div className="bg-surface-card border border-border-accent rounded-3xl p-6 shadow-sm h-full flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-text-primary mb-1">Sidebar Live Preview</h3>
+                    <p className="text-[10px] text-text-secondary mb-5">See how the branded elements render in the main layout navigation bar</p>
+                  </div>
+
+                  {/* Sidebar mockup */}
+                  <div className="bg-sidebar-bg border border-border-accent/80 rounded-2xl p-4 space-y-4 shadow-xl select-none">
+                    <div className="flex items-center justify-between pb-3 border-b border-border-accent/40">
+                      <div className="flex items-center gap-2.5">
+                        {platformLogo ? (
+                          <div 
+                            className="h-7 w-7 rounded-lg bg-surface-card p-1 border border-border-accent overflow-hidden flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:text-brand-accent"
+                            dangerouslySetInnerHTML={{ __html: platformLogo }} 
+                          />
+                        ) : (
+                          <span className="p-1.5 rounded-lg bg-gradient-to-tr from-brand-accent to-success text-white font-black text-xs">
+                            {platformTitle.substring(0, 2).toUpperCase()}
+                          </span>
+                        )}
+                        <span className="font-extrabold text-xs text-text-primary truncate max-w-[120px]">
+                          {platformTitle}
+                        </span>
+                      </div>
+                      <span className="text-[8px] px-1 bg-brand-accent/15 text-brand-accent rounded font-black border border-brand-accent/20">LIVE</span>
+                    </div>
+
+                    <div className="space-y-1.5 opacity-60">
+                      <div className="h-6 bg-sidebar-active rounded-lg flex items-center px-2.5 gap-2">
+                        <span className="text-[10px]">📊</span>
+                        <div className="h-2 w-12 bg-sidebar-text-active/50 rounded-sm"></div>
+                      </div>
+                      <div className="h-6 rounded-lg flex items-center px-2.5 gap-2">
+                        <span className="text-[10px]">👥</span>
+                        <div className="h-2 w-16 bg-sidebar-text/50 rounded-sm"></div>
+                      </div>
+                      <div className="h-6 rounded-lg flex items-center px-2.5 gap-2">
+                        <span className="text-[10px]">⚙️</span>
+                        <div className="h-2 w-10 bg-sidebar-text/50 rounded-sm"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-border-accent/40 text-[9px] text-text-tertiary flex items-center gap-1.5">
+                    <span>🔒</span>
+                    <span>Branding settings require super_admin authorization level</span>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              {/* Branding Changes Summary */}
-              <div className="space-y-3 pt-6 border-t border-border-accent">
-                <h3 className="text-xs font-black uppercase tracking-wider text-text-secondary">Branding Modifications Summary</h3>
-                <div className="rounded-xl border border-border-accent overflow-hidden bg-surface-card shadow-sm">
+            {/* Audit Logs section */}
+            <div className="space-y-6 pt-2">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-text-primary">Branding Modifications Audit</h3>
+                <div className="h-[1px] flex-1 bg-border-accent/40"></div>
+              </div>
+
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                
+                {/* Summary Table */}
+                <div className="bg-surface-card border border-border-accent rounded-2xl overflow-hidden shadow-sm">
+                  <div className="px-4 py-3 bg-table-header border-b border-border-accent flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-text-primary">Change Frequency Summary</span>
+                    <span className="text-[8px] bg-brand-accent/10 border border-brand-accent/20 px-2 py-0.5 rounded text-brand-accent font-bold">Aggregated</span>
+                  </div>
                   <table className="w-full text-left">
-                    <thead className="bg-table-header">
+                    <thead className="bg-table-header/40 border-b border-border-accent/50">
                       <tr>
-                        {['Administrator', 'Email', 'Change Count', 'Last Change Date'].map(h => (
-                          <th key={h} className="px-4 py-2 text-[9px] font-black uppercase tracking-wider text-text-secondary">{h}</th>
+                        {['Administrator', 'Email', 'Change Count', 'Last Change'].map(h => (
+                          <th key={h} className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-text-secondary">{h}</th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border-accent text-xs">
+                    <tbody className="divide-y divide-border-accent/60 text-xs">
                       {brandingLogs?.summary && brandingLogs.summary.length > 0 ? (
                         brandingLogs.summary.map((row, idx) => (
                           <tr key={idx} className="hover:bg-table-row-hover transition-colors">
-                            <td className="px-4 py-2.5 font-bold text-text-primary">{row.userName}</td>
-                            <td className="px-4 py-2.5 text-text-secondary font-mono text-[10px]">{row.userEmail}</td>
-                            <td className="px-4 py-2.5 font-bold text-brand-accent">{row.changeCount} times</td>
-                            <td className="px-4 py-2.5 text-text-secondary">{new Date(row.lastChangeDate).toLocaleString()}</td>
+                            <td className="px-4 py-3 font-bold text-text-primary">{row.userName}</td>
+                            <td className="px-4 py-3 text-text-secondary font-mono text-[10px]">{row.userEmail}</td>
+                            <td className="px-4 py-3 font-black text-brand-accent">{row.changeCount} times</td>
+                            <td className="px-4 py-3 text-[10px] text-text-secondary">{new Date(row.lastChangeDate).toLocaleDateString()}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={4} className="px-4 py-4 text-center text-text-tertiary italic">No branding logs found</td>
+                          <td colSpan={4} className="px-4 py-6 text-center text-text-tertiary italic">No branding logs found</td>
                         </tr>
                       )}
                     </tbody>
                   </table>
                 </div>
-              </div>
 
-              {/* Detailed branding change logs */}
-              <div className="space-y-3 pt-6 border-t border-border-accent">
-                <h3 className="text-xs font-black uppercase tracking-wider text-text-secondary">Modification History</h3>
-                <div className="rounded-xl border border-border-accent overflow-hidden bg-surface-card shadow-sm max-h-[300px] overflow-y-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-table-header">
-                      <tr>
-                        {['Date', 'Administrator', 'IP Address', 'Details'].map(h => (
-                          <th key={h} className="px-4 py-2 text-[9px] font-black uppercase tracking-wider text-text-secondary">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border-accent text-xs">
-                      {brandingLogs?.details && brandingLogs.details.length > 0 ? (
-                        brandingLogs.details.map((row, idx) => (
-                          <tr key={idx} className="hover:bg-table-row-hover transition-colors">
-                            <td className="px-4 py-2 text-text-secondary">{new Date(row.timestamp).toLocaleString()}</td>
-                            <td className="px-4 py-2 font-bold text-text-primary">{row.userName}</td>
-                            <td className="px-4 py-2 font-mono text-[10px] text-text-secondary">{row.ipAddress}</td>
-                            <td className="px-4 py-2 text-[10px] text-text-secondary">
-                              {row.payload?.name ? `Title: "${row.payload.name}"` : ''} 
-                              {row.payload?.hasLogo ? ' (Logo updated)' : ''}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
+                {/* History Detail Table */}
+                <div className="bg-surface-card border border-border-accent rounded-2xl overflow-hidden shadow-sm">
+                  <div className="px-4 py-3 bg-table-header border-b border-border-accent flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-text-primary">Modification Event Stream</span>
+                    <span className="text-[8px] bg-success/10 border border-success/20 px-2 py-0.5 rounded text-success font-bold">Realtime</span>
+                  </div>
+                  <div className="max-h-[220px] overflow-y-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-table-header/40 border-b border-border-accent/50 sticky top-0 z-10">
                         <tr>
-                          <td colSpan={4} className="px-4 py-4 text-center text-text-tertiary italic">No detailed logs found</td>
+                          {['Timestamp', 'Administrator', 'IP Address', 'Action Details'].map(h => (
+                            <th key={h} className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-text-secondary bg-table-header">{h}</th>
+                          ))}
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-border-accent/60 text-xs">
+                        {brandingLogs?.details && brandingLogs.details.length > 0 ? (
+                          brandingLogs.details.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-table-row-hover transition-colors">
+                              <td className="px-4 py-2.5 text-[10px] text-text-secondary">{new Date(row.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                              <td className="px-4 py-2.5 font-bold text-text-primary">{row.userName}</td>
+                              <td className="px-4 py-2.5 font-mono text-[9px] text-text-secondary">{row.ipAddress}</td>
+                              <td className="px-4 py-2.5 text-[10px] text-text-secondary truncate max-w-[150px]">
+                                {row.payload?.name ? `Title: "${row.payload.name}"` : ''} 
+                                {row.payload?.hasLogo ? ' (Logo updated)' : ''}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4} className="px-4 py-6 text-center text-text-tertiary italic">No detailed logs found</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+
               </div>
             </div>
+
           </div>
         )}
 

@@ -20,6 +20,8 @@ export default function DashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showDebugDock, setShowDebugDock] = useState(false);
 
+  const [branding, setBranding] = useState({ name: 'SG Forge', logo: '' });
+
   // Database / User / Metadata Lists
   const [users, setUsers] = useState<any[]>([]);
   const [metadata, setMetadata] = useState<any[]>([]);
@@ -87,7 +89,28 @@ export default function DashboardPage() {
     }
   ];
 
+  const companyMeta = metadata.find(m => m.type === 'company_name');
+  const brandingTitle = companyMeta?.name || branding.name || 'SG Forge';
+  const brandingLogo = companyMeta?.extendedAttributes?.logo || branding.logo || '';
+
+  useEffect(() => {
+    if (brandingTitle) {
+      document.title = `${brandingTitle} — Admin Portal`;
+    }
+  }, [brandingTitle]);
+
   // 1. Initial Authentication & Theme / Font setup
+  useEffect(() => {
+    fetch('/api/branding')
+      .then(res => res.json())
+      .then(data => {
+        if (data.name) {
+          setBranding(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'default';
     setTheme(savedTheme);
@@ -503,7 +526,16 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#090d16]">
         <div className="flex flex-col items-center gap-4">
-          <span className="p-3 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold text-xl tracking-wider shadow-lg shadow-brand-accent/20">SG</span>
+          {brandingLogo ? (
+            <div 
+              className="h-12 w-12 rounded-xl bg-surface-card p-1.5 border border-border-accent overflow-hidden flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:text-brand-accent animate-pulse"
+              dangerouslySetInnerHTML={{ __html: brandingLogo }} 
+            />
+          ) : (
+            <span className="p-3 rounded-xl bg-gradient-to-tr from-brand-accent to-success text-white font-extrabold text-xl tracking-wider shadow-lg shadow-brand-accent/20">
+              {brandingTitle.substring(0, 2).toUpperCase()}
+            </span>
+          )}
           <div className="w-6 h-6 border-2 border-brand-accent border-t-transparent rounded-full animate-spin"></div>
         </div>
       </div>
@@ -536,10 +568,6 @@ export default function DashboardPage() {
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
   };
-
-  const companyMeta = metadata.find(m => m.type === 'company_name');
-  const brandingTitle = companyMeta?.name || 'SG Forge';
-  const brandingLogo = companyMeta?.extendedAttributes?.logo || '';
 
   return (
     <div className={`min-h-screen bg-background-portal text-text-primary transition-colors duration-200 flex overflow-hidden`}>

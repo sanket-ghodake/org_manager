@@ -24,6 +24,12 @@ export default function ForceResetPage() {
   }, []);
 
   useEffect(() => {
+    if (branding.name) {
+      document.title = `${branding.name} — Workspace Activation`;
+    }
+  }, [branding.name]);
+
+  useEffect(() => {
     const fetchSession = async () => {
       try {
         const res = await fetch('/api/auth/session');

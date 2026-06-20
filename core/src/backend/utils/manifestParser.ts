@@ -261,8 +261,9 @@ export async function parseAndRegisterManifests(): Promise<AppManifest[]> {
           updated_at = NOW()
         RETURNING id
       `);
+      console.log('insertResult debug:', JSON.stringify(insertResult));
       const insertRows = insertResult.rows || insertResult;
-      const appId = insertRows[0].id as string;
+      const appId = (insertRows[0] || {}).id as string;
 
       // Provision isolated schema namespace if required
       if (isIsolated && manifest.database?.schemaName) {
