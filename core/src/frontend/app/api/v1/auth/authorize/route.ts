@@ -23,6 +23,20 @@ export async function GET(request: NextRequest) {
 
     // 2. Resolve Portal Session
     const session = await getSession(request);
+
+    // Check if it is a direct login from the app's website directly
+    const isDirectLogin = state === 'direct_login';
+    const prompt = searchParams.get('prompt');
+
+    if (isDirectLogin && prompt !== 'none' && prompt !== 'verified') {
+      // Force re-authentication by redirecting to portal login
+      const loginUrl = new URL('/login', request.url);
+      const redirectBackUrl = new URL(request.url);
+      redirectBackUrl.searchParams.set('prompt', 'none'); // Set prompt=none to prevent redirect loop
+      loginUrl.searchParams.set('redirect_back', redirectBackUrl.toString());
+      return NextResponse.redirect(loginUrl.toString());
+    }
+
     if (!session) {
       // User is not logged in. Redirect to portal login and pass the current URL as redirect_back
       const loginUrl = new URL('/login', request.url);
