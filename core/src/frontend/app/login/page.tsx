@@ -55,7 +55,12 @@ export default function LoginPage() {
         if (data.user && data.user.isPasswordChanged === false) {
           router.replace('/force-reset' + (redirectBack ? `?redirect_back=${encodeURIComponent(redirectBack)}` : ''));
         } else if (redirectBack) {
-          router.replace(redirectBack);
+          // Perform full page load for API routes or external redirects
+          if (redirectBack.startsWith('/api/') || redirectBack.includes('://')) {
+            window.location.replace(redirectBack);
+          } else {
+            router.replace(redirectBack);
+          }
         } else {
           router.replace('/');
         }

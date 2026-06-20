@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         path: '/',
         maxAge: 0,
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
       });
       return response;

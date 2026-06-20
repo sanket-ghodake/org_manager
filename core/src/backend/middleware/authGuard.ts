@@ -38,6 +38,7 @@ export async function middleware(request: any, event?: any) {
   if (
     path === '/login' ||
     path === '/api/auth/login' ||
+    path === '/api/auth/logout' ||
     path === '/api/branding' ||
     path === '/favicon.ico' ||
     path.startsWith('/_next/') ||

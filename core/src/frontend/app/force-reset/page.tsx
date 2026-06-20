@@ -110,7 +110,12 @@ export default function ForceResetPage() {
         const redirectBack = searchParams.get('redirect_back') || searchParams.get('next') || '';
         setTimeout(() => {
           if (redirectBack) {
-            router.replace(redirectBack);
+            // Perform full page load for API routes or external redirects
+            if (redirectBack.startsWith('/api/') || redirectBack.includes('://')) {
+              window.location.replace(redirectBack);
+            } else {
+              router.replace(redirectBack);
+            }
           } else {
             router.replace('/');
           }
