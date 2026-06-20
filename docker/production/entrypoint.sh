@@ -30,13 +30,9 @@ bun scripts/dynamic-app-runner.ts &
 # 3. Start Next.js Developer Portal Proxy (port 3003)
 bun run scripts/developer-proxy.ts &
 
-# 4. Start Health Check background worker
-(
-  while true; do
-    bun core/src/backend/workers/healthCheck.ts >/dev/null 2>&1 || true
-    sleep 10
-  done
-) &
+# 4. Start Health Check background worker (persistent daemon)
+bun core/src/backend/workers/healthCheck.ts --daemon >/dev/null 2>&1 &
 
-# 6. Start Next.js Frontend Portal (port 3001) in production mode
-bun run --cwd core/src/frontend start -- --hostname 0.0.0.0 --port 3001
+# 6. Start Next.js Frontend Portal (port 3001) in production mode using standalone bundle
+PORT=3001 HOSTNAME=0.0.0.0 bun core/src/frontend/.next/standalone/core/src/frontend/server.js
+

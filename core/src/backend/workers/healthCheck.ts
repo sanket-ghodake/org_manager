@@ -78,7 +78,17 @@ export async function runHealthCheck() {
   }
 }
 
-// Support running directly
+// Support running directly or as a persistent daemon
 if (import.meta.main) {
-  runHealthCheck().then(() => process.exit(0));
+  const isDaemon = process.argv.includes('--daemon');
+  if (isDaemon) {
+    console.log('[HEALTH CHECK] Starting persistent health monitoring daemon...');
+    while (true) {
+      await runHealthCheck();
+      await new Promise(resolve => setTimeout(resolve, 10000));
+    }
+  } else {
+    runHealthCheck().then(() => process.exit(0));
+  }
 }
+

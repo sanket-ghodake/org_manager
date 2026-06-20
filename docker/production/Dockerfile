@@ -35,8 +35,11 @@ COPY . .
 # Build Next.js production bundle
 RUN cd core/src/frontend && bun run build
 
+# Prune devDependencies from root node_modules to minimize final runner size
+RUN npm prune --omit=dev
+
 # ==========================================
-# STAGE 3: Final Production Runner (Minimal and Secure)
+# STAGE 3: Final Production Runner (Minimal, stand-alone, and Secure)
 # ==========================================
 FROM node:20-bookworm-slim AS runner
 
@@ -61,14 +64,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy built code and production files from js-builder
-COPY --from=js-builder /app/package.json /app/bun.lock /app/tsconfig.json ./
+# Copy production node_modules for backend
 COPY --from=js-builder /app/node_modules ./node_modules
-COPY --from=js-builder /app/core ./core
+
+# Copy built standalone Next.js application
+COPY --from=js-builder /app/core/src/frontend/.next/standalone ./core/src/frontend/.next/standalone
+
+# Copy required static and public directories for Next.js standalone server
+COPY --from=js-builder /app/core/src/frontend/public ./core/src/frontend/.next/standalone/core/src/frontend/public
+COPY --from=js-builder /app/core/src/frontend/.next/static ./core/src/frontend/.next/standalone/core/src/frontend/.next/static
+
+# Copy packages, backend code, database files, sandbox, and scripts
+COPY --from=js-builder /app/package.json /app/bun.lock /app/tsconfig.json ./
+COPY --from=js-builder /app/core/src/backend ./core/src/backend
+COPY --from=js-builder /app/core/src/database ./core/src/database
 COPY --from=js-builder /app/packages ./packages
 COPY --from=js-builder /app/sandbox ./sandbox
 COPY --from=js-builder /app/scripts ./scripts
-COPY --from=js-builder /app/test ./test
 
 # Copy the compiled Go binary from go-builder
 COPY --from=go-builder /build/reference-go-bin /app/sandbox/apps/reference-go/reference-go-bin
@@ -81,3 +93,4 @@ COPY docker/production/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+

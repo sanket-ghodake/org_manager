@@ -71,7 +71,7 @@ app.post('/api/auth', async (req, res) => {
       try {
         console.log(`Exchanging auth code: ${code} with Portal backend at ${url}...`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         const res = await fetch(url, {
           method: 'POST',

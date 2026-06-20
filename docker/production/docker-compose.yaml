@@ -18,6 +18,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     networks:
       - sgforge-network
 
@@ -37,6 +41,7 @@ services:
       - NODE_ENV=production
       - WATCHPACK_POLLING=false
       - RUNNING_IN_DOCKER=true
+      - NODE_OPTIONS=--max-old-space-size=512
     ports:
       - "3001:3001"
       - "3002:3002"
@@ -45,6 +50,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     # Note: No host volumes are mounted in production to ensure total container isolation and run solely from precompiled artifacts.
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 768M
     networks:
       - sgforge-network
 
@@ -62,6 +71,10 @@ services:
       - PORTAL_URL=http://app:3001
     ports:
       - "8085:8085"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     networks:
       - sgforge-network
     restart: always
@@ -80,6 +93,10 @@ services:
       - PORTAL_URL=http://app:3001
     ports:
       - "8086:8086"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
     networks:
       - sgforge-network
     restart: always
@@ -98,6 +115,10 @@ services:
       - PORTAL_URL=http://app:3001
     ports:
       - "8087:8087"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     networks:
       - sgforge-network
     restart: always
@@ -116,6 +137,10 @@ services:
       - PORTAL_URL=http://app:3001
     ports:
       - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     networks:
       - sgforge-network
     restart: always
