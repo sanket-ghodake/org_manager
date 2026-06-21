@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Generate temporary code
     const code = 'auth_code_' + crypto.randomBytes(16).toString('hex');
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const expiresAt = new Date(Date.now() + 30 * 1000); // 30 seconds (standard OAuth 2.1 BCP)
 
     // 3. Save to database
     await db.execute(sql`

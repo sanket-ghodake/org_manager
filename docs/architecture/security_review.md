@@ -182,6 +182,23 @@ All security parameters from the End-to-End Security Implementation Plan have be
         *   `/api/auth/reset-password` (5 requests/min limit)
         *   `/api/v1/auth/exchange` (5 requests/min limit)
 
+### 🛡️ E. Secondary Hardening & Reliability Optimizations (June 21, 2026)
+*   **SQL Sandbox Gating & Bypass Protections**:
+    *   Updated the query console checks to apply to all roles except `super_admin`, eliminating bypass routes for the standard `admin` role.
+    *   Added `DO` and `EXECUTE` commands to the tokenizer validation blocklist to block PL/pgSQL procedural injections.
+    *   Blocked `EXPLAIN ANALYZE` write vectors by detecting combined `explain` + `analyze` tokens, while leaving standard, non-destructive `EXPLAIN SELECT` actions fully operational.
+*   **App Manifest Upload Isolation**:
+    *   Modified `authGuard` middleware to restrict public registry bypass on `/api/apps` exclusively to `GET` requests.
+    *   Enforced session checking and administrative role restrictions (`admin`/`super_admin`) on `POST /api/apps` file write endpoints, mitigating unauthenticated write/RCE vectors.
+*   **Rate-Limiter Memory Leak & DoS Mitigations**:
+    *   Introduced active pruning of expired keys when Map sizes exceed 1,000 entries, and a hard-clear fallback at 2,000 entries to prevent memory-exhaustion OOM failures.
+    *   Rerouted blocked rate-limiter notifications from database transaction logs (`logEvent`) to console warning messages (`console.warn`) to eliminate database write storms.
+*   **N+1 Ingestion Loop Optimization**:
+    *   Optimized `/api/admin/bulk-ingest` by pre-caching metadata, designations, and user IDs into memory prior to record looping, eliminating the N+1 select bottlenecks and resolving API gateway timeout risks.
+*   **Production Environment Safeguards**:
+    *   Restricted MFA mock passcodes (`123456`/`000000`) strictly to development and test scopes.
+    *   Added production environment fail-fast checks that throw a startup exception if the `JWT_SECRET` key is left unset.
+
 ---
 
 ## 🔒 6. Current Verified Security Posture

@@ -31,55 +31,69 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing client credentials' }, { status: 400 });
     }
 
-    // 1. Verify app credentials
-    const appResult = await db.execute(sql`
-      SELECT id, slug, client_id as "clientId", client_secret as "clientSecret" 
-      FROM forge_apps 
-      WHERE client_id = ${clientId}
+    // 1. Verify app credentials, authorization code, and user profile using a single joined read query
+    const dbResult = await db.execute(sql`
+      SELECT 
+        fa.id as "appId",
+        fa.client_id as "appClientId",
+        fa.client_secret as "clientSecret",
+        fac.id as "authCodeId",
+        fac.expires_at as "expiresAt",
+        fac.used as "authCodeUsed",
+        u.id as "userId",
+        u.eid as "userEid",
+        u.name as "userName",
+        u.email as "userEmail",
+        u.role as "userRole"
+      FROM forge_apps fa
+      LEFT JOIN forge_auth_codes fac ON fac.app_id = fa.id AND fac.code = ${code}
+      LEFT JOIN users u ON fac.user_id = u.id
+      WHERE fa.client_id = ${clientId}
     `);
-    const appRows = appResult.rows || appResult;
-    if (!appRows || appRows.length === 0) {
-      return NextResponse.json({ error: 'Invalid client credentials' }, { status: 401 });
-    }
-    const app = appRows[0] as any;
-    if (decryptText(app.clientSecret) !== clientSecret) {
+
+    const rows = dbResult.rows || dbResult;
+    if (!rows || rows.length === 0) {
       return NextResponse.json({ error: 'Invalid client credentials' }, { status: 401 });
     }
 
-    // 2. Verify authorization code
-    const codeResult = await db.execute(sql`
-      SELECT id, code, app_id as "appId", user_id as "userId", expires_at as "expiresAt", used
-      FROM forge_auth_codes
-      WHERE code = ${code} AND app_id = ${app.id}
-    `);
-    const codeRows = codeResult.rows || codeResult;
-    if (!codeRows || codeRows.length === 0) {
+    const row = rows[0] as any;
+    if (decryptText(row.clientSecret) !== clientSecret) {
+      return NextResponse.json({ error: 'Invalid client credentials' }, { status: 401 });
+    }
+
+    if (!row.authCodeId) {
       return NextResponse.json({ error: 'Invalid authorization code' }, { status: 400 });
     }
-    const authCode = codeRows[0] as any;
 
-    if (authCode.used) {
+    if (row.authCodeUsed) {
       return NextResponse.json({ error: 'Authorization code already used' }, { status: 400 });
     }
 
-    if (parseDbTimestamp(authCode.expiresAt) < new Date()) {
+    if (parseDbTimestamp(row.expiresAt) < new Date()) {
       return NextResponse.json({ error: 'Authorization code expired' }, { status: 400 });
     }
 
-    // 3. Mark code as used
-    await db.execute(sql`
-      UPDATE forge_auth_codes SET used = true WHERE id = ${authCode.id}
-    `);
-
-    // 4. Fetch user profile
-    const userResult = await db.execute(sql`
-      SELECT id, eid, name, email, role FROM users WHERE id = ${authCode.userId}
-    `);
-    const userRows = userResult.rows || userResult;
-    if (!userRows || userRows.length === 0) {
+    if (!row.userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    const user = userRows[0] as any;
+
+    // 2. Mark code as used
+    await db.execute(sql`
+      UPDATE forge_auth_codes SET used = true WHERE id = ${row.authCodeId}
+    `);
+
+    const app = {
+      id: row.appId,
+      clientId: row.appClientId
+    };
+
+    const user = {
+      id: row.userId,
+      eid: row.userEid,
+      name: row.userName,
+      email: row.userEmail,
+      role: row.userRole
+    };
 
     // Resolve intersection of app scopes and user permissions
     const authorizedScopes = await resolveAppPermissions(app.id, user.id);

@@ -5,9 +5,10 @@ import { getSession } from '@backend/auth/sessionManager';
 
 export async function middleware(request: any, event?: any) {
   const path = request.nextUrl.pathname;
+  const method = (request.method || 'GET').toUpperCase();
 
   // Bypass authentication checks for OPTIONS preflight requests to allow CORS checks to succeed
-  if (request.method === 'OPTIONS') {
+  if (method === 'OPTIONS') {
     return NextResponse.next();
   }
 
@@ -42,8 +43,8 @@ export async function middleware(request: any, event?: any) {
     path === '/api/branding' ||
     path === '/favicon.ico' ||
     path.startsWith('/_next/') ||
-    path === '/api/apps' ||
-    (path === '/api/admin/metadata' && request.method === 'GET')
+    (path === '/api/apps' && method === 'GET') ||
+    (path === '/api/admin/metadata' && method === 'GET')
   ) {
     return NextResponse.next();
   }

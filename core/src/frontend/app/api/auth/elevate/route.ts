@@ -50,6 +50,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify mock MFA / Totp code
+    const isDevOrTest = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' || !process.env.NODE_ENV;
+    if (!isDevOrTest) {
+      return NextResponse.json({ error: 'Production MFA validation engine is not configured.' }, { status: 501 });
+    }
+
     if (code !== '123456' && code !== '000000') {
       return NextResponse.json({ error: 'Invalid MFA Passkey or Totp Code. Use 123456.' }, { status: 400 });
     }

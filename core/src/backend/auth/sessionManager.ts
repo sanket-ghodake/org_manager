@@ -8,6 +8,10 @@ export interface UserSession {
   role: string;
   isPasswordChanged: boolean;
 }
+const isProduction = process.env.NODE_ENV === 'production';
+if (!process.env.JWT_SECRET && isProduction) {
+  throw new Error("FATAL: JWT_SECRET environment variable is missing in production environment!");
+}
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'fallback-super-secret-key-that-is-at-least-32-characters-long'

@@ -42,7 +42,7 @@ Any query attempting mutations (`INSERT`, `UPDATE`, `DELETE`, `DROP`) is termina
 ### 2. SQL Workbench Keyword Filtering
 The administrative SQL Workbench API (`/api/query`):
 *   Blocks standard users with `403 Forbidden` responses.
-*   For users with read-only admin privileges, the engine parses query strings and rejects commands matching destructive SQL keywords (`drop`, `delete`, `truncate`, `update`, `insert`, `alter`) before forwarding to the database driver.
+*   For users with non-super-admin privileges, the engine parses query strings via a state-machine lexical tokenizer. It rejects commands matching destructive SQL keywords (`drop`, `delete`, `truncate`, `update`, `insert`, `alter`, `create`, `grant`, `revoke`, `copy`, `call`, `rename`, `do`, `execute`) and detects `EXPLAIN ANALYZE` write vectors before forwarding execution to the database driver.
 
 ---
 

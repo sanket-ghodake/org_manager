@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   // Apply rate limiting: max 5 requests per minute per IP
   const rateLimit = isRateLimited(ipAddress, 'login', 5, 60000);
   if (rateLimit.limited) {
-    await logEvent(null, 'User Login Failed', 'WARN', { reason: 'Rate limit exceeded' }, ipAddress);
+    console.warn(`[${new Date().toISOString()}] [WARN] User Login Failed (Rate limit exceeded) [IP: ${ipAddress}]`);
     return NextResponse.json({ error: 'Too many login attempts. Please try again later.' }, { status: 429 });
   }
 

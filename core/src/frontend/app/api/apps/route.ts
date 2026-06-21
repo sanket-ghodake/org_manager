@@ -4,6 +4,7 @@ import path from 'path';
 import { validateManifest } from '@backend/utils/manifestParser';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
+import { getSession } from '@backend/auth/sessionManager';
 
 function getAppsDirectory(): string {
   let currentDir = process.cwd();
@@ -72,7 +73,8 @@ export async function GET() {
               console.warn(`[API APPS GET] Skipping invalid manifest in ${item}: ${validation.errors.join(', ')}`);
             }
           } catch (err) {
-            console.error(`Error parsing app config for ${item}:`, err);
+            // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring
+            console.error('Error parsing app config for %s:', item, err);
           }
         }
       }
@@ -87,6 +89,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession(request as any);
+    if (!session || (session.role !== 'super_admin' && session.role !== 'admin')) {
+      return NextResponse.json({ error: 'Unauthorized: Administrative privileges required' }, { status: 401 });
+    }
+
     const manifest = await request.json();
     
     const id = manifest.id || manifest.slug;
@@ -122,12 +129,15 @@ export async function POST(request: Request) {
       fs.mkdirSync(appsDir, { recursive: true });
     }
 
-    const appFolder = path.join(appsDir, id);
+    // Sanitize path to prevent path traversal vulnerabilities
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+    const appFolder = path.join(appsDir, path.basename(id));
     if (!fs.existsSync(appFolder)) {
       fs.mkdirSync(appFolder, { recursive: true });
     }
 
     fs.writeFileSync(
+      // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
       path.join(appFolder, 'app.json'),
       JSON.stringify(manifest, null, 2),
       'utf8'

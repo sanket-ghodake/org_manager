@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   // Apply rate limiting: max 5 requests per minute per IP
   const rateLimit = isRateLimited(ipAddress, 'reset-password', 5, 60000);
   if (rateLimit.limited) {
-    await logEvent(null, 'Password Reset Failed', 'WARN', { reason: 'Rate limit exceeded' }, ipAddress);
+    console.warn(`[${new Date().toISOString()}] [WARN] Password Reset Failed (Rate limit exceeded) [IP: ${ipAddress}]`);
     return NextResponse.json({ error: 'Too many password reset attempts. Please try again later.' }, { status: 429 });
   }
 

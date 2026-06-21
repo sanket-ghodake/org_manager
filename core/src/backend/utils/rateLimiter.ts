@@ -28,6 +28,19 @@ export function isRateLimited(
   }
 
   const now = Date.now();
+
+  // Active pruning of expired keys to prevent memory leaks
+  if (store.size > 1000) {
+    for (const [key, val] of store.entries()) {
+      if (now >= val.resetTime) {
+        store.delete(key);
+      }
+    }
+    // Hard cap defense: clear if still exceeding maximum size under active attack
+    if (store.size > 2000) {
+      store.clear();
+    }
+  }
   let data = store.get(ip);
 
   if (!data || now >= data.resetTime) {

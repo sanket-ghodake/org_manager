@@ -141,18 +141,32 @@ export function tokenizeSql(sqlStr: string): SqlToken[] {
 }
 
 export async function executeAdminQuery(sqlInputStr: string, adminRole: string) {
-  // Hard execution block for read-only administration profiles and standard users
-  if (adminRole === 'read_only_admin' || adminRole === 'user') {
+  // Hard execution block for read-only administration profiles, standard users, and standard admins
+  if (adminRole !== 'super_admin') {
     const destructiveKeywords = new Set([
       'drop', 'delete', 'truncate', 'update', 'insert', 
       'alter', 'create', 'grant', 'revoke', 'copy', 
-      'call', 'rename'
+      'call', 'rename', 'do', 'execute'
     ]);
 
     const tokens = tokenizeSql(sqlInputStr);
-    const hasDestructive = tokens.some(token => 
-      token.type === 'keyword' && destructiveKeywords.has(token.value.toLowerCase())
-    );
+    const activeTokens = tokens.filter(t => t.type !== 'whitespace');
+
+    const hasDestructive = activeTokens.some((token, idx) => {
+      if (token.type !== 'keyword') return false;
+      const val = token.value.toLowerCase();
+      if (destructiveKeywords.has(val)) {
+        return true;
+      }
+      // Block EXPLAIN ANALYZE (but allow safe EXPLAIN SELECT)
+      if (val === 'explain') {
+        const nextToken = activeTokens[idx + 1];
+        if (nextToken && nextToken.type === 'keyword' && nextToken.value.toLowerCase() === 'analyze') {
+          return true;
+        }
+      }
+      return false;
+    });
 
     if (hasDestructive) {
       throw new Error("Privilege Violation: Read-only accounts cannot run destructive queries.");

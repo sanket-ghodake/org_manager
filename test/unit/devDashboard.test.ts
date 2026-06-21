@@ -228,7 +228,7 @@ describe("SG Forge DevCenter Dashboard Server Router Pipeline", () => {
     const response = await handleRequest(req);
     expect(response.status).toBe(400);
     const data = await response.json();
-    expect(data.error).toBe("Invalid payload parameters");
+    expect(data.error).toBe("Invalid payload parameters or slug format");
   });
 
   test("POST /api/microservices/action with local React app in Docker mode", async () => {
