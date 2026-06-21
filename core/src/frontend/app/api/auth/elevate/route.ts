@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       const encrypted = await encryptSession(updatedSession);
       response.cookies.set('session_token', encrypted, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: true,
         sameSite: 'lax',
         path: '/',
       });
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     const encrypted = await encryptSession(updatedSession);
     response.cookies.set('session_token', encrypted, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'lax',
       path: '/',
     });

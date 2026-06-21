@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid payload: Expected an array of rows' }, { status: 400 });
     }
 
-    const defaultPasswordHash = await bcrypt.hash('password123', 10);
+    const defaultPasswordHash = await bcrypt.hash('password123', 12);
     const results = [];
 
     for (const row of data) {

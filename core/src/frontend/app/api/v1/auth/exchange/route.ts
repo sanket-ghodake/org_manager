@@ -6,8 +6,18 @@ import { resolveAppPermissions } from '@backend/auth/permissionEngine';
 import { parseDbTimestamp } from '@backend/utils/date';
 import { SignJWT } from 'jose';
 import { getKeys } from '@backend/auth/keyManager';
+import { decryptText } from '@backend/utils/crypto';
+import { isRateLimited } from '@backend/utils/rateLimiter';
 
 export async function POST(request: NextRequest) {
+  const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+
+  // Apply rate limiting: max 5 requests per minute per IP
+  const rateLimit = isRateLimited(ipAddress, 'exchange', 5, 60000);
+  if (rateLimit.limited) {
+    return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+  }
+
   try {
     const body = await request.json();
     const code = body.code || body.token;
@@ -32,7 +42,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid client credentials' }, { status: 401 });
     }
     const app = appRows[0] as any;
-    if (app.clientSecret !== clientSecret) {
+    if (decryptText(app.clientSecret) !== clientSecret) {
       return NextResponse.json({ error: 'Invalid client credentials' }, { status: 401 });
     }
 

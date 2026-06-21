@@ -137,7 +137,6 @@ const server = Bun.serve({
               };
             }
           }
-        }
       } catch (err) {
         console.error('[reference-expenses] Database or OAuth exchange failed:', err);
       }

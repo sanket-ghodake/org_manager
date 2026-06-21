@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { getSession } from '@backend/auth/sessionManager';
 import { logEvent } from '@backend/utils/logger';
 import { parseAndRegisterManifests } from '@backend/utils/manifestParser';
+import { decryptText } from '@backend/utils/crypto';
 
 // GET: List all registered applications in database
 export async function GET(request: Request) {
@@ -41,7 +42,11 @@ export async function GET(request: Request) {
     }
 
     const res = await db.execute(query);
-    const apps = res.rows || res;
+    const rawApps = res.rows || res;
+    const apps = rawApps.map((app: any) => ({
+      ...app,
+      clientSecret: decryptText(app.clientSecret as string)
+    }));
     return NextResponse.json({ apps });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

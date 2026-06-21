@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 import { logEvent } from '@backend/utils/logger';
 import { authenticateUser } from '@backend/services/authService';
+import { isRateLimited } from '@backend/utils/rateLimiter';
 
 export async function POST(request: Request) {
   let email = '';
   const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+
+  // Apply rate limiting: max 5 requests per minute per IP
+  const rateLimit = isRateLimited(ipAddress, 'login', 5, 60000);
+  if (rateLimit.limited) {
+    await logEvent(null, 'User Login Failed', 'WARN', { reason: 'Rate limit exceeded' }, ipAddress);
+    return NextResponse.json({ error: 'Too many login attempts. Please try again later.' }, { status: 429 });
+  }
 
   try {
     const { email: rawEmail, password } = await request.json();
@@ -34,7 +42,7 @@ export async function POST(request: Request) {
       maxAge: 3600,
       sameSite: 'lax',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
     });
 
     return response;

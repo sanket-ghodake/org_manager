@@ -3,6 +3,7 @@ import { db } from "@database/connection";
 import { sql } from "drizzle-orm";
 import { encryptSession } from "@backend/auth/sessionManager";
 import crypto from "crypto";
+import { decryptText } from "@backend/utils/crypto";
 
 // Import API route handlers for integration testing
 import { POST as handshakeHandler } from "@frontend/app/api/apps/handshake/route";
@@ -97,7 +98,7 @@ describe("SG Forge Example App Integration Tests", () => {
     expect(app.is_enabled).toBe(true);
     expect(app.entry_url).toBe("http://example-forge-app:8090/");
     expect(app.clientId).toBe("client_example_forge_app");
-    expect(app.clientSecret).toBe("secret_example_forge_app");
+    expect(decryptText(app.clientSecret)).toBe("secret_example_forge_app");
   });
 
   test("2. Secure OAuth Code Generation (Handshake)", async () => {

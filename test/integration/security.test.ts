@@ -51,23 +51,22 @@ describe("Forge Portal Security Integration Tests", () => {
     const superAdminRes = await db.execute(sql`SELECT id, role FROM users WHERE eid = 'E0001'`);
     const superAdmin = (superAdminRes.rows || superAdminRes)[0];
     superAdminToken = await encryptSession({
-      id: superAdmin.id,
+      id: superAdmin.id as string,
       eid: "E0001",
       email: "admin@sgforge.com",
       name: "Super Admin",
-      role: superAdmin.role,
+      role: superAdmin.role as string,
       isPasswordChanged: true
     });
-
     // 2. Fetch Alice Smith (Engineering Manager - Allowed on Nexus)
     const aliceRes = await db.execute(sql`SELECT id, role FROM users WHERE eid = 'E0005'`);
     const alice = (aliceRes.rows || aliceRes)[0];
     allowedUserToken = await encryptSession({
-      id: alice.id,
+      id: alice.id as string,
       eid: "E0005",
       email: "alice@sgforge.com",
       name: "Alice Smith",
-      role: alice.role,
+      role: alice.role as string,
       isPasswordChanged: true
     });
 
@@ -75,11 +74,11 @@ describe("Forge Portal Security Integration Tests", () => {
     const charlieRes = await db.execute(sql`SELECT id, role FROM users WHERE eid = 'E0007'`);
     const charlie = (charlieRes.rows || charlieRes)[0];
     forbiddenUserToken = await encryptSession({
-      id: charlie.id,
+      id: charlie.id as string,
       eid: "E0007",
       email: "charlie@sgforge.com",
       name: "Charlie Brown",
-      role: charlie.role,
+      role: charlie.role as string,
       isPasswordChanged: true
     });
   });
@@ -92,8 +91,8 @@ describe("Forge Portal Security Integration Tests", () => {
       const aliceRes = await db.execute(sql`SELECT id, role FROM users WHERE eid = 'E0005'`);
       const aliceId = (aliceRes.rows || aliceRes)[0].id;
 
-      const charlieAccess = await validateAppAccess(charlieId, "user", "nexus-provisioning");
-      const aliceAccess = await validateAppAccess(aliceId, "user", "nexus-provisioning");
+      const charlieAccess = await validateAppAccess(charlieId as string, "user", "nexus-provisioning");
+      const aliceAccess = await validateAppAccess(aliceId as string, "user", "nexus-provisioning");
 
       expect(charlieAccess).toBe(false);
       expect(aliceAccess).toBe(true);
@@ -182,7 +181,8 @@ describe("Forge Portal Security Integration Tests", () => {
         `);
       } catch (err: any) {
         errorThrown = true;
-        expect(err.message).toContain("read-only transaction");
+        const fullMessage = `${err.message} ${err.cause?.message || ""}`;
+        expect(fullMessage).toContain("read-only transaction");
       }
       expect(errorThrown).toBe(true);
     });

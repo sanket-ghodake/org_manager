@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { runHealthCheck } from "@backend/workers/healthCheck";
 import { encryptSession } from "@backend/auth/sessionManager";
 import crypto from "crypto";
+import { decryptText } from "@backend/utils/crypto";
 
 // Import handlers to execute integration tests
 import { POST as handshakeHandler } from "@frontend/app/api/apps/handshake/route";
@@ -194,7 +195,7 @@ describe("SG Forge Sprint B Integration Tests", () => {
     const exReq = mockRequest({
       method: "POST",
       url: "http://localhost/api/v1/auth/exchange",
-      body: { code, client_id: pyApp.clientId, client_secret: pyApp.clientSecret }
+      body: { code, client_id: pyApp.clientId, client_secret: decryptText(pyApp.clientSecret) }
     });
     const exRes = await exchangeHandler(exReq);
     expect(exRes.status).toBe(200);

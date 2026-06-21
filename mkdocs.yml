@@ -53,3 +53,5 @@ nav:
       - Forge SDK Rules & Contract: architecture/sdk-contract.md
       - Org Hierarchy & Marketplace: architecture/hierarchy-marketplace.md
       - Auth & Security Blueprint: architecture/security.md
+      - Secure SDLC Blueprint: architecture/ssdlc.md
+      - Security Audit & Review: architecture/security_review.md

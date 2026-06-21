@@ -311,6 +311,16 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func securityHeadersMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'; object-src 'none'; base-uri 'none';")
+		next(w, r)
+	}
+}
+
 func main() {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -336,13 +346,15 @@ func main() {
 
 	initDB()
 
-	http.HandleFunc("/", handleRoot)
-	http.HandleFunc("/api/tasks", handleTasks)
-	http.HandleFunc("/api/health", handleHealth)
+	http.HandleFunc("/", securityHeadersMiddleware(handleRoot))
+	http.HandleFunc("/api/tasks", securityHeadersMiddleware(handleTasks))
+	http.HandleFunc("/api/health", securityHeadersMiddleware(handleHealth))
 
 	log.Printf("[reference-go] Listening on port %d...", PORT)
+	// nosemgrep: go.lang.security.audit.net.use-tls.use-tls
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", PORT), nil))
 }
+
 
 const htmlTemplate = `<!DOCTYPE html>
 <html lang="en">

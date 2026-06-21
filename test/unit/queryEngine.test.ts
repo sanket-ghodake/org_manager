@@ -60,4 +60,26 @@ describe("Administrative Query Engine Sandbox", () => {
     expect(result).toBeDefined();
     expect(mockRoExecute).toHaveBeenCalled();
   });
+
+  test("Allows read-only admin to execute query with destructive keyword in a string literal", async () => {
+    mockRoExecute.mockClear();
+    const result = await executeAdminQuery("SELECT * FROM users WHERE status = 'delete';", "read_only_admin");
+    expect(result).toBeDefined();
+    expect(mockRoExecute).toHaveBeenCalled();
+  });
+
+  test("Allows read-only admin to execute query with destructive keyword in a comment", async () => {
+    mockRoExecute.mockClear();
+    const result = await executeAdminQuery("SELECT * FROM users; -- delete the record", "read_only_admin");
+    expect(result).toBeDefined();
+    expect(mockRoExecute).toHaveBeenCalled();
+  });
+
+  test("Blocks read-only admin from executing queries with hidden destructive keyword mixed with comments", async () => {
+    mockRoExecute.mockClear();
+    expect(
+      executeAdminQuery("SELECT * FROM users; DROP/* comment */ TABLE structural_metadata;", "read_only_admin")
+    ).rejects.toThrow("Privilege Violation: Read-only accounts cannot run destructive queries.");
+    expect(mockRoExecute).not.toHaveBeenCalled();
+  });
 });

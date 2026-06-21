@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
+import { encryptText, decryptText } from '@backend/utils/crypto';
 
 
 export const ForgeAppManifestSchema = z.object({
@@ -239,16 +240,17 @@ export async function parseAndRegisterManifests(): Promise<AppManifest[]> {
         const existingRows = existingResult.rows || existingResult;
         if (existingRows && existingRows.length > 0 && existingRows[0].client_id) {
           clientId = existingRows[0].client_id as string;
-          clientSecret = existingRows[0].client_secret as string;
+          clientSecret = decryptText(existingRows[0].client_secret as string);
         } else {
           clientId = 'client_' + Math.random().toString(36).substring(2, 15);
           clientSecret = 'secret_' + crypto.randomUUID().replace(/-/g, '');
         }
       }
 
+      const encryptedClientSecret = encryptText(clientSecret);
       const insertResult = await db.execute(sql`
         INSERT INTO forge_apps (slug, name, entry_url, is_isolated_lifecycle, client_id, client_secret, redirect_uri, scopes, target_rules)
-        VALUES (${slug}, ${name}, ${entryUrl}, ${isIsolated}, ${clientId}, ${clientSecret}, ${redirectUri}, ${JSON.stringify(scopes)}::jsonb, ${JSON.stringify(targetRules)}::jsonb)
+        VALUES (${slug}, ${name}, ${entryUrl}, ${isIsolated}, ${clientId}, ${encryptedClientSecret}, ${redirectUri}, ${JSON.stringify(scopes)}::jsonb, ${JSON.stringify(targetRules)}::jsonb)
         ON CONFLICT (slug) DO UPDATE SET
           name = EXCLUDED.name,
           entry_url = EXCLUDED.entry_url,
@@ -288,7 +290,7 @@ export async function parseAndRegisterManifests(): Promise<AppManifest[]> {
       registeredApps.push(manifest);
       console.log(`[MANIFEST PARSER INFO] Registered app: ${name} (${slug})`);
     } catch (dbErr) {
-      console.error(`Failed to register valid app "${name}" to database:`, dbErr);
+      console.error('Failed to register valid app "%s" to database:', name, dbErr);
     }
   }
 

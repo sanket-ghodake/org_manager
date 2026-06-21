@@ -5,6 +5,7 @@ import { syncAppsToDatabase } from "@backend/api/user/portal";
 import { resolveUserPermissions, resolveAppPermissions, checkPermission } from "@backend/auth/permissionEngine";
 import { encryptSession } from "@backend/auth/sessionManager";
 import crypto from "crypto";
+import { decryptText } from "@backend/utils/crypto";
 
 // Import Route Handlers to perform real pipeline logic testing
 import { POST as handshakeHandler } from "@frontend/app/api/apps/handshake/route";
@@ -61,7 +62,7 @@ describe("SG Forge Sprint A Integration Tests", () => {
       expect(app.clientId).toBeDefined();
       expect(app.clientSecret).toBeDefined();
       expect(app.clientId.startsWith("client_")).toBe(true);
-      expect(app.clientSecret.startsWith("secret_")).toBe(true);
+      expect(decryptText(app.clientSecret).startsWith("secret_")).toBe(true);
     }
   });
 
@@ -137,7 +138,7 @@ describe("SG Forge Sprint A Integration Tests", () => {
       body: {
         code,
         client_id: app.clientId,
-        client_secret: app.clientSecret
+        client_secret: decryptText(app.clientSecret)
       }
     });
 
@@ -156,7 +157,7 @@ describe("SG Forge Sprint A Integration Tests", () => {
       body: {
         code,
         client_id: app.clientId,
-        client_secret: app.clientSecret
+        client_secret: decryptText(app.clientSecret)
       }
     });
     const replayResponse = await exchangeHandler(replayReq);

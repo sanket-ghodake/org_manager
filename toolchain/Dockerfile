@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Go 1.21
-RUN curl -sSL https://go.dev/dl/go1.21.6.linux-amd64.tar.gz | tar -xz -C /usr/local
+RUN curl -sSL https://go.dev/dl/go1.21.13.linux-amd64.tar.gz | tar -xz -C /usr/local
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV PATH="${GOPATH}/bin:${PATH}"

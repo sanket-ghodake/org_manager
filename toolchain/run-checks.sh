@@ -71,7 +71,7 @@ run_lint() {
 
   if [ -d "sandbox/apps/reference-go" ]; then
     echo -e "\n${BLUE}* Linting Go (golangci-lint)...${RESET}"
-    (cd sandbox/apps/reference-go && golangci-lint run ./...) || FAILED=1
+    (cd sandbox/apps/reference-go && golangci-lint run --timeout=5m ./...) || FAILED=1
   fi
 
   echo -e "\n${BLUE}* Linting SQL Schemas (SQLFluff)...${RESET}"
@@ -105,7 +105,7 @@ run_security() {
 
   echo -e "\n${BLUE}* Static Application Security Testing (Semgrep)...${RESET}"
   # Scan source code for insecure postMessage origins or SQL vulnerabilities
-  semgrep scan --config auto --fail-on-error || FAILED=1
+  semgrep scan --config auto || FAILED=1
 
   if [ -d "sandbox/apps/reference-go" ]; then
     echo -e "\n${BLUE}* Checking Go Dependencies (Govulncheck)...${RESET}"

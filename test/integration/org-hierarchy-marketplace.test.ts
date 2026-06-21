@@ -157,7 +157,8 @@ describe("Enterprise Hierarchy, Circular Loops, Entitlements & Marketplace Tests
     }
 
     expect(thrownError).toBeDefined();
-    expect(thrownError!.message).toContain("Circular reporting loop detected");
+    const msgA = `${thrownError!.message} ${thrownError!.cause?.message || ""}`;
+    expect(msgA).toContain("Circular reporting loop detected");
   });
 
   test("2. Circular node reference prevention trigger (Org Nodes)", async () => {
@@ -175,7 +176,8 @@ describe("Enterprise Hierarchy, Circular Loops, Entitlements & Marketplace Tests
     }
 
     expect(thrownError).toBeDefined();
-    expect(thrownError!.message).toContain("Circular node reference loop detected");
+    const msgB = `${thrownError!.message} ${thrownError!.cause?.message || ""}`;
+    expect(msgB).toContain("Circular node reference loop detected");
   });
 
   test("2b. Admin separation constraints trigger", async () => {
@@ -190,7 +192,8 @@ describe("Enterprise Hierarchy, Circular Loops, Entitlements & Marketplace Tests
       thrownError = e;
     }
     expect(thrownError).toBeDefined();
-    expect(thrownError!.message).toContain("Admin separation violation");
+    const msgC1 = `${thrownError!.message} ${thrownError!.cause?.message || ""}`;
+    expect(msgC1).toContain("Admin separation violation");
 
     // 2. Try to set designation_id on a super_admin or admin
     thrownError = null;
@@ -210,7 +213,8 @@ describe("Enterprise Hierarchy, Circular Loops, Entitlements & Marketplace Tests
       thrownError = e;
     }
     expect(thrownError).toBeDefined();
-    expect(thrownError!.message).toContain("Admin separation violation");
+    const msgC2 = `${thrownError!.message} ${thrownError!.cause?.message || ""}`;
+    expect(msgC2).toContain("Admin separation violation");
 
     // 3. Try to make a standard user report to an admin
     // Insert an admin with no manager/designation/vertical
@@ -232,7 +236,8 @@ describe("Enterprise Hierarchy, Circular Loops, Entitlements & Marketplace Tests
       thrownError = e;
     }
     expect(thrownError).toBeDefined();
-    expect(thrownError!.message).toContain("Admin separation violation");
+    const msgC3 = `${thrownError!.message} ${thrownError!.cause?.message || ""}`;
+    expect(msgC3).toContain("Admin separation violation");
 
     // Clean up
     await db.execute(sql`DELETE FROM users WHERE eid IN ('E_ADMIN_OK', 'E_ADMIN_FAIL_1', 'E_ADMIN_FAIL_2', 'E_USER_FAIL')`);

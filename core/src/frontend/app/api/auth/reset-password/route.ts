@@ -5,10 +5,18 @@ import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { getSession, encryptSession } from '@backend/auth/sessionManager';
 import { logEvent } from '@backend/utils/logger';
+import { isRateLimited } from '@backend/utils/rateLimiter';
 
 export async function POST(request: Request) {
   const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
-  
+
+  // Apply rate limiting: max 5 requests per minute per IP
+  const rateLimit = isRateLimited(ipAddress, 'reset-password', 5, 60000);
+  if (rateLimit.limited) {
+    await logEvent(null, 'Password Reset Failed', 'WARN', { reason: 'Rate limit exceeded' }, ipAddress);
+    return NextResponse.json({ error: 'Too many password reset attempts. Please try again later.' }, { status: 429 });
+  }
+
   try {
     // Verify session
     const session = await getSession(request as any);
@@ -24,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     // Hash the new password with bcryptjs
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
 
     // Update in database
     await db
@@ -54,7 +62,7 @@ export async function POST(request: Request) {
       maxAge: 3600,
       sameSite: 'lax',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
     });
 
     return response;
