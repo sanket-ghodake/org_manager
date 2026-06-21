@@ -191,5 +191,80 @@ describe("Middleware Authentication Guard Pipeline", () => {
     expect(response).toBeDefined();
     expect(response.status).toBe(200);
   });
+
+  test("Sliding Session: Does not renew cookie if token is fresh (e.g. 2h remaining)", async () => {
+    const freshUser = {
+      id: "fresh-123",
+      eid: "E8888",
+      email: "fresh@sgforge.com",
+      name: "Fresh User",
+      role: "user",
+      isPasswordChanged: true,
+    };
+    const freshJwt = await encryptSession(freshUser, "2h");
+
+    const mockRequest = {
+      url: "http://localhost:3000/dashboard",
+      nextUrl: {
+        pathname: "/dashboard",
+      },
+      headers: {
+        get: (name: string) => "127.0.0.1",
+      },
+      cookies: {
+        get: (name: string) => {
+          if (name === "session_token") return { value: freshJwt };
+          return null;
+        },
+      },
+    } as any;
+
+    const response = await middleware(mockRequest);
+    expect(response).toBeDefined();
+    expect(response.status).toBe(200);
+    
+    // Response should NOT contain a Set-Cookie header or cookie instructions for session_token
+    const setCookie = response.headers.get("Set-Cookie");
+    expect(setCookie).toBeNull();
+  });
+
+  test("Sliding Session: Renews cookie if token is near expiration (e.g. 10m remaining)", async () => {
+    const expiringUser = {
+      id: "expiring-123",
+      eid: "E7777",
+      email: "expiring@sgforge.com",
+      name: "Expiring User",
+      role: "user",
+      isPasswordChanged: true,
+    };
+    // Sign a token expiring in 10 minutes (which is < 1 hour / 50% remaining time)
+    const expiringJwt = await encryptSession(expiringUser, "10m");
+
+    const mockRequest = {
+      url: "http://localhost:3000/dashboard",
+      nextUrl: {
+        pathname: "/dashboard",
+      },
+      headers: {
+        get: (name: string) => "127.0.0.1",
+      },
+      cookies: {
+        get: (name: string) => {
+          if (name === "session_token") return { value: expiringJwt };
+          return null;
+        },
+      },
+    } as any;
+
+    const response = await middleware(mockRequest);
+    expect(response).toBeDefined();
+    expect(response.status).toBe(200);
+
+    // Response MUST contain a Set-Cookie header updating session_token
+    const cookiesList = response.cookies.getAll();
+    const renewedCookie = cookiesList.find(c => c.name === "session_token");
+    expect(renewedCookie).toBeDefined();
+    expect(renewedCookie?.value).not.toBe(expiringJwt);
+  });
 });
 

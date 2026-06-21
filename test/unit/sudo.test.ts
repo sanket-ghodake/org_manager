@@ -45,12 +45,20 @@ mock.module("@backend/auth/sessionManager", () => {
       
       return null;
     },
-    encryptSession: async (session: any) => {
+    encryptSession: async (session: any, expiresIn: string = '2h') => {
       return await new SignJWT({ ...session })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
-        .setExpirationTime('2h')
+        .setExpirationTime(expiresIn)
         .sign(JWT_SECRET);
+    },
+    decryptSessionWithExp: async (token: string) => {
+      const decrypted = await decryptSession(token);
+      if (!decrypted) return null;
+      return {
+        payload: decrypted as any,
+        exp: (decrypted as any).exp || 0
+      };
     }
   };
 });

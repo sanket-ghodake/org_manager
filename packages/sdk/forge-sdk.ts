@@ -32,6 +32,7 @@ export type AuthTokenListener = (payload: AuthTokenPayload) => void;
 export class ForgeClient {
   private themeListener: ThemeChangeListener | null = null;
   private authListener: AuthTokenListener | null = null;
+  private logoutListener: (() => void) | null = null;
   private parentOrigin: string;
 
   constructor() {
@@ -71,6 +72,16 @@ export class ForgeClient {
     this.authListener = listener;
     return () => {
       this.authListener = null;
+    };
+  }
+
+  /**
+   * Register a callback to listen for real-time user logout events.
+   */
+  public onLogout(listener: () => void): () => void {
+    this.logoutListener = listener;
+    return () => {
+      this.logoutListener = null;
     };
   }
 
@@ -119,6 +130,15 @@ export class ForgeClient {
             token: data.token,
             user: data.user
           });
+        }
+      }
+
+      if (data.type === 'FORGE_LOGOUT_EVENT') {
+        if (this.logoutListener) {
+          this.logoutListener();
+        } else {
+          // Default action: force reload to destroy state and trigger parent redirect
+          window.location.reload();
         }
       }
     });

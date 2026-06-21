@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { getSession, encryptSession } from "@backend/auth/sessionManager";
+import { getSession, encryptSession, decryptSessionWithExp } from "@backend/auth/sessionManager";
 
 describe("Stateless Session Manager", () => {
   test("Returns null if session_token cookie is missing", async () => {
@@ -53,6 +53,23 @@ describe("Stateless Session Manager", () => {
     const session = await getSession(mockRequest);
     expect(session).toBeDefined();
     expect(session).toMatchObject(expectedUser);
+  });
+
+  test("decryptSessionWithExp returns payload and valid exp timestamp", async () => {
+    const expectedUser = {
+      id: "xyz-789",
+      eid: "E9999",
+      email: "exp@sgforge.com",
+      name: "Expiry User",
+      role: "admin",
+      isPasswordChanged: true,
+    };
+    const jwtValue = await encryptSession(expectedUser);
+
+    const sessionData = await decryptSessionWithExp(jwtValue);
+    expect(sessionData).toBeDefined();
+    expect(sessionData?.payload).toMatchObject(expectedUser);
+    expect(sessionData?.exp).toBeGreaterThan(Math.floor(Date.now() / 1000));
   });
 });
 

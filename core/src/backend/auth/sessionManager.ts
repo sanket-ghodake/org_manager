@@ -17,13 +17,14 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'fallback-super-secret-key-that-is-at-least-32-characters-long'
 );
 
-export async function encryptSession(session: UserSession): Promise<string> {
+export async function encryptSession(session: UserSession, expiresIn: string = '2h'): Promise<string> {
   return await new SignJWT({ ...session })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('2h')
+    .setExpirationTime(expiresIn)
     .sign(JWT_SECRET);
 }
+
 
 export async function decryptSession(token: string): Promise<UserSession | null> {
   try {
@@ -35,6 +36,21 @@ export async function decryptSession(token: string): Promise<UserSession | null>
     return null;
   }
 }
+
+export async function decryptSessionWithExp(token: string): Promise<{ payload: UserSession; exp: number } | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET, {
+      algorithms: ['HS256'],
+    });
+    return {
+      payload: payload as unknown as UserSession,
+      exp: (payload as any).exp || 0,
+    };
+  } catch (error: any) {
+    return null;
+  }
+}
+
 
 export async function getSession(request: any): Promise<UserSession | null> {
   const tokenCookie = request.cookies.get('session_token');

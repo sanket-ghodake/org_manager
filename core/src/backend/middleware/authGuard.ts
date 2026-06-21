@@ -1,7 +1,7 @@
 // src/backend/middleware/authGuard.ts
 import { NextResponse } from 'next/server';
 
-import { getSession } from '@backend/auth/sessionManager';
+import { getSession, decryptSessionWithExp, encryptSession, UserSession } from '@backend/auth/sessionManager';
 
 export async function middleware(request: any, event?: any) {
   const path = request.nextUrl.pathname;
@@ -59,7 +59,33 @@ export async function middleware(request: any, event?: any) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 3. Enforce password reset guard
+  // 3. Sliding Session Token Auto-Renewal check
+  let renewedToken: string | null = null;
+  const tokenCookie = request.cookies.get('session_token');
+  if (tokenCookie) {
+    const sessionData = await decryptSessionWithExp(tokenCookie.value);
+    if (sessionData) {
+      const { payload, exp } = sessionData;
+      const now = Math.floor(Date.now() / 1000);
+      const timeRemaining = exp - now;
+      
+      // If remaining time is less than 50% (3600 seconds of a 2 hour expiration), renew it
+      if (timeRemaining > 0 && timeRemaining < 3600) {
+        const freshPayload: UserSession = {
+          id: payload.id,
+          eid: payload.eid,
+          email: payload.email,
+          name: payload.name,
+          role: payload.role,
+          isPasswordChanged: payload.isPasswordChanged,
+        };
+        renewedToken = await encryptSession(freshPayload);
+      }
+    }
+  }
+
+  // 4. Enforce password reset guard
+  let response: NextResponse;
   if (session.isPasswordChanged === false) {
     // Allow access ONLY to force-reset pages/APIs and logs
     const isAllowedResetPath = path === '/force-reset' || 
@@ -95,17 +121,32 @@ export async function middleware(request: any, event?: any) {
       }
 
       if (path.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Forced password reset required' }, { status: 403 });
+        response = NextResponse.json({ error: 'Forced password reset required' }, { status: 403 });
+      } else {
+        response = NextResponse.redirect(new URL('/force-reset', request.url));
       }
-      return NextResponse.redirect(new URL('/force-reset', request.url));
+    } else {
+      response = NextResponse.next();
     }
   } else {
     // If password is already changed, prevent accessing force-reset page
     if (path === '/force-reset') {
-      return NextResponse.redirect(new URL('/', request.url));
+      response = NextResponse.redirect(new URL('/', request.url));
+    } else {
+      response = NextResponse.next();
     }
   }
 
-  return NextResponse.next();
+  if (renewedToken) {
+    response.cookies.set('session_token', renewedToken, {
+      path: '/',
+      maxAge: 3600,
+      sameSite: 'lax',
+      httpOnly: true,
+      secure: true,
+    });
+  }
+
+  return response;
 }
 
