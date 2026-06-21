@@ -18991,20 +18991,33 @@ var __iconNode20 = [
   ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
 var ShieldCheck = createLucideIcon("shield-check", __iconNode20);
-// node_modules/lucide-react/dist/esm/icons/terminal.mjs
+// node_modules/lucide-react/dist/esm/icons/square.mjs
 var __iconNode21 = [
+  ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }]
+];
+var Square = createLucideIcon("square", __iconNode21);
+// node_modules/lucide-react/dist/esm/icons/table.mjs
+var __iconNode22 = [
+  ["path", { d: "M12 3v18", key: "108xh3" }],
+  ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
+  ["path", { d: "M3 9h18", key: "1pudct" }],
+  ["path", { d: "M3 15h18", key: "5xshup" }]
+];
+var Table = createLucideIcon("table", __iconNode22);
+// node_modules/lucide-react/dist/esm/icons/terminal.mjs
+var __iconNode23 = [
   ["path", { d: "M12 19h8", key: "baeox8" }],
   ["path", { d: "m4 17 6-6-6-6", key: "1yngyt" }]
 ];
-var Terminal = createLucideIcon("terminal", __iconNode21);
+var Terminal = createLucideIcon("terminal", __iconNode23);
 // node_modules/lucide-react/dist/esm/icons/x.mjs
-var __iconNode22 = [
+var __iconNode24 = [
   ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
   ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
 ];
-var X = createLucideIcon("x", __iconNode22);
+var X = createLucideIcon("x", __iconNode24);
 // node_modules/lucide-react/dist/esm/icons/zap.mjs
-var __iconNode23 = [
+var __iconNode25 = [
   [
     "path",
     {
@@ -19013,7 +19026,7 @@ var __iconNode23 = [
     }
   ]
 ];
-var Zap = createLucideIcon("zap", __iconNode23);
+var Zap = createLucideIcon("zap", __iconNode25);
 // node_modules/recharts/es6/component/Tooltip.js
 var React10 = __toESM(require_react(), 1);
 var import_react22 = __toESM(require_react(), 1);
@@ -40274,6 +40287,9 @@ function App() {
   const [microserviceLogs, setMicroserviceLogs] = import_react50.useState({});
   const [fetchingLogsSlug, setFetchingLogsSlug] = import_react50.useState(null);
   const [actionLoadingSlug, setActionLoadingSlug] = import_react50.useState(null);
+  const [autoPollLogs, setAutoPollLogs] = import_react50.useState({});
+  const [appLogSearchMap, setAppLogSearchMap] = import_react50.useState({});
+  const [terminalFontSizeMap, setTerminalFontSizeMap] = import_react50.useState({});
   const [columnWidths, setColumnWidths] = import_react50.useState({
     name: 180,
     slug: 140,
@@ -40300,6 +40316,16 @@ function App() {
   const [queryError, setQueryError] = import_react50.useState("");
   const [queryLoading, setQueryLoading] = import_react50.useState(false);
   const [fullscreenResults, setFullscreenResults] = import_react50.useState(false);
+  const [dbSchemas, setDbSchemas] = import_react50.useState([]);
+  const [dbDatabases, setDbDatabases] = import_react50.useState([]);
+  const [dbTriggers, setDbTriggers] = import_react50.useState([]);
+  const [dbUsername, setDbUsername] = import_react50.useState("");
+  const [dbPassword, setDbPassword] = import_react50.useState("");
+  const [isDbElevated, setIsDbElevated] = import_react50.useState(false);
+  const [dbDatabasesExpanded, setDbDatabasesExpanded] = import_react50.useState(true);
+  const [dbSchemasExpanded, setDbSchemasExpanded] = import_react50.useState(true);
+  const [dbTablesExpanded, setDbTablesExpanded] = import_react50.useState(true);
+  const [dbTriggersExpanded, setDbTriggersExpanded] = import_react50.useState(true);
   const [logs, setLogs] = import_react50.useState([]);
   const [logsSearch, setLogsSearch] = import_react50.useState("");
   const [logsSeverity, setLogsSeverity] = import_react50.useState("ALL");
@@ -40421,6 +40447,16 @@ function App() {
     }, parseInt(logsAutoPoll, 10));
     return () => clearInterval(interval);
   }, [isAuthenticated, logsAutoPoll, activeTab, logsSearch, logsSeverity, logsSource]);
+  import_react50.useEffect(() => {
+    if (!isAuthenticated || !expandedAppRow)
+      return;
+    if (!autoPollLogs[expandedAppRow])
+      return;
+    const interval = setInterval(() => {
+      fetchMicroserviceLogs(expandedAppRow);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, expandedAppRow, autoPollLogs]);
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -40482,6 +40518,9 @@ function App() {
       if (res.status === 200) {
         const data = await res.json();
         setDbTables(data.tables || []);
+        setDbSchemas(data.schemas || []);
+        setDbDatabases(data.databases || []);
+        setDbTriggers(data.triggers || []);
       }
     } catch (e) {
       console.error(e);
@@ -40505,7 +40544,11 @@ function App() {
       const res = await fetch("/api/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: queryText })
+        body: JSON.stringify({
+          query: queryText,
+          dbUser: dbUsername || undefined,
+          dbPassword: dbPassword || undefined
+        })
       });
       const data = await res.json();
       if (res.status === 200) {
@@ -41555,26 +41598,204 @@ function App() {
               ]
             }, undefined, true, undefined, this),
             /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-              className: "flex flex-col gap-2",
+              className: "flex flex-col gap-4 text-xs",
               children: [
-                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
-                  className: "text-[10px] text-textMuted font-bold uppercase",
-                  children: "System Tables"
-                }, undefined, false, undefined, this),
-                dbTables.map((tbl) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                  onClick: () => selectExplorerTable(tbl.name),
-                  className: `flex justify-between items-center p-2.5 rounded-lg text-xs cursor-pointer font-mono truncate transition-all ${selectedTable === tbl.name ? "border border-primary bg-primaryGlow text-primary-hover font-semibold" : "border border-transparent hover:bg-sidebarHover text-textMuted"}`,
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex flex-col gap-1",
                   children: [
-                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
-                      className: "truncate",
-                      children: tbl.name
-                    }, undefined, false, undefined, this),
-                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
-                      className: "text-[10px] bg-statusPillBg border border-borderColor px-1.5 py-0.5 rounded text-textMuted font-sans",
-                      children: tbl.rows
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                      onClick: () => setDbDatabasesExpanded(!dbDatabasesExpanded),
+                      className: "flex justify-between items-center text-[10px] text-textMuted font-bold uppercase tracking-wider hover:text-white transition-colors py-1 text-left w-full border-b border-borderColor/20 mb-1",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          children: [
+                            "Databases (",
+                            dbDatabases.length,
+                            ")"
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV(ChevronDown, {
+                          size: 12,
+                          className: `transform transition-transform ${dbDatabasesExpanded ? "" : "-rotate-90"}`
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    dbDatabasesExpanded && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex flex-col gap-0.5 pl-1 ml-1",
+                      children: dbDatabases.map((dbItem) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                        className: "group flex items-center gap-2 p-1.5 rounded-md hover:bg-sidebarHover/60 text-textMuted hover:text-white cursor-default transition-all font-mono text-[11px]",
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Database, {
+                            size: 12,
+                            className: "text-purple-400 group-hover:text-purple-300"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                            className: "truncate",
+                            children: dbItem.datname
+                          }, undefined, false, undefined, this)
+                        ]
+                      }, dbItem.datname, true, undefined, this))
                     }, undefined, false, undefined, this)
                   ]
-                }, tbl.name, true, undefined, this))
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex flex-col gap-1",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                      onClick: () => setDbSchemasExpanded(!dbSchemasExpanded),
+                      className: "flex justify-between items-center text-[10px] text-textMuted font-bold uppercase tracking-wider hover:text-white transition-colors py-1 text-left w-full border-b border-borderColor/20 mb-1",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          children: [
+                            "Schemas (",
+                            dbSchemas.length,
+                            ")"
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV(ChevronDown, {
+                          size: 12,
+                          className: `transform transition-transform ${dbSchemasExpanded ? "" : "-rotate-90"}`
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    dbSchemasExpanded && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex flex-col gap-0.5 pl-1 ml-1",
+                      children: dbSchemas.map((sch) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                        className: "group flex items-center gap-2 p-1.5 rounded-md hover:bg-sidebarHover/60 text-textMuted hover:text-white cursor-default transition-all font-mono text-[11px]",
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Folder, {
+                            size: 12,
+                            className: "text-amber-400 group-hover:text-amber-300"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                            className: "truncate",
+                            children: sch.schema_name
+                          }, undefined, false, undefined, this)
+                        ]
+                      }, sch.schema_name, true, undefined, this))
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex flex-col gap-1",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                      onClick: () => setDbTablesExpanded(!dbTablesExpanded),
+                      className: "flex justify-between items-center text-[10px] text-textMuted font-bold uppercase tracking-wider hover:text-white transition-colors py-1 text-left w-full border-b border-borderColor/20 mb-1",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          children: [
+                            "Tables (",
+                            dbTables.length,
+                            ")"
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV(ChevronDown, {
+                          size: 12,
+                          className: `transform transition-transform ${dbTablesExpanded ? "" : "-rotate-90"}`
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    dbTablesExpanded && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex flex-col gap-0.5 pl-1 ml-1 max-h-[220px] overflow-y-auto",
+                      children: dbTables.map((tbl) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                        onClick: () => selectExplorerTable(tbl.name),
+                        className: `group flex justify-between items-center p-1.5 rounded-md cursor-pointer font-mono text-[11px] transition-all ${selectedTable === tbl.name ? "bg-primaryGlow text-primary-hover font-semibold" : "hover:bg-sidebarHover text-textMuted hover:text-white"}`,
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                            className: "flex items-center gap-2 truncate",
+                            children: [
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Table, {
+                                size: 12,
+                                className: `${selectedTable === tbl.name ? "text-primary-hover" : "text-blue-400 group-hover:text-blue-300"}`
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                className: "truncate",
+                                children: tbl.name
+                              }, undefined, false, undefined, this)
+                            ]
+                          }, undefined, true, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                            className: "text-[9px] bg-statusPillBg border border-borderColor px-1 py-0.2 rounded text-textMuted shrink-0 font-sans",
+                            children: tbl.rows
+                          }, undefined, false, undefined, this)
+                        ]
+                      }, tbl.name, true, undefined, this))
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex flex-col gap-1",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                      onClick: () => setDbTriggersExpanded(!dbTriggersExpanded),
+                      className: "flex justify-between items-center text-[10px] text-textMuted font-bold uppercase tracking-wider hover:text-white transition-colors py-1 text-left w-full border-b border-borderColor/20 mb-1",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          children: [
+                            "Triggers (",
+                            dbTriggers.length,
+                            ")"
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV(ChevronDown, {
+                          size: 12,
+                          className: `transform transition-transform ${dbTriggersExpanded ? "" : "-rotate-90"}`
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    dbTriggersExpanded && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex flex-col gap-0.5 pl-1 ml-1 max-h-[180px] overflow-y-auto",
+                      children: dbTriggers.map((trg, i) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                        onClick: () => {
+                          setSelectedTable("");
+                          setSelectedTableSchema([]);
+                          setQueryText(trg.trigger_definition);
+                          setQueryResult({
+                            rows: [{
+                              "Trigger Name": trg.trigger_name,
+                              "Table Name": trg.table_name,
+                              "SQL Definition": trg.trigger_definition
+                            }],
+                            rowCount: 1
+                          });
+                        },
+                        className: "group flex flex-col gap-1 p-1.5 rounded-md hover:bg-sidebarHover/60 cursor-pointer transition-all text-[11px]",
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                            className: "flex items-center gap-2 text-textMuted hover:text-white truncate",
+                            children: [
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Zap, {
+                                size: 12,
+                                className: "text-emerald-400 group-hover:text-emerald-300"
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                className: "font-mono truncate",
+                                title: trg.trigger_name,
+                                children: trg.trigger_name
+                              }, undefined, false, undefined, this)
+                            ]
+                          }, undefined, true, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                            className: "flex items-center justify-between text-[9px] text-textMuted/60 pl-5",
+                            children: [
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                children: [
+                                  "on ",
+                                  trg.table_name
+                                ]
+                              }, undefined, true, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                className: "text-[8px] bg-emerald-500/10 border border-emerald-500/20 px-1 py-0.2 rounded text-emerald-400 font-sans uppercase",
+                                children: "active"
+                              }, undefined, false, undefined, this)
+                            ]
+                          }, undefined, true, undefined, this)
+                        ]
+                      }, i, true, undefined, this))
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this)
               ]
             }, undefined, true, undefined, this),
             selectedTable && selectedTableSchema.length > 0 && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
@@ -41673,6 +41894,63 @@ function App() {
                   onChange: (e) => setQueryText(e.target.value),
                   className: "bg-bgTextarea text-white border border-borderColor rounded-lg p-4 font-mono text-xs w-full min-h-[100px] max-h-[300px] resize-y outline-none focus:border-primary",
                   placeholder: "SELECT * FROM users LIMIT 10;"
+                }, undefined, false, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "bg-bgMain border border-borderColor/60 rounded-xl p-4 flex flex-col gap-3 shadow-inner animate-fadeIn",
+                  children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                    className: "flex flex-col md:flex-row md:items-center justify-between gap-4",
+                    children: [
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                        className: "flex items-start gap-2.5",
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                            className: `p-2 rounded-lg shrink-0 ${isDbElevated ? "bg-emerald-500/10 border border-emerald-500/20" : "bg-amber-500/10 border border-amber-500/20"}`,
+                            children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(ShieldAlert, {
+                              size: 18,
+                              className: isDbElevated ? "text-emerald-400 animate-pulse" : "text-amber-400"
+                            }, undefined, false, undefined, this)
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                            children: [
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                className: "text-xs font-bold text-white block mb-0.5",
+                                children: "Database Write Elevation"
+                              }, undefined, false, undefined, this),
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                className: "text-[10px] text-textMuted block max-w-lg leading-relaxed",
+                                children: isDbElevated ? "Elevated credentials active. You now have write authorization to run INSERT, UPDATE, DELETE, or schema modifications." : "Enforced to Read-Only mode. Enter database connection credentials to authorize write operations."
+                              }, undefined, false, undefined, this)
+                            ]
+                          }, undefined, true, undefined, this)
+                        ]
+                      }, undefined, true, undefined, this),
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                        className: "flex items-center gap-2",
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("input", {
+                            type: "text",
+                            placeholder: "DB Username",
+                            value: dbUsername,
+                            onChange: (e) => {
+                              setDbUsername(e.target.value);
+                              setIsDbElevated(!!(e.target.value && dbPassword));
+                            },
+                            className: "bg-bgTextarea border border-borderColor hover:border-borderColor/80 focus:border-purple-500 text-white text-xs px-3 py-2 rounded-lg outline-none w-32 font-mono transition-colors font-sans"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("input", {
+                            type: "password",
+                            placeholder: "DB Password",
+                            value: dbPassword,
+                            onChange: (e) => {
+                              setDbPassword(e.target.value);
+                              setIsDbElevated(!!(dbUsername && e.target.value));
+                            },
+                            className: "bg-bgTextarea border border-borderColor hover:border-borderColor/80 focus:border-purple-500 text-white text-xs px-3 py-2 rounded-lg outline-none w-32 font-mono transition-colors font-sans"
+                          }, undefined, false, undefined, this)
+                        ]
+                      }, undefined, true, undefined, this)
+                    ]
+                  }, undefined, true, undefined, this)
                 }, undefined, false, undefined, this),
                 /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
                   className: "flex justify-start",
@@ -41800,6 +42078,26 @@ function App() {
         const match = urlStr.match(/:(\d+)/);
         return match ? match[1] : "80";
       }
+    };
+    const formatLogLine = (line) => {
+      if (!line.trim())
+        return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "min-h-[14px]"
+        }, undefined, false, undefined, this);
+      let lineClass = "text-zinc-300";
+      if (line.toLowerCase().includes("error") || line.toLowerCase().includes("fail") || line.toLowerCase().includes("critical") || line.includes("[ERROR]")) {
+        lineClass = "text-red-400 font-semibold";
+      } else if (line.toLowerCase().includes("warn") || line.includes("[WARN]")) {
+        lineClass = "text-amber-400 font-semibold";
+      } else if (line.toLowerCase().includes("info") || line.includes("[INFO]")) {
+        lineClass = "text-emerald-400";
+      } else if (line.toLowerCase().includes("listening on") || line.includes("http://")) {
+        lineClass = "text-cyan-400 font-semibold";
+      }
+      return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+        className: `${lineClass} whitespace-pre-wrap break-all py-0.5 border-b border-zinc-900/30 hover:bg-zinc-900/50`,
+        children: line
+      }, undefined, false, undefined, this);
     };
     const ecosystem = telemetry.ecosystem || { apps: [], buffer: [], logs: [] };
     const buffer = ecosystem.buffer || [];
@@ -42093,6 +42391,135 @@ function App() {
             ]
           }, i, true, undefined, this))
         }, undefined, false, undefined, this),
+        ecosystem.mainContainerInfo && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "bg-gradient-to-r from-purple-950/20 to-indigo-950/20 border border-purple-500/20 rounded-xl p-5 shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none"
+            }, undefined, false, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "flex items-start gap-4",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-purple-400",
+                  children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Cpu, {
+                    size: 24
+                  }, undefined, false, undefined, this)
+                }, undefined, false, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex flex-wrap items-center gap-2.5",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h3", {
+                          className: "text-sm font-extrabold text-white tracking-tight flex items-center gap-1.5",
+                          children: "Main Portal Application Runner"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          className: "bg-purple-500/10 border border-purple-500/30 text-purple-300 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wide",
+                          children: "Platform Host"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                          className: "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider flex items-center gap-1",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"
+                            }, undefined, false, undefined, this),
+                            "Online"
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                      className: "text-xs text-textMuted mt-1 leading-relaxed",
+                      children: "Active environment running the SG Forge developer administration services & API portal gateways."
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex flex-wrap gap-x-6 gap-y-1.5 mt-3 text-[11px] font-mono text-textMuted",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          children: [
+                            "Container ID: ",
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "text-white font-semibold select-all",
+                              children: ecosystem.mainContainerInfo.id.substring(0, 12)
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          children: [
+                            "Docker Image: ",
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "text-white font-semibold",
+                              children: ecosystem.mainContainerInfo.image
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          children: [
+                            "Port Bindings: ",
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "text-white font-semibold",
+                              children: ecosystem.mainContainerInfo.ports || "3001-3003"
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this)
+                  ]
+                }, undefined, true, undefined, this)
+              ]
+            }, undefined, true, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "flex flex-col sm:flex-row items-stretch sm:items-center gap-4 lg:self-center shrink-0",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "border border-borderColor/60 bg-zinc-900/60 rounded-xl p-3 flex flex-col justify-center min-w-[110px] font-mono text-center",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                      className: "text-[9px] text-textMuted uppercase tracking-wider font-semibold",
+                      children: "Daemon Mode"
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                      className: "text-xs text-purple-400 font-bold mt-1",
+                      children: "Multi-Tenant (Dev)"
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "border border-borderColor/60 bg-zinc-900/60 rounded-xl p-3 flex flex-col justify-center min-w-[120px] font-mono text-center",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                      className: "text-[9px] text-textMuted uppercase tracking-wider font-semibold",
+                      children: "Instance Created"
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                      className: "text-[10px] text-white font-semibold mt-1 truncate",
+                      title: ecosystem.mainContainerInfo.createdAt,
+                      children: ecosystem.mainContainerInfo.createdAt.includes("(") ? ecosystem.mainContainerInfo.createdAt.split("(")[0] : ecosystem.mainContainerInfo.createdAt
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                  onClick: () => {
+                    const name = ecosystem.mainContainerInfo.name;
+                    setSelectedAppSlug(name);
+                    setExpandedAppRow(name);
+                    fetchMicroserviceLogs(name);
+                    setAutoPollLogs((prev) => ({ ...prev, [name]: true }));
+                  },
+                  className: "bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-3 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-lg shadow-purple-900/30 shrink-0 border border-purple-400/20",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Terminal, {
+                      size: 14
+                    }, undefined, false, undefined, this),
+                    "Logs & Control"
+                  ]
+                }, undefined, true, undefined, this)
+              ]
+            }, undefined, true, undefined, this)
+          ]
+        }, undefined, true, undefined, this),
         /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
           className: "bg-bgCard border border-borderColor rounded-xl flex flex-col overflow-hidden shadow-lg",
           children: [
@@ -42158,217 +42585,54 @@ function App() {
                       const isOffline = app.status === "offline";
                       const isExpanded = expandedAppRow === app.slug;
                       return /* @__PURE__ */ jsx_dev_runtime.jsxDEV(import_react50.default.Fragment, {
-                        children: [
-                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
-                            onClick: () => {
-                              setSelectedAppSlug(app.slug);
-                              const nextExpanded = isExpanded ? null : app.slug;
-                              setExpandedAppRow(nextExpanded);
-                              if (nextExpanded) {
-                                fetchMicroserviceLogs(app.slug);
-                              }
-                            },
-                            className: `border-b border-borderColor cursor-pointer transition-colors ${isSelected ? "bg-primaryGlow/20 hover:bg-primaryGlow/30" : "hover:bg-sidebarHover/50"}`,
-                            children: [
-                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
-                                className: `px-4 font-semibold text-white ${isCompactRow ? "py-1.5 text-xs" : "py-3.5 text-xs"}`,
-                                children: app.name
-                              }, undefined, false, undefined, this),
-                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
-                                className: "px-4 font-mono text-textMuted text-xs",
-                                children: app.slug
-                              }, undefined, false, undefined, this),
-                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
-                                className: "px-4 text-xs",
-                                children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
-                                  className: `inline-flex items-center gap-1.5 font-bold px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide ${isOffline ? "bg-red-500/10 text-red-400 border border-red-500/20" : isDegraded ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"}`,
-                                  children: [
-                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
-                                      className: `w-1.5 h-1.5 rounded-full ${isOffline ? "bg-red-400" : isDegraded ? "bg-amber-400 animate-pulse" : "bg-emerald-400 animate-ping"}`
-                                    }, undefined, false, undefined, this),
-                                    isOffline ? "Offline" : isDegraded ? "Degraded" : "Active"
-                                  ]
-                                }, undefined, true, undefined, this)
-                              }, undefined, false, undefined, this),
-                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
-                                className: "px-4 font-mono text-textMuted text-xs",
-                                children: app.entryUrl ? getPortFromUrl(app.entryUrl) : "---"
-                              }, undefined, false, undefined, this),
-                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
-                                className: "px-4 font-mono text-textMuted text-xs",
-                                children: isOffline ? "---" : app.lastSeen ? "99.98% (Online)" : "99.9% (Online)"
-                              }, undefined, false, undefined, this),
-                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
-                                className: "px-4 text-xs",
-                                children: renderSparkline(app, "cpu")
-                              }, undefined, false, undefined, this),
-                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
-                                className: "px-4 text-xs",
-                                children: renderSparkline(app, "mem")
-                              }, undefined, false, undefined, this)
-                            ]
-                          }, undefined, true, undefined, this),
-                          isExpanded && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
-                            className: "bg-bgMain/60",
-                            children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
-                              colSpan: 7,
-                              className: "px-5 py-4 border-b border-borderColor text-xs text-textMuted",
-                              children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                className: "grid grid-cols-1 md:grid-cols-4 gap-6",
+                        children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                          onClick: () => {
+                            setSelectedAppSlug(app.slug);
+                            setExpandedAppRow(app.slug);
+                            fetchMicroserviceLogs(app.slug);
+                            setAutoPollLogs((prev) => ({ ...prev, [app.slug]: true }));
+                          },
+                          className: `border-b border-borderColor cursor-pointer transition-colors ${isSelected ? "bg-primaryGlow/20 hover:bg-primaryGlow/30" : "hover:bg-sidebarHover/50"}`,
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                              className: `px-4 font-semibold text-white ${isCompactRow ? "py-1.5 text-xs" : "py-3.5 text-xs"}`,
+                              children: app.name
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                              className: "px-4 font-mono text-textMuted text-xs",
+                              children: app.slug
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                              className: "px-4 text-xs",
+                              children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                className: `inline-flex items-center gap-1.5 font-bold px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide ${isOffline ? "bg-red-500/10 text-red-400 border border-red-500/20" : isDegraded ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"}`,
                                 children: [
-                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                    children: [
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
-                                        className: "text-[10px] uppercase font-bold text-white mb-2 tracking-wider",
-                                        children: "Internal Configuration"
-                                      }, undefined, false, undefined, this),
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                        className: "flex flex-col gap-1.5 font-mono text-[11px]",
-                                        children: [
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                            children: [
-                                              "Entry Endpoint: ",
-                                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("a", {
-                                                href: app.entryUrl,
-                                                target: "_blank",
-                                                rel: "noreferrer",
-                                                className: "text-primary hover:underline",
-                                                children: app.entryUrl || "N/A"
-                                              }, undefined, false, undefined, this)
-                                            ]
-                                          }, undefined, true, undefined, this),
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                            children: [
-                                              "Slug: ",
-                                              app.slug
-                                            ]
-                                          }, undefined, true, undefined, this),
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                            children: [
-                                              "Docker Label: ",
-                                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
-                                                className: "text-white",
-                                                children: [
-                                                  "sandbox-app-",
-                                                  app.slug
-                                                ]
-                                              }, undefined, true, undefined, this)
-                                            ]
-                                          }, undefined, true, undefined, this),
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                            children: [
-                                              "Virtual IP: 172.18.0.",
-                                              app.slug.charCodeAt(0) % 254
-                                            ]
-                                          }, undefined, true, undefined, this)
-                                        ]
-                                      }, undefined, true, undefined, this)
-                                    ]
-                                  }, undefined, true, undefined, this),
-                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                    children: [
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
-                                        className: "text-[10px] uppercase font-bold text-white mb-2 tracking-wider",
-                                        children: "Security & Routing"
-                                      }, undefined, false, undefined, this),
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                        className: "flex flex-col gap-1.5 text-[11px] leading-relaxed",
-                                        children: [
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                            children: [
-                                              "Hostname: ",
-                                              app.slug,
-                                              ".local-sandbox.io"
-                                            ]
-                                          }, undefined, true, undefined, this),
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                            children: "PII scrubbing active. Auth headers omitted from stream buffer."
-                                          }, undefined, false, undefined, this)
-                                        ]
-                                      }, undefined, true, undefined, this)
-                                    ]
-                                  }, undefined, true, undefined, this),
-                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                    children: [
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
-                                        className: "text-[10px] uppercase font-bold text-white mb-2 tracking-wider",
-                                        children: "Lifecycle Operations"
-                                      }, undefined, false, undefined, this),
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                        className: "flex flex-wrap gap-2 mt-2",
-                                        children: [
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
-                                            disabled: actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false,
-                                            onClick: (e) => {
-                                              e.stopPropagation();
-                                              handleMicroserviceAction(app.slug, "start");
-                                            },
-                                            className: `px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status === "offline" ? "bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer" : "bg-zinc-800 text-zinc-600 cursor-not-allowed"}`,
-                                            children: "Start"
-                                          }, undefined, false, undefined, this),
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
-                                            disabled: actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false,
-                                            onClick: (e) => {
-                                              e.stopPropagation();
-                                              handleMicroserviceAction(app.slug, "stop");
-                                            },
-                                            className: `px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status !== "offline" ? "bg-red-600 hover:bg-red-500 text-white cursor-pointer" : "bg-zinc-800 text-zinc-600 cursor-not-allowed"}`,
-                                            children: "Stop"
-                                          }, undefined, false, undefined, this),
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
-                                            disabled: actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false,
-                                            onClick: (e) => {
-                                              e.stopPropagation();
-                                              handleMicroserviceAction(app.slug, "restart");
-                                            },
-                                            className: `px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status !== "offline" ? "bg-amber-600 hover:bg-amber-500 text-white cursor-pointer" : "bg-zinc-800 text-zinc-600 cursor-not-allowed"}`,
-                                            children: "Restart"
-                                          }, undefined, false, undefined, this)
-                                        ]
-                                      }, undefined, true, undefined, this),
-                                      app.isIsolatedLifecycle === false && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
-                                        className: "text-[9px] text-amber-400 block mt-1.5 font-bold uppercase tracking-wider",
-                                        children: "Natively Integrated (Portal Managed)"
-                                      }, undefined, false, undefined, this),
-                                      actionLoadingSlug === app.slug && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
-                                        className: "text-[10px] text-primary animate-pulse block mt-1.5 font-bold",
-                                        children: "Applying action..."
-                                      }, undefined, false, undefined, this)
-                                    ]
-                                  }, undefined, true, undefined, this),
-                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                    className: "flex flex-col gap-2 min-h-[120px]",
-                                    children: [
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                        className: "flex justify-between items-center",
-                                        children: [
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
-                                            className: "text-[10px] uppercase font-bold text-white tracking-wider",
-                                            children: "Console Output Logs"
-                                          }, undefined, false, undefined, this),
-                                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
-                                            disabled: fetchingLogsSlug === app.slug,
-                                            onClick: (e) => {
-                                              e.stopPropagation();
-                                              fetchMicroserviceLogs(app.slug);
-                                            },
-                                            className: "px-2 py-0.5 border border-borderColor hover:border-primary bg-bgMain hover:text-white rounded text-[9px] font-bold cursor-pointer transition-colors",
-                                            children: fetchingLogsSlug === app.slug ? "Fetching..." : "Refresh Logs"
-                                          }, undefined, false, undefined, this)
-                                        ]
-                                      }, undefined, true, undefined, this),
-                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
-                                        className: "bg-zinc-950 p-2 font-mono text-[9px] text-zinc-400 rounded border border-borderColor overflow-auto h-28 max-w-full leading-normal whitespace-pre",
-                                        children: microserviceLogs[app.slug] || "No logs fetched yet."
-                                      }, undefined, false, undefined, this)
-                                    ]
-                                  }, undefined, true, undefined, this)
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: `w-1.5 h-1.5 rounded-full ${isOffline ? "bg-red-400" : isDegraded ? "bg-amber-400 animate-pulse" : "bg-emerald-400 animate-ping"}`
+                                  }, undefined, false, undefined, this),
+                                  isOffline ? "Offline" : isDegraded ? "Degraded" : "Active"
                                 ]
                               }, undefined, true, undefined, this)
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                              className: "px-4 font-mono text-textMuted text-xs",
+                              children: app.entryUrl ? getPortFromUrl(app.entryUrl) : "---"
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                              className: "px-4 font-mono text-textMuted text-xs",
+                              children: isOffline ? "---" : app.lastSeen ? "99.98% (Online)" : "99.9% (Online)"
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                              className: "px-4 text-xs",
+                              children: renderSparkline(app, "cpu")
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                              className: "px-4 text-xs",
+                              children: renderSparkline(app, "mem")
                             }, undefined, false, undefined, this)
-                          }, undefined, false, undefined, this)
-                        ]
-                      }, app.slug, true, undefined, this);
+                          ]
+                        }, undefined, true, undefined, this)
+                      }, app.slug, false, undefined, this);
                     })
                   }, undefined, false, undefined, this)
                 ]
@@ -42956,7 +43220,577 @@ function App() {
               ]
             }, undefined, true, undefined, this)
           ]
-        }, undefined, true, undefined, this)
+        }, undefined, true, undefined, this),
+        expandedAppRow && (() => {
+          let app = apps.find((a2) => a2.slug === expandedAppRow);
+          if (!app && ecosystem.mainContainerInfo && expandedAppRow === ecosystem.mainContainerInfo.name) {
+            app = {
+              name: "Main Portal Application Runner",
+              slug: ecosystem.mainContainerInfo.name,
+              status: "active",
+              isIsolatedLifecycle: true,
+              dockerInfo: ecosystem.mainContainerInfo,
+              cpu: 0,
+              mem: 0,
+              cpuHistory: Array(12).fill(0),
+              memHistory: Array(12).fill(0)
+            };
+          }
+          if (!app)
+            return null;
+          const isOffline = app.status === "offline";
+          const isDegraded = app.status === "degraded";
+          return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+            className: "fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-zinc-950/85 backdrop-blur-md animate-fadeIn",
+            onClick: () => setExpandedAppRow(null),
+            children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "bg-bgCard border border-borderColor rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl overflow-hidden",
+              onClick: (e) => e.stopPropagation(),
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "px-6 py-4 border-b border-borderColor flex justify-between items-center bg-bgTh",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex items-center gap-3",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "p-2 bg-primaryGlow/10 rounded-lg text-primary",
+                          children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Cpu, {
+                            size: 18
+                          }, undefined, false, undefined, this)
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              className: "flex items-center gap-2",
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h3", {
+                                  className: "text-base font-extrabold text-white",
+                                  children: app.name
+                                }, undefined, false, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: `inline-flex items-center gap-1.5 font-bold px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide ${isOffline ? "bg-red-500/10 text-red-400 border border-red-500/20" : isDegraded ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"}`,
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: `w-1.5 h-1.5 rounded-full ${isOffline ? "bg-red-400" : isDegraded ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`
+                                    }, undefined, false, undefined, this),
+                                    isOffline ? "Offline" : isDegraded ? "Degraded" : "Active"
+                                  ]
+                                }, undefined, true, undefined, this)
+                              ]
+                            }, undefined, true, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                              className: "text-[11px] text-textMuted mt-0.5 font-mono",
+                              children: [
+                                "Service Slug: ",
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: "text-white",
+                                  children: app.slug
+                                }, undefined, false, undefined, this)
+                              ]
+                            }, undefined, true, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                      onClick: () => setExpandedAppRow(null),
+                      className: "text-textMuted hover:text-white p-1.5 hover:bg-sidebarHover rounded-xl transition-colors border border-transparent hover:border-borderColor",
+                      children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(X, {
+                        size: 18
+                      }, undefined, false, undefined, this)
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex-grow p-6 overflow-y-auto min-h-0 flex flex-col gap-6 bg-radial bg-bgMain",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "grid grid-cols-1 md:grid-cols-3 gap-6",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "bg-bgCard border border-borderColor/60 rounded-xl p-4 shadow-sm",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                              className: "text-[11px] uppercase font-extrabold text-white mb-3 tracking-wider flex items-center gap-2",
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Server, {
+                                  size: 14,
+                                  className: "text-primary"
+                                }, undefined, false, undefined, this),
+                                "Infrastructure & Host Machine"
+                              ]
+                            }, undefined, true, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              className: "flex flex-col gap-2 font-mono text-[11px]",
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                  className: "flex justify-between border-b border-borderColor/30 pb-1.5",
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-textMuted font-semibold",
+                                      children: "Machine Hostname:"
+                                    }, undefined, false, undefined, this),
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-white font-semibold",
+                                      children: ecosystem.hostInfo?.hostname || "N/A"
+                                    }, undefined, false, undefined, this)
+                                  ]
+                                }, undefined, true, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                  className: "flex justify-between border-b border-borderColor/30 pb-1.5",
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-textMuted font-semibold",
+                                      children: "Operating System:"
+                                    }, undefined, false, undefined, this),
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-white font-semibold",
+                                      children: ecosystem.hostInfo?.os || "Linux"
+                                    }, undefined, false, undefined, this)
+                                  ]
+                                }, undefined, true, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                  className: "flex justify-between border-b border-borderColor/30 pb-1.5",
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-textMuted font-semibold",
+                                      children: "Kernel Version:"
+                                    }, undefined, false, undefined, this),
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-white font-semibold",
+                                      children: ecosystem.hostInfo?.kernel || "N/A"
+                                    }, undefined, false, undefined, this)
+                                  ]
+                                }, undefined, true, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                  className: "flex justify-between border-b border-borderColor/30 pb-1.5",
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-textMuted font-semibold",
+                                      children: "CPU Allocation:"
+                                    }, undefined, false, undefined, this),
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-white font-semibold",
+                                      children: ecosystem.hostInfo?.cpus ? `${ecosystem.hostInfo.cpus} Cores` : "N/A"
+                                    }, undefined, false, undefined, this)
+                                  ]
+                                }, undefined, true, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                  className: "flex justify-between",
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-textMuted font-semibold",
+                                      children: "Total Host Memory:"
+                                    }, undefined, false, undefined, this),
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-white font-semibold",
+                                      children: ecosystem.hostInfo?.memory || "N/A"
+                                    }, undefined, false, undefined, this)
+                                  ]
+                                }, undefined, true, undefined, this)
+                              ]
+                            }, undefined, true, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "bg-bgCard border border-borderColor/60 rounded-xl p-4 shadow-sm",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                              className: "text-[11px] uppercase font-extrabold text-white mb-3 tracking-wider flex items-center gap-2",
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Cpu, {
+                                  size: 14,
+                                  className: "text-indigo-400"
+                                }, undefined, false, undefined, this),
+                                "Docker Container Specs"
+                              ]
+                            }, undefined, true, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              className: "flex flex-col gap-2 font-mono text-[11px]",
+                              children: app.dockerInfo ? /* @__PURE__ */ jsx_dev_runtime.jsxDEV(jsx_dev_runtime.Fragment, {
+                                children: [
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                    className: "flex justify-between border-b border-borderColor/30 pb-1.5",
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-textMuted font-semibold",
+                                        children: "Container ID:"
+                                      }, undefined, false, undefined, this),
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-white font-semibold select-all",
+                                        title: app.dockerInfo.id,
+                                        children: app.dockerInfo.id.substring(0, 12)
+                                      }, undefined, false, undefined, this)
+                                    ]
+                                  }, undefined, true, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                    className: "flex justify-between border-b border-borderColor/30 pb-1.5",
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-textMuted font-semibold",
+                                        children: "Docker Image:"
+                                      }, undefined, false, undefined, this),
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-white font-semibold truncate max-w-[200px]",
+                                        title: app.dockerInfo.image,
+                                        children: app.dockerInfo.image
+                                      }, undefined, false, undefined, this)
+                                    ]
+                                  }, undefined, true, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                    className: "flex justify-between border-b border-borderColor/30 pb-1.5",
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-textMuted font-semibold",
+                                        children: "Docker Ports:"
+                                      }, undefined, false, undefined, this),
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-white font-semibold truncate max-w-[200px]",
+                                        title: app.dockerInfo.ports,
+                                        children: app.dockerInfo.ports || "N/A"
+                                      }, undefined, false, undefined, this)
+                                    ]
+                                  }, undefined, true, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                    className: "flex justify-between border-b border-borderColor/30 pb-1.5",
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-textMuted font-semibold",
+                                        children: "Docker Status:"
+                                      }, undefined, false, undefined, this),
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-white font-semibold",
+                                        children: app.dockerInfo.status
+                                      }, undefined, false, undefined, this)
+                                    ]
+                                  }, undefined, true, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                    className: "flex justify-between",
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-textMuted font-semibold",
+                                        children: "Created Time:"
+                                      }, undefined, false, undefined, this),
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                        className: "text-white font-semibold truncate max-w-[200px]",
+                                        title: app.dockerInfo.createdAt,
+                                        children: app.dockerInfo.createdAt
+                                      }, undefined, false, undefined, this)
+                                    ]
+                                  }, undefined, true, undefined, this)
+                                ]
+                              }, undefined, true, undefined, this) : /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "h-full flex flex-col justify-center items-center py-4 text-center text-textMuted italic",
+                                children: [
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    children: "Natively Integrated Process"
+                                  }, undefined, false, undefined, this),
+                                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                    className: "text-[10px] mt-1 font-semibold",
+                                    children: [
+                                      "Runs directly on host on port ",
+                                      app.entryUrl ? getPortFromUrl(app.entryUrl) : "N/A"
+                                    ]
+                                  }, undefined, true, undefined, this)
+                                ]
+                              }, undefined, true, undefined, this)
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "bg-bgCard border border-borderColor/60 rounded-xl p-4 shadow-sm flex flex-col justify-between",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                                  className: "text-[11px] uppercase font-extrabold text-white mb-2 tracking-wider flex items-center gap-2",
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Activity, {
+                                      size: 14,
+                                      className: "text-success"
+                                    }, undefined, false, undefined, this),
+                                    "Lifecycle Operations"
+                                  ]
+                                }, undefined, true, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                                  className: "text-[10px] text-textMuted mb-3 font-semibold",
+                                  children: "Control the running process state of this sandbox microservice app."
+                                }, undefined, false, undefined, this)
+                              ]
+                            }, undefined, true, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              className: "flex flex-col gap-3",
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                  className: "flex flex-wrap gap-2",
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                      disabled: actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false,
+                                      onClick: (e) => {
+                                        e.stopPropagation();
+                                        handleMicroserviceAction(app.slug, "start");
+                                      },
+                                      className: `flex-grow px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${app.isIsolatedLifecycle !== false && app.status === "offline" ? "bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-sm shadow-emerald-900/30" : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/50"}`,
+                                      children: [
+                                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Play, {
+                                          size: 10
+                                        }, undefined, false, undefined, this),
+                                        "Start"
+                                      ]
+                                    }, undefined, true, undefined, this),
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                      disabled: actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false,
+                                      onClick: (e) => {
+                                        e.stopPropagation();
+                                        handleMicroserviceAction(app.slug, "stop");
+                                      },
+                                      className: `flex-grow px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${app.isIsolatedLifecycle !== false && app.status !== "offline" ? "bg-red-600 hover:bg-red-500 text-white cursor-pointer shadow-sm shadow-red-900/30" : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/50"}`,
+                                      children: [
+                                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Square, {
+                                          size: 10
+                                        }, undefined, false, undefined, this),
+                                        "Stop"
+                                      ]
+                                    }, undefined, true, undefined, this),
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                      disabled: actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false,
+                                      onClick: (e) => {
+                                        e.stopPropagation();
+                                        handleMicroserviceAction(app.slug, "restart");
+                                      },
+                                      className: `flex-grow px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${app.isIsolatedLifecycle !== false && app.status !== "offline" ? "bg-amber-600 hover:bg-amber-500 text-white cursor-pointer shadow-sm shadow-amber-900/30" : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/50"}`,
+                                      children: [
+                                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV(RefreshCw, {
+                                          size: 10
+                                        }, undefined, false, undefined, this),
+                                        "Restart"
+                                      ]
+                                    }, undefined, true, undefined, this)
+                                  ]
+                                }, undefined, true, undefined, this),
+                                app.isIsolatedLifecycle === false ? /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: "text-[9px] text-amber-400 font-bold uppercase tracking-wider text-center block bg-amber-900/10 border border-amber-900/20 py-1 rounded",
+                                  children: "Natively Integrated (Portal Managed)"
+                                }, undefined, false, undefined, this) : /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: "text-[9px] text-textMuted text-center block font-semibold",
+                                  children: [
+                                    "Virtual IP: ",
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "font-mono text-white",
+                                      children: [
+                                        "172.18.0.",
+                                        app.slug.charCodeAt(0) % 254
+                                      ]
+                                    }, undefined, true, undefined, this)
+                                  ]
+                                }, undefined, true, undefined, this),
+                                actionLoadingSlug === app.slug && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: "text-[10px] text-primary animate-pulse text-center block font-bold",
+                                  children: "Applying action..."
+                                }, undefined, false, undefined, this)
+                              ]
+                            }, undefined, true, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "bg-zinc-950 border border-borderColor rounded-xl overflow-hidden shadow-2xl flex flex-col flex-grow min-h-[300px]",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "px-4 py-3 bg-zinc-900 border-b border-borderColor/60 flex flex-wrap items-center justify-between gap-3",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              className: "flex items-center gap-2",
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Terminal, {
+                                  size: 14,
+                                  className: "text-zinc-400"
+                                }, undefined, false, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: "text-xs font-bold text-white font-mono uppercase tracking-wider",
+                                  children: [
+                                    "Container Output Logs: ",
+                                    app.name
+                                  ]
+                                }, undefined, true, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                  className: `w-2 h-2 rounded-full ${app.status === "offline" ? "bg-red-500" : "bg-emerald-500 animate-pulse"}`
+                                }, undefined, false, undefined, this)
+                              ]
+                            }, undefined, true, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                              className: "flex items-center gap-3 flex-wrap",
+                              children: [
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                  className: "relative",
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Search, {
+                                      className: "absolute left-2.5 top-2 text-zinc-500",
+                                      size: 12
+                                    }, undefined, false, undefined, this),
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("input", {
+                                      type: "text",
+                                      placeholder: "Filter container logs...",
+                                      value: appLogSearchMap[app.slug] || "",
+                                      onChange: (e) => {
+                                        const val = e.target.value;
+                                        setAppLogSearchMap((prev) => ({ ...prev, [app.slug]: val }));
+                                      },
+                                      className: "bg-zinc-950 text-white placeholder-zinc-600 border border-borderColor/60 rounded-md pl-8 pr-2.5 py-1 text-[11px] font-mono w-[180px] focus:border-primary outline-none font-semibold"
+                                    }, undefined, false, undefined, this),
+                                    appLogSearchMap[app.slug] && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                      onClick: () => setAppLogSearchMap((prev) => ({ ...prev, [app.slug]: "" })),
+                                      className: "absolute right-2 top-1.5 text-zinc-500 hover:text-white",
+                                      children: "×"
+                                    }, undefined, false, undefined, this)
+                                  ]
+                                }, undefined, true, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("label", {
+                                  className: "flex items-center gap-1.5 text-[11px] text-zinc-400 font-semibold cursor-pointer hover:text-white select-none",
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("input", {
+                                      type: "checkbox",
+                                      checked: autoPollLogs[app.slug] || false,
+                                      onChange: (e) => {
+                                        const checked = e.target.checked;
+                                        setAutoPollLogs((prev) => ({ ...prev, [app.slug]: checked }));
+                                      },
+                                      className: "rounded bg-zinc-950 border-borderColor/60 text-primary focus:ring-primary h-3 w-3"
+                                    }, undefined, false, undefined, this),
+                                    "Auto-Poll (2s)"
+                                  ]
+                                }, undefined, true, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                  className: "flex items-center gap-1 border border-borderColor/60 rounded bg-zinc-950 px-1 py-0.5",
+                                  children: [
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                      onClick: () => setTerminalFontSizeMap((prev) => ({ ...prev, [app.slug]: Math.max(9, (prev[app.slug] || 11) - 1) })),
+                                      className: "text-zinc-500 hover:text-white px-1 font-bold text-[10px]",
+                                      title: "Decrease text size",
+                                      children: "A-"
+                                    }, undefined, false, undefined, this),
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                                      className: "text-[10px] text-zinc-400 font-mono px-0.5",
+                                      children: [
+                                        terminalFontSizeMap[app.slug] || 11,
+                                        "px"
+                                      ]
+                                    }, undefined, true, undefined, this),
+                                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                      onClick: () => setTerminalFontSizeMap((prev) => ({ ...prev, [app.slug]: Math.min(16, (prev[app.slug] || 11) + 1) })),
+                                      className: "text-zinc-500 hover:text-white px-1 font-bold text-[10px]",
+                                      title: "Increase text size",
+                                      children: "A+"
+                                    }, undefined, false, undefined, this)
+                                  ]
+                                }, undefined, true, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                  className: "h-4 w-[1px] bg-borderColor/60 hidden sm:block"
+                                }, undefined, false, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                  onClick: () => {
+                                    const text = microserviceLogs[app.slug] || "";
+                                    navigator.clipboard.writeText(text);
+                                    showToast("Logs copied to clipboard", "success");
+                                  },
+                                  className: "px-2.5 py-1 border border-borderColor/60 hover:border-primary bg-zinc-950 hover:text-white rounded text-[10px] font-bold cursor-pointer transition-colors",
+                                  title: "Copy all logs",
+                                  children: "Copy Logs"
+                                }, undefined, false, undefined, this),
+                                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                                  disabled: fetchingLogsSlug === app.slug,
+                                  onClick: (e) => {
+                                    e.stopPropagation();
+                                    fetchMicroserviceLogs(app.slug);
+                                  },
+                                  className: "px-2.5 py-1 bg-primary hover:bg-primaryHover text-white rounded text-[10px] font-bold cursor-pointer transition-colors flex items-center gap-1",
+                                  children: fetchingLogsSlug === app.slug ? "Fetching..." : /* @__PURE__ */ jsx_dev_runtime.jsxDEV(jsx_dev_runtime.Fragment, {
+                                    children: [
+                                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV(RefreshCw, {
+                                        size: 10,
+                                        className: fetchingLogsSlug === app.slug ? "animate-spin" : ""
+                                      }, undefined, false, undefined, this),
+                                      "Refresh Logs"
+                                    ]
+                                  }, undefined, true, undefined, this)
+                                }, undefined, false, undefined, this)
+                              ]
+                            }, undefined, true, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          style: {
+                            fontSize: `${terminalFontSizeMap[app.slug] || 11}px`
+                          },
+                          className: "p-4 font-mono overflow-y-auto flex-grow text-zinc-300 leading-relaxed bg-zinc-950 border-t border-borderColor/20 scrollbar-thin min-h-[200px]",
+                          children: (() => {
+                            const rawLogs = microserviceLogs[app.slug] || "";
+                            if (fetchingLogsSlug === app.slug && !rawLogs) {
+                              return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "text-zinc-500 italic animate-pulse font-semibold",
+                                children: "Streaming terminal log stdout/stderr buffer..."
+                              }, undefined, false, undefined, this);
+                            }
+                            if (!rawLogs) {
+                              return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "text-zinc-500 italic font-semibold",
+                                children: "No console logs fetched yet. Click 'Refresh Logs' or enable Auto-Poll."
+                              }, undefined, false, undefined, this);
+                            }
+                            const searchFilter = appLogSearchMap[app.slug] || "";
+                            const lines = rawLogs.split(`
+`);
+                            const filtered = lines.filter((line) => !searchFilter || line.toLowerCase().includes(searchFilter.toLowerCase()));
+                            if (filtered.length === 0) {
+                              return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                                className: "text-zinc-500 italic font-semibold",
+                                children: "No log lines matched the search query filter."
+                              }, undefined, false, undefined, this);
+                            }
+                            return filtered.map((line, idx) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV(import_react50.default.Fragment, {
+                              children: formatLogLine(line)
+                            }, idx, false, undefined, this));
+                          })()
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "px-4 py-1.5 bg-zinc-900 border-t border-borderColor/40 flex justify-between items-center text-[9px] text-zinc-500 font-mono",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              children: [
+                                "Showing ",
+                                (() => {
+                                  const rawLogs = microserviceLogs[app.slug] || "";
+                                  const searchFilter = appLogSearchMap[app.slug] || "";
+                                  const lines = rawLogs.split(`
+`).filter((l) => l.trim());
+                                  const filtered = lines.filter((line) => !searchFilter || line.toLowerCase().includes(searchFilter.toLowerCase()));
+                                  return filtered.length === lines.length ? `${lines.length} lines` : `${filtered.length} of ${lines.length} lines matched`;
+                                })()
+                              ]
+                            }, undefined, true, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              children: "Docker Engine Daemon: TCP 2375 (Secure Socket)"
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "px-6 py-3.5 border-t border-borderColor flex justify-end gap-3 bg-bgTh",
+                  children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                    onClick: () => setExpandedAppRow(null),
+                    className: "bg-zinc-800 hover:bg-zinc-700 text-white border border-borderColor px-4 py-2 rounded-xl font-bold text-xs transition-colors cursor-pointer",
+                    children: "Close Panel"
+                  }, undefined, false, undefined, this)
+                }, undefined, false, undefined, this)
+              ]
+            }, undefined, true, undefined, this)
+          }, undefined, false, undefined, this);
+        })()
       ]
     }, undefined, true, undefined, this);
   };

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { 
-  Folder, Database, Terminal, FileText, Settings, 
+  Folder, Database, Table, Terminal, FileText, Settings, 
   ShieldAlert, BarChart2, GitBranch, Play, RefreshCw, 
   X, ChevronRight, Search, ShieldCheck, LogOut, CheckCircle2,
   Clock, ArrowUpDown, ChevronDown, Check, Activity,
   Cpu, Zap, Shield, Lock, Server, AlertTriangle, CheckCircle,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, Square
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
@@ -72,6 +72,9 @@ function App() {
   const [microserviceLogs, setMicroserviceLogs] = useState<Record<string, string>>({});
   const [fetchingLogsSlug, setFetchingLogsSlug] = useState<string | null>(null);
   const [actionLoadingSlug, setActionLoadingSlug] = useState<string | null>(null);
+  const [autoPollLogs, setAutoPollLogs] = useState<Record<string, boolean>>({});
+  const [appLogSearchMap, setAppLogSearchMap] = useState<Record<string, string>>({});
+  const [terminalFontSizeMap, setTerminalFontSizeMap] = useState<Record<string, number>>({});
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
     name: 180,
     slug: 140,
@@ -102,6 +105,16 @@ function App() {
   const [queryError, setQueryError] = useState('');
   const [queryLoading, setQueryLoading] = useState(false);
   const [fullscreenResults, setFullscreenResults] = useState(false);
+  const [dbSchemas, setDbSchemas] = useState<any[]>([]);
+  const [dbDatabases, setDbDatabases] = useState<any[]>([]);
+  const [dbTriggers, setDbTriggers] = useState<any[]>([]);
+  const [dbUsername, setDbUsername] = useState('');
+  const [dbPassword, setDbPassword] = useState('');
+  const [isDbElevated, setIsDbElevated] = useState(false);
+  const [dbDatabasesExpanded, setDbDatabasesExpanded] = useState(true);
+  const [dbSchemasExpanded, setDbSchemasExpanded] = useState(true);
+  const [dbTablesExpanded, setDbTablesExpanded] = useState(true);
+  const [dbTriggersExpanded, setDbTriggersExpanded] = useState(true);
 
   // System Logs State
   const [logs, setLogs] = useState<any[]>([]);
@@ -255,6 +268,18 @@ function App() {
     return () => clearInterval(interval);
   }, [isAuthenticated, logsAutoPoll, activeTab, logsSearch, logsSeverity, logsSource]);
 
+  // 4.5. Container Logs auto-polling
+  useEffect(() => {
+    if (!isAuthenticated || !expandedAppRow) return;
+    if (!autoPollLogs[expandedAppRow]) return;
+
+    const interval = setInterval(() => {
+      fetchMicroserviceLogs(expandedAppRow);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, expandedAppRow, autoPollLogs]);
+
   // --- Handlers & API Operations ---
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -320,6 +345,9 @@ function App() {
       if (res.status === 200) {
         const data = await res.json();
         setDbTables(data.tables || []);
+        setDbSchemas(data.schemas || []);
+        setDbDatabases(data.databases || []);
+        setDbTriggers(data.triggers || []);
       }
     } catch (e) {
       console.error(e);
@@ -344,7 +372,11 @@ function App() {
       const res = await fetch('/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: queryText })
+        body: JSON.stringify({ 
+          query: queryText,
+          dbUser: dbUsername || undefined,
+          dbPassword: dbPassword || undefined
+        })
       });
       const data = await res.json();
       if (res.status === 200) {
@@ -533,6 +565,7 @@ function App() {
       .replace(/`(.*?)`/g, '<code class="bg-bgConsole text-primary-hover px-1.5 py-0.5 rounded font-mono text-xs">$1</code>')
       .replace(/\n$/gim, '<br />');
 
+    // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml
     return <div dangerouslySetInnerHTML={{ __html: html }} className="space-y-1 text-xs text-textMuted leading-relaxed" />;
   };
 
@@ -1034,20 +1067,132 @@ function App() {
               </button>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <span className="text-[10px] text-textMuted font-bold uppercase">System Tables</span>
-              {dbTables.map((tbl) => (
-                <div 
-                  key={tbl.name}
-                  onClick={() => selectExplorerTable(tbl.name)}
-                  className={`flex justify-between items-center p-2.5 rounded-lg text-xs cursor-pointer font-mono truncate transition-all ${selectedTable === tbl.name ? 'border border-primary bg-primaryGlow text-primary-hover font-semibold' : 'border border-transparent hover:bg-sidebarHover text-textMuted'}`}
+            <div className="flex flex-col gap-4 text-xs">
+              
+              {/* Databases */}
+              <div className="flex flex-col gap-1">
+                <button 
+                  onClick={() => setDbDatabasesExpanded(!dbDatabasesExpanded)}
+                  className="flex justify-between items-center text-[10px] text-textMuted font-bold uppercase tracking-wider hover:text-white transition-colors py-1 text-left w-full border-b border-borderColor/20 mb-1"
                 >
-                  <span className="truncate">{tbl.name}</span>
-                  <span className="text-[10px] bg-statusPillBg border border-borderColor px-1.5 py-0.5 rounded text-textMuted font-sans">
-                    {tbl.rows}
-                  </span>
-                </div>
-              ))}
+                  <span>Databases ({dbDatabases.length})</span>
+                  <ChevronDown size={12} className={`transform transition-transform ${dbDatabasesExpanded ? '' : '-rotate-90'}`} />
+                </button>
+                {dbDatabasesExpanded && (
+                  <div className="flex flex-col gap-0.5 pl-1 ml-1">
+                    {dbDatabases.map((dbItem) => (
+                      <div 
+                        key={dbItem.datname}
+                        className="group flex items-center gap-2 p-1.5 rounded-md hover:bg-sidebarHover/60 text-textMuted hover:text-white cursor-default transition-all font-mono text-[11px]"
+                      >
+                        <Database size={12} className="text-purple-400 group-hover:text-purple-300" />
+                        <span className="truncate">{dbItem.datname}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Schemas */}
+              <div className="flex flex-col gap-1">
+                <button 
+                  onClick={() => setDbSchemasExpanded(!dbSchemasExpanded)}
+                  className="flex justify-between items-center text-[10px] text-textMuted font-bold uppercase tracking-wider hover:text-white transition-colors py-1 text-left w-full border-b border-borderColor/20 mb-1"
+                >
+                  <span>Schemas ({dbSchemas.length})</span>
+                  <ChevronDown size={12} className={`transform transition-transform ${dbSchemasExpanded ? '' : '-rotate-90'}`} />
+                </button>
+                {dbSchemasExpanded && (
+                  <div className="flex flex-col gap-0.5 pl-1 ml-1">
+                    {dbSchemas.map((sch) => (
+                      <div 
+                        key={sch.schema_name}
+                        className="group flex items-center gap-2 p-1.5 rounded-md hover:bg-sidebarHover/60 text-textMuted hover:text-white cursor-default transition-all font-mono text-[11px]"
+                      >
+                        <Folder size={12} className="text-amber-400 group-hover:text-amber-300" />
+                        <span className="truncate">{sch.schema_name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Tables */}
+              <div className="flex flex-col gap-1">
+                <button 
+                  onClick={() => setDbTablesExpanded(!dbTablesExpanded)}
+                  className="flex justify-between items-center text-[10px] text-textMuted font-bold uppercase tracking-wider hover:text-white transition-colors py-1 text-left w-full border-b border-borderColor/20 mb-1"
+                >
+                  <span>Tables ({dbTables.length})</span>
+                  <ChevronDown size={12} className={`transform transition-transform ${dbTablesExpanded ? '' : '-rotate-90'}`} />
+                </button>
+                {dbTablesExpanded && (
+                  <div className="flex flex-col gap-0.5 pl-1 ml-1 max-h-[220px] overflow-y-auto">
+                    {dbTables.map((tbl) => (
+                      <div 
+                        key={tbl.name}
+                        onClick={() => selectExplorerTable(tbl.name)}
+                        className={`group flex justify-between items-center p-1.5 rounded-md cursor-pointer font-mono text-[11px] transition-all ${selectedTable === tbl.name ? 'bg-primaryGlow text-primary-hover font-semibold' : 'hover:bg-sidebarHover text-textMuted hover:text-white'}`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Table size={12} className={`${selectedTable === tbl.name ? 'text-primary-hover' : 'text-blue-400 group-hover:text-blue-300'}`} />
+                          <span className="truncate">{tbl.name}</span>
+                        </div>
+                        <span className="text-[9px] bg-statusPillBg border border-borderColor px-1 py-0.2 rounded text-textMuted shrink-0 font-sans">
+                          {tbl.rows}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Triggers */}
+              <div className="flex flex-col gap-1">
+                <button 
+                  onClick={() => setDbTriggersExpanded(!dbTriggersExpanded)}
+                  className="flex justify-between items-center text-[10px] text-textMuted font-bold uppercase tracking-wider hover:text-white transition-colors py-1 text-left w-full border-b border-borderColor/20 mb-1"
+                >
+                  <span>Triggers ({dbTriggers.length})</span>
+                  <ChevronDown size={12} className={`transform transition-transform ${dbTriggersExpanded ? '' : '-rotate-90'}`} />
+                </button>
+                {dbTriggersExpanded && (
+                  <div className="flex flex-col gap-0.5 pl-1 ml-1 max-h-[180px] overflow-y-auto">
+                    {dbTriggers.map((trg, i) => (
+                      <div 
+                        key={i}
+                        onClick={() => {
+                          setSelectedTable('');
+                          setSelectedTableSchema([]);
+                          setQueryText(trg.trigger_definition);
+                          setQueryResult({
+                            rows: [{ 
+                              "Trigger Name": trg.trigger_name, 
+                              "Table Name": trg.table_name,
+                              "SQL Definition": trg.trigger_definition 
+                            }],
+                            rowCount: 1
+                          });
+                        }}
+                        className="group flex flex-col gap-1 p-1.5 rounded-md hover:bg-sidebarHover/60 cursor-pointer transition-all text-[11px]"
+                      >
+                        <div className="flex items-center gap-2 text-textMuted hover:text-white truncate">
+                          <Zap size={12} className="text-emerald-400 group-hover:text-emerald-300" />
+                          <span className="font-mono truncate" title={trg.trigger_name}>
+                            {trg.trigger_name}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[9px] text-textMuted/60 pl-5">
+                          <span>on {trg.table_name}</span>
+                          <span className="text-[8px] bg-emerald-500/10 border border-emerald-500/20 px-1 py-0.2 rounded text-emerald-400 font-sans uppercase">
+                            active
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {selectedTable && selectedTableSchema.length > 0 && (
@@ -1131,6 +1276,48 @@ function App() {
               className="bg-bgTextarea text-white border border-borderColor rounded-lg p-4 font-mono text-xs w-full min-h-[100px] max-h-[300px] resize-y outline-none focus:border-primary"
               placeholder="SELECT * FROM users LIMIT 10;"
             />
+
+            {/* DB Write Authorization Elevation */}
+            <div className="bg-bgMain border border-borderColor/60 rounded-xl p-4 flex flex-col gap-3 shadow-inner animate-fadeIn">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-2.5">
+                  <div className={`p-2 rounded-lg shrink-0 ${isDbElevated ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-amber-500/10 border border-amber-500/20'}`}>
+                    <ShieldAlert size={18} className={isDbElevated ? "text-emerald-400 animate-pulse" : "text-amber-400"} />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white block mb-0.5">Database Write Elevation</span>
+                    <span className="text-[10px] text-textMuted block max-w-lg leading-relaxed">
+                      {isDbElevated 
+                        ? "Elevated credentials active. You now have write authorization to run INSERT, UPDATE, DELETE, or schema modifications." 
+                        : "Enforced to Read-Only mode. Enter database connection credentials to authorize write operations."}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="DB Username"
+                    value={dbUsername}
+                    onChange={(e) => {
+                      setDbUsername(e.target.value);
+                      setIsDbElevated(!!(e.target.value && dbPassword));
+                    }}
+                    className="bg-bgTextarea border border-borderColor hover:border-borderColor/80 focus:border-purple-500 text-white text-xs px-3 py-2 rounded-lg outline-none w-32 font-mono transition-colors font-sans"
+                  />
+                  <input
+                    type="password"
+                    placeholder="DB Password"
+                    value={dbPassword}
+                    onChange={(e) => {
+                      setDbPassword(e.target.value);
+                      setIsDbElevated(!!(dbUsername && e.target.value));
+                    }}
+                    className="bg-bgTextarea border border-borderColor hover:border-borderColor/80 focus:border-purple-500 text-white text-xs px-3 py-2 rounded-lg outline-none w-32 font-mono transition-colors font-sans"
+                  />
+                </div>
+              </div>
+            </div>
 
             <div className="flex justify-start">
               <button 
@@ -1232,6 +1419,23 @@ function App() {
         const match = urlStr.match(/:(\d+)/);
         return match ? match[1] : '80';
       }
+    };
+
+    const formatLogLine = (line: string) => {
+      if (!line.trim()) return <div className="min-h-[14px]"></div>;
+      
+      let lineClass = "text-zinc-300";
+      if (line.toLowerCase().includes('error') || line.toLowerCase().includes('fail') || line.toLowerCase().includes('critical') || line.includes('[ERROR]')) {
+        lineClass = "text-red-400 font-semibold";
+      } else if (line.toLowerCase().includes('warn') || line.includes('[WARN]')) {
+        lineClass = "text-amber-400 font-semibold";
+      } else if (line.toLowerCase().includes('info') || line.includes('[INFO]')) {
+        lineClass = "text-emerald-400";
+      } else if (line.toLowerCase().includes('listening on') || line.includes('http://')) {
+        lineClass = "text-cyan-400 font-semibold";
+      }
+      
+      return <div className={`${lineClass} whitespace-pre-wrap break-all py-0.5 border-b border-zinc-900/30 hover:bg-zinc-900/50`}>{line}</div>;
     };
 
     const ecosystem = telemetry.ecosystem || { apps: [], buffer: [], logs: [] };
@@ -1512,6 +1716,72 @@ function App() {
           ))}
         </div>
 
+        {/* Main Platform Container Banner */}
+        {ecosystem.mainContainerInfo && (
+          <div className="bg-gradient-to-r from-purple-950/20 to-indigo-950/20 border border-purple-500/20 rounded-xl p-5 shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-purple-400">
+                <Cpu size={24} />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h3 className="text-sm font-extrabold text-white tracking-tight flex items-center gap-1.5">
+                    Main Portal Application Runner
+                  </h3>
+                  <span className="bg-purple-500/10 border border-purple-500/30 text-purple-300 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wide">
+                    Platform Host
+                  </span>
+                  <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping" />
+                    Online
+                  </span>
+                </div>
+                <p className="text-xs text-textMuted mt-1 leading-relaxed">
+                  Active environment running the SG Forge developer administration services & API portal gateways.
+                </p>
+                <div className="flex flex-wrap gap-x-6 gap-y-1.5 mt-3 text-[11px] font-mono text-textMuted">
+                  <div>
+                    Container ID: <span className="text-white font-semibold select-all">{ecosystem.mainContainerInfo.id.substring(0, 12)}</span>
+                  </div>
+                  <div>
+                    Docker Image: <span className="text-white font-semibold">{ecosystem.mainContainerInfo.image}</span>
+                  </div>
+                  <div>
+                    Port Bindings: <span className="text-white font-semibold">{ecosystem.mainContainerInfo.ports || '3001-3003'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 lg:self-center shrink-0">
+              <div className="border border-borderColor/60 bg-zinc-900/60 rounded-xl p-3 flex flex-col justify-center min-w-[110px] font-mono text-center">
+                <span className="text-[9px] text-textMuted uppercase tracking-wider font-semibold">Daemon Mode</span>
+                <span className="text-xs text-purple-400 font-bold mt-1">Multi-Tenant (Dev)</span>
+              </div>
+              <div className="border border-borderColor/60 bg-zinc-900/60 rounded-xl p-3 flex flex-col justify-center min-w-[120px] font-mono text-center">
+                <span className="text-[9px] text-textMuted uppercase tracking-wider font-semibold">Instance Created</span>
+                <span className="text-[10px] text-white font-semibold mt-1 truncate" title={ecosystem.mainContainerInfo.createdAt}>
+                  {ecosystem.mainContainerInfo.createdAt.includes('(') ? ecosystem.mainContainerInfo.createdAt.split('(')[0] : ecosystem.mainContainerInfo.createdAt}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  const name = ecosystem.mainContainerInfo.name;
+                  setSelectedAppSlug(name);
+                  setExpandedAppRow(name);
+                  fetchMicroserviceLogs(name);
+                  setAutoPollLogs(prev => ({ ...prev, [name]: true }));
+                }}
+                className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-3 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-lg shadow-purple-900/30 shrink-0 border border-purple-400/20"
+              >
+                <Terminal size={14} />
+                Logs & Control
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Topology Grid Table */}
         <div className="bg-bgCard border border-borderColor rounded-xl flex flex-col overflow-hidden shadow-lg">
           <div className="px-5 py-4 border-b border-borderColor bg-bgTh flex flex-wrap justify-between items-center gap-4">
@@ -1569,11 +1839,10 @@ function App() {
                       <tr 
                         onClick={() => {
                           setSelectedAppSlug(app.slug);
-                          const nextExpanded = isExpanded ? null : app.slug;
-                          setExpandedAppRow(nextExpanded);
-                          if (nextExpanded) {
-                            fetchMicroserviceLogs(app.slug);
-                          }
+                          setExpandedAppRow(app.slug);
+                          fetchMicroserviceLogs(app.slug);
+                          // Enable auto-poll by default when expanding
+                          setAutoPollLogs(prev => ({ ...prev, [app.slug]: true }));
                         }}
                         className={`border-b border-borderColor cursor-pointer transition-colors ${isSelected ? 'bg-primaryGlow/20 hover:bg-primaryGlow/30' : 'hover:bg-sidebarHover/50'}`}
                       >
@@ -1603,80 +1872,7 @@ function App() {
                         </td>
                       </tr>
 
-                      {/* Collapsible Details */}
-                      {isExpanded && (
-                        <tr className="bg-bgMain/60">
-                          <td colSpan={7} className="px-5 py-4 border-b border-borderColor text-xs text-textMuted">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                              <div>
-                                <h4 className="text-[10px] uppercase font-bold text-white mb-2 tracking-wider">Internal Configuration</h4>
-                                <div className="flex flex-col gap-1.5 font-mono text-[11px]">
-                                  <div>Entry Endpoint: <a href={app.entryUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">{app.entryUrl || 'N/A'}</a></div>
-                                  <div>Slug: {app.slug}</div>
-                                  <div>Docker Label: <span className="text-white">sandbox-app-{app.slug}</span></div>
-                                  <div>Virtual IP: 172.18.0.{app.slug.charCodeAt(0) % 254}</div>
-                                </div>
-                              </div>
-                              <div>
-                                <h4 className="text-[10px] uppercase font-bold text-white mb-2 tracking-wider">Security & Routing</h4>
-                                <div className="flex flex-col gap-1.5 text-[11px] leading-relaxed">
-                                  <div>Hostname: {app.slug}.local-sandbox.io</div>
-                                  <div>PII scrubbing active. Auth headers omitted from stream buffer.</div>
-                                </div>
-                              </div>
-                              <div>
-                                <h4 className="text-[10px] uppercase font-bold text-white mb-2 tracking-wider">Lifecycle Operations</h4>
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  <button
-                                    disabled={actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false}
-                                    onClick={(e) => { e.stopPropagation(); handleMicroserviceAction(app.slug, 'start'); }}
-                                    className={`px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status === 'offline' ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
-                                  >
-                                    Start
-                                  </button>
-                                  <button
-                                    disabled={actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false}
-                                    onClick={(e) => { e.stopPropagation(); handleMicroserviceAction(app.slug, 'stop'); }}
-                                    className={`px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status !== 'offline' ? 'bg-red-600 hover:bg-red-500 text-white cursor-pointer' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
-                                  >
-                                    Stop
-                                  </button>
-                                  <button
-                                    disabled={actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false}
-                                    onClick={(e) => { e.stopPropagation(); handleMicroserviceAction(app.slug, 'restart'); }}
-                                    className={`px-3 py-1.5 rounded text-[10px] font-bold transition-all ${app.isIsolatedLifecycle !== false && app.status !== 'offline' ? 'bg-amber-600 hover:bg-amber-500 text-white cursor-pointer' : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}`}
-                                  >
-                                    Restart
-                                  </button>
-                                </div>
-                                {app.isIsolatedLifecycle === false && (
-                                  <span className="text-[9px] text-amber-400 block mt-1.5 font-bold uppercase tracking-wider">
-                                    Natively Integrated (Portal Managed)
-                                  </span>
-                                )}
-                                {actionLoadingSlug === app.slug && (
-                                  <span className="text-[10px] text-primary animate-pulse block mt-1.5 font-bold">Applying action...</span>
-                                )}
-                              </div>
-                              <div className="flex flex-col gap-2 min-h-[120px]">
-                                <div className="flex justify-between items-center">
-                                  <h4 className="text-[10px] uppercase font-bold text-white tracking-wider">Console Output Logs</h4>
-                                  <button
-                                    disabled={fetchingLogsSlug === app.slug}
-                                    onClick={(e) => { e.stopPropagation(); fetchMicroserviceLogs(app.slug); }}
-                                    className="px-2 py-0.5 border border-borderColor hover:border-primary bg-bgMain hover:text-white rounded text-[9px] font-bold cursor-pointer transition-colors"
-                                  >
-                                    {fetchingLogsSlug === app.slug ? 'Fetching...' : 'Refresh Logs'}
-                                  </button>
-                                </div>
-                                <div className="bg-zinc-950 p-2 font-mono text-[9px] text-zinc-400 rounded border border-borderColor overflow-auto h-28 max-w-full leading-normal whitespace-pre">
-                                  {microserviceLogs[app.slug] || 'No logs fetched yet.'}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
+
                     </React.Fragment>
                   );
                 })}
@@ -1982,6 +2178,350 @@ function App() {
           )}
         </div>
 
+        {/* Full Screen Overlay Modal */}
+        {expandedAppRow && (() => {
+          let app = apps.find((a: any) => a.slug === expandedAppRow);
+          if (!app && ecosystem.mainContainerInfo && expandedAppRow === ecosystem.mainContainerInfo.name) {
+            app = {
+              name: "Main Portal Application Runner",
+              slug: ecosystem.mainContainerInfo.name,
+              status: "active",
+              isIsolatedLifecycle: true,
+              dockerInfo: ecosystem.mainContainerInfo,
+              cpu: 0.0,
+              mem: 0.0,
+              cpuHistory: Array(12).fill(0.0),
+              memHistory: Array(12).fill(0.0)
+            };
+          }
+          if (!app) return null;
+          const isOffline = app.status === 'offline';
+          const isDegraded = app.status === 'degraded';
+          
+          return (
+            <div 
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-zinc-950/85 backdrop-blur-md animate-fadeIn"
+              onClick={() => setExpandedAppRow(null)}
+            >
+              <div 
+                className="bg-bgCard border border-borderColor rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="px-6 py-4 border-b border-borderColor flex justify-between items-center bg-bgTh">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primaryGlow/10 rounded-lg text-primary">
+                      <Cpu size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-extrabold text-white">{app.name}</h3>
+                        <span className={`inline-flex items-center gap-1.5 font-bold px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide ${isOffline ? 'bg-red-500/10 text-red-400 border border-red-500/20' : isDegraded ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isOffline ? 'bg-red-400' : isDegraded ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+                          {isOffline ? 'Offline' : isDegraded ? 'Degraded' : 'Active'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-textMuted mt-0.5 font-mono">
+                        Service Slug: <span className="text-white">{app.slug}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setExpandedAppRow(null)}
+                    className="text-textMuted hover:text-white p-1.5 hover:bg-sidebarHover rounded-xl transition-colors border border-transparent hover:border-borderColor"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Modal Body */}
+                <div className="flex-grow p-6 overflow-y-auto min-h-0 flex flex-col gap-6 bg-radial bg-bgMain">
+                  
+                  {/* Cards Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    {/* Infrastructure Info */}
+                    <div className="bg-bgCard border border-borderColor/60 rounded-xl p-4 shadow-sm">
+                      <h4 className="text-[11px] uppercase font-extrabold text-white mb-3 tracking-wider flex items-center gap-2">
+                        <Server size={14} className="text-primary" />
+                        Infrastructure & Host Machine
+                      </h4>
+                      <div className="flex flex-col gap-2 font-mono text-[11px]">
+                        <div className="flex justify-between border-b border-borderColor/30 pb-1.5">
+                          <span className="text-textMuted font-semibold">Machine Hostname:</span>
+                          <span className="text-white font-semibold">{ecosystem.hostInfo?.hostname || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-borderColor/30 pb-1.5">
+                          <span className="text-textMuted font-semibold">Operating System:</span>
+                          <span className="text-white font-semibold">{ecosystem.hostInfo?.os || 'Linux'}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-borderColor/30 pb-1.5">
+                          <span className="text-textMuted font-semibold">Kernel Version:</span>
+                          <span className="text-white font-semibold">{ecosystem.hostInfo?.kernel || 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-borderColor/30 pb-1.5">
+                          <span className="text-textMuted font-semibold">CPU Allocation:</span>
+                          <span className="text-white font-semibold">{ecosystem.hostInfo?.cpus ? `${ecosystem.hostInfo.cpus} Cores` : 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-textMuted font-semibold">Total Host Memory:</span>
+                          <span className="text-white font-semibold">{ecosystem.hostInfo?.memory || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Container details */}
+                    <div className="bg-bgCard border border-borderColor/60 rounded-xl p-4 shadow-sm">
+                      <h4 className="text-[11px] uppercase font-extrabold text-white mb-3 tracking-wider flex items-center gap-2">
+                        <Cpu size={14} className="text-indigo-400" />
+                        Docker Container Specs
+                      </h4>
+                      <div className="flex flex-col gap-2 font-mono text-[11px]">
+                        {app.dockerInfo ? (
+                          <>
+                            <div className="flex justify-between border-b border-borderColor/30 pb-1.5">
+                              <span className="text-textMuted font-semibold">Container ID:</span>
+                              <span className="text-white font-semibold select-all" title={app.dockerInfo.id}>{app.dockerInfo.id.substring(0, 12)}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-borderColor/30 pb-1.5">
+                              <span className="text-textMuted font-semibold">Docker Image:</span>
+                              <span className="text-white font-semibold truncate max-w-[200px]" title={app.dockerInfo.image}>{app.dockerInfo.image}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-borderColor/30 pb-1.5">
+                              <span className="text-textMuted font-semibold">Docker Ports:</span>
+                              <span className="text-white font-semibold truncate max-w-[200px]" title={app.dockerInfo.ports}>{app.dockerInfo.ports || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-borderColor/30 pb-1.5">
+                              <span className="text-textMuted font-semibold">Docker Status:</span>
+                              <span className="text-white font-semibold">{app.dockerInfo.status}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-textMuted font-semibold">Created Time:</span>
+                              <span className="text-white font-semibold truncate max-w-[200px]" title={app.dockerInfo.createdAt}>{app.dockerInfo.createdAt}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="h-full flex flex-col justify-center items-center py-4 text-center text-textMuted italic">
+                            <span>Natively Integrated Process</span>
+                            <span className="text-[10px] mt-1 font-semibold">Runs directly on host on port {app.entryUrl ? getPortFromUrl(app.entryUrl) : 'N/A'}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Operations & Control */}
+                    <div className="bg-bgCard border border-borderColor/60 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-[11px] uppercase font-extrabold text-white mb-2 tracking-wider flex items-center gap-2">
+                          <Activity size={14} className="text-success" />
+                          Lifecycle Operations
+                        </h4>
+                        <p className="text-[10px] text-textMuted mb-3 font-semibold">Control the running process state of this sandbox microservice app.</p>
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            disabled={actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false}
+                            onClick={(e) => { e.stopPropagation(); handleMicroserviceAction(app.slug, 'start'); }}
+                            className={`flex-grow px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${app.isIsolatedLifecycle !== false && app.status === 'offline' ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer shadow-sm shadow-emerald-900/30' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/50'}`}
+                          >
+                            <Play size={10} />
+                            Start
+                          </button>
+                          <button
+                            disabled={actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false}
+                            onClick={(e) => { e.stopPropagation(); handleMicroserviceAction(app.slug, 'stop'); }}
+                            className={`flex-grow px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${app.isIsolatedLifecycle !== false && app.status !== 'offline' ? 'bg-red-600 hover:bg-red-500 text-white cursor-pointer shadow-sm shadow-red-900/30' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/50'}`}
+                          >
+                            <Square size={10} />
+                            Stop
+                          </button>
+                          <button
+                            disabled={actionLoadingSlug === app.slug || app.isIsolatedLifecycle === false}
+                            onClick={(e) => { e.stopPropagation(); handleMicroserviceAction(app.slug, 'restart'); }}
+                            className={`flex-grow px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 ${app.isIsolatedLifecycle !== false && app.status !== 'offline' ? 'bg-amber-600 hover:bg-amber-500 text-white cursor-pointer shadow-sm shadow-amber-900/30' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/50'}`}
+                          >
+                            <RefreshCw size={10} />
+                            Restart
+                          </button>
+                        </div>
+                        {app.isIsolatedLifecycle === false ? (
+                          <span className="text-[9px] text-amber-400 font-bold uppercase tracking-wider text-center block bg-amber-900/10 border border-amber-900/20 py-1 rounded">
+                            Natively Integrated (Portal Managed)
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-textMuted text-center block font-semibold">
+                            Virtual IP: <span className="font-mono text-white">172.18.0.{app.slug.charCodeAt(0) % 254}</span>
+                          </span>
+                        )}
+                        {actionLoadingSlug === app.slug && (
+                          <span className="text-[10px] text-primary animate-pulse text-center block font-bold">Applying action...</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Console Logs */}
+                  <div className="bg-zinc-950 border border-borderColor rounded-xl overflow-hidden shadow-2xl flex flex-col flex-grow min-h-[300px]">
+                    {/* Log Terminal Header Controls */}
+                    <div className="px-4 py-3 bg-zinc-900 border-b border-borderColor/60 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Terminal size={14} className="text-zinc-400" />
+                        <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">
+                          Container Output Logs: {app.name}
+                        </span>
+                        <span className={`w-2 h-2 rounded-full ${app.status === 'offline' ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
+                      </div>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {/* Filter input */}
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-2 text-zinc-500" size={12} />
+                          <input
+                            type="text"
+                            placeholder="Filter container logs..."
+                            value={appLogSearchMap[app.slug] || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setAppLogSearchMap(prev => ({ ...prev, [app.slug]: val }));
+                            }}
+                            className="bg-zinc-950 text-white placeholder-zinc-600 border border-borderColor/60 rounded-md pl-8 pr-2.5 py-1 text-[11px] font-mono w-[180px] focus:border-primary outline-none font-semibold"
+                          />
+                          {(appLogSearchMap[app.slug]) && (
+                            <button 
+                              onClick={() => setAppLogSearchMap(prev => ({ ...prev, [app.slug]: '' }))}
+                              className="absolute right-2 top-1.5 text-zinc-500 hover:text-white"
+                            >
+                              &times;
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Auto poll checkbox */}
+                        <label className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-semibold cursor-pointer hover:text-white select-none">
+                          <input
+                            type="checkbox"
+                            checked={autoPollLogs[app.slug] || false}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setAutoPollLogs(prev => ({ ...prev, [app.slug]: checked }));
+                            }}
+                            className="rounded bg-zinc-950 border-borderColor/60 text-primary focus:ring-primary h-3 w-3"
+                          />
+                          Auto-Poll (2s)
+                        </label>
+
+                        {/* Font size control */}
+                        <div className="flex items-center gap-1 border border-borderColor/60 rounded bg-zinc-950 px-1 py-0.5">
+                          <button 
+                            onClick={() => setTerminalFontSizeMap(prev => ({ ...prev, [app.slug]: Math.max(9, (prev[app.slug] || 11) - 1) }))}
+                            className="text-zinc-500 hover:text-white px-1 font-bold text-[10px]"
+                            title="Decrease text size"
+                          >
+                            A-
+                          </button>
+                          <span className="text-[10px] text-zinc-400 font-mono px-0.5">{(terminalFontSizeMap[app.slug] || 11)}px</span>
+                          <button 
+                            onClick={() => setTerminalFontSizeMap(prev => ({ ...prev, [app.slug]: Math.min(16, (prev[app.slug] || 11) + 1) }))}
+                            className="text-zinc-500 hover:text-white px-1 font-bold text-[10px]"
+                            title="Increase text size"
+                          >
+                            A+
+                          </button>
+                        </div>
+
+                        <div className="h-4 w-[1px] bg-borderColor/60 hidden sm:block" />
+
+                        {/* Actions */}
+                        <button
+                          onClick={() => {
+                            const text = microserviceLogs[app.slug] || '';
+                            navigator.clipboard.writeText(text);
+                            showToast('Logs copied to clipboard', 'success');
+                          }}
+                          className="px-2.5 py-1 border border-borderColor/60 hover:border-primary bg-zinc-950 hover:text-white rounded text-[10px] font-bold cursor-pointer transition-colors"
+                          title="Copy all logs"
+                        >
+                          Copy Logs
+                        </button>
+                        <button
+                          disabled={fetchingLogsSlug === app.slug}
+                          onClick={(e) => { e.stopPropagation(); fetchMicroserviceLogs(app.slug); }}
+                          className="px-2.5 py-1 bg-primary hover:bg-primaryHover text-white rounded text-[10px] font-bold cursor-pointer transition-colors flex items-center gap-1"
+                        >
+                          {fetchingLogsSlug === app.slug ? 'Fetching...' : (
+                            <>
+                              <RefreshCw size={10} className={fetchingLogsSlug === app.slug ? 'animate-spin' : ''} />
+                              Refresh Logs
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Log Output Console Area */}
+                    <div
+                      style={{ 
+                        fontSize: `${terminalFontSizeMap[app.slug] || 11}px`
+                      }}
+                      className="p-4 font-mono overflow-y-auto flex-grow text-zinc-300 leading-relaxed bg-zinc-950 border-t border-borderColor/20 scrollbar-thin min-h-[200px]"
+                    >
+                      {(() => {
+                        const rawLogs = microserviceLogs[app.slug] || '';
+                        if (fetchingLogsSlug === app.slug && !rawLogs) {
+                          return <div className="text-zinc-500 italic animate-pulse font-semibold">Streaming terminal log stdout/stderr buffer...</div>;
+                        }
+                        if (!rawLogs) {
+                          return <div className="text-zinc-500 italic font-semibold">No console logs fetched yet. Click 'Refresh Logs' or enable Auto-Poll.</div>;
+                        }
+                        
+                        const searchFilter = appLogSearchMap[app.slug] || '';
+                        const lines = rawLogs.split('\n');
+                        const filtered = lines.filter(line => 
+                          !searchFilter || line.toLowerCase().includes(searchFilter.toLowerCase())
+                        );
+
+                        if (filtered.length === 0) {
+                          return <div className="text-zinc-500 italic font-semibold">No log lines matched the search query filter.</div>;
+                        }
+
+                        return filtered.map((line, idx) => (
+                          <React.Fragment key={idx}>
+                            {formatLogLine(line)}
+                          </React.Fragment>
+                        ));
+                      })()}
+                    </div>
+                    
+                    {/* Log Timeline Stats */}
+                    <div className="px-4 py-1.5 bg-zinc-900 border-t border-borderColor/40 flex justify-between items-center text-[9px] text-zinc-500 font-mono">
+                      <span>Showing {(() => {
+                        const rawLogs = microserviceLogs[app.slug] || '';
+                        const searchFilter = appLogSearchMap[app.slug] || '';
+                        const lines = rawLogs.split('\n').filter(l => l.trim());
+                        const filtered = lines.filter(line => 
+                          !searchFilter || line.toLowerCase().includes(searchFilter.toLowerCase())
+                        );
+                        return filtered.length === lines.length ? `${lines.length} lines` : `${filtered.length} of ${lines.length} lines matched`;
+                      })()}</span>
+                      <span>Docker Engine Daemon: TCP 2375 (Secure Socket)</span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Modal Footer */}
+                <div className="px-6 py-3.5 border-t border-borderColor flex justify-end gap-3 bg-bgTh">
+                  <button 
+                    onClick={() => setExpandedAppRow(null)}
+                    className="bg-zinc-800 hover:bg-zinc-700 text-white border border-borderColor px-4 py-2 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Close Panel
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   };

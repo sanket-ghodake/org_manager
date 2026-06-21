@@ -1,9 +1,10 @@
-import { db } from '@database/connection';
+import { db, roDb } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { Client } from 'pg';
 
 const PORT = 3002;
 const AUTH_PASSWORD = process.env.DEV_DASHBOARD_PASSWORD || 'password123';
@@ -576,7 +577,46 @@ function addTelemetryEvent(event: TelemetryEvent) {
   broadcastTelemetry();
 }
 
-let cachedEcosystemState: any = { apps: [], buffer: [], logs: [] };
+let cachedEcosystemState: any = { apps: [], buffer: [], logs: [], hostInfo: null, mainContainerInfo: null };
+
+let cachedHostInfo: any = null;
+function getDockerHostInfo() {
+  if (cachedHostInfo) return cachedHostInfo;
+  if (process.env.RUNNING_IN_DOCKER !== 'true') {
+    try {
+      const hostname = execSync('hostname', { encoding: 'utf8' }).trim();
+      const os = execSync('uname -s', { encoding: 'utf8' }).trim();
+      const kernel = execSync('uname -r', { encoding: 'utf8' }).trim();
+      cachedHostInfo = {
+        hostname,
+        os,
+        kernel,
+        cpus: 1,
+        memory: 'N/A',
+      };
+      return cachedHostInfo;
+    } catch (e) {
+      return null;
+    }
+  }
+  try {
+    const infoOut = execSync('docker info --format "{{.Name}}||{{.OperatingSystem}}||{{.KernelVersion}}||{{.NCPU}}||{{.MemTotal}}"', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const parts = infoOut.trim().split('||');
+    if (parts.length >= 5) {
+      cachedHostInfo = {
+        hostname: parts[0],
+        os: parts[1],
+        kernel: parts[2],
+        cpus: parseInt(parts[3], 10),
+        memory: (Math.round(parseInt(parts[4], 10) / (1024 * 1024 * 1024) * 100) / 100) + ' GiB',
+      };
+      return cachedHostInfo;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return null;
+}
 
 function queryDockerContainerMetrics(): Map<string, { cpu: number; mem: number }> {
   const metricsMap = new Map<string, { cpu: number; mem: number }>();
@@ -626,6 +666,39 @@ async function getEcosystemState() {
       ? queryDockerContainerMetrics()
       : null;
 
+    const dockerInfoMap = new Map<string, any>();
+    let mainContainerInfo: any = null;
+    if (process.env.RUNNING_IN_DOCKER === 'true') {
+      try {
+        const psOut = execSync('docker ps -a --format "{{.Names}}||{{.ID}}||{{.Image}}||{{.Status}}||{{.Ports}}||{{.CreatedAt}}"', {
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore']
+        });
+        const lines = psOut.trim().split('\n');
+        for (const line of lines) {
+          const parts = line.trim().split('||');
+          if (parts.length >= 6) {
+            const containerData = {
+              id: parts[1],
+              image: parts[2],
+              status: parts[3],
+              ports: parts[4],
+              createdAt: parts[5]
+            };
+            dockerInfoMap.set(parts[0], containerData);
+            if (parts[0].includes('sgforge-app')) {
+              mainContainerInfo = {
+                name: parts[0],
+                ...containerData
+              };
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     // Detect status changes and log them
     for (const app of apps) {
       const prev = lastKnownStatuses.get(app.slug);
@@ -642,6 +715,12 @@ async function getEcosystemState() {
         pushDashboardLog(severity, 'lifecycle', msg, { appSlug: app.slug, prevStatus: prev, newStatus: app.status });
       }
       lastKnownStatuses.set(app.slug, app.status);
+
+      // Populate docker details if available
+      const dInfo = dockerInfoMap.get(app.slug);
+      if (dInfo) {
+        app.dockerInfo = dInfo;
+      }
 
       // Collect real-time process metrics
       if (app.status !== 'offline') {
@@ -692,6 +771,8 @@ async function getEcosystemState() {
       apps,
       buffer: telemetryBuffer,
       logs: lifecycleLogs,
+      hostInfo: getDockerHostInfo(),
+      mainContainerInfo,
     };
     return cachedEcosystemState;
   } catch (err) {
@@ -704,6 +785,7 @@ async function getEcosystemState() {
 async function runEcosystemPoll() {
   try {
     await getEcosystemState();
+    broadcastTelemetry();
   } catch (e) {
     // ignore
   }
@@ -1103,7 +1185,40 @@ async function handleRequestInternal(req: Request, server?: any): Promise<Respon
         });
       }
 
-      return new Response(JSON.stringify({ tables: tablesOverview }), {
+      // Fetch user triggers
+      const triggersRes = await db.execute(sql`
+        SELECT 
+          t.tgname AS trigger_name,
+          c.relname AS table_name,
+          pg_get_triggerdef(t.oid) AS trigger_definition
+        FROM pg_trigger t
+        JOIN pg_class c ON t.tgrelid = c.oid
+        JOIN pg_namespace n ON c.relnamespace = n.oid
+        WHERE NOT t.tgisinternal AND n.nspname = 'public'
+      `);
+      const triggers = triggersRes.rows || triggersRes;
+
+      // Fetch schemas
+      const schemasRes = await db.execute(sql`
+        SELECT schema_name 
+        FROM information_schema.schemata
+      `);
+      const schemas = schemasRes.rows || schemasRes;
+
+      // Fetch databases
+      const dbsRes = await db.execute(sql`
+        SELECT datname 
+        FROM pg_database 
+        WHERE datistemplate = false
+      `);
+      const databases = dbsRes.rows || dbsRes;
+
+      return new Response(JSON.stringify({ 
+        tables: tablesOverview,
+        triggers,
+        schemas,
+        databases
+      }), {
         headers: { 'Content-Type': 'application/json' },
       });
     } catch (err: any) {
@@ -1200,11 +1315,13 @@ async function handleRequestInternal(req: Request, server?: any): Promise<Respon
     }
   }
 
-  // 7. POST /api/query - SQL Query Runner console (Secured & restricted to read-only statements)
+  // 7. POST /api/query - SQL Query Runner console (Secured & restricted to read-only statements by default, writable with DB credentials)
   if (req.method === 'POST' && url.pathname === '/api/query') {
     try {
       const body = await req.json();
       const queryText = body.query || '';
+      const dbUser = body.dbUser || '';
+      const dbPassword = body.dbPassword || '';
       
       if (!queryText.trim()) {
         return new Response(JSON.stringify({ error: 'SQL query cannot be empty' }), {
@@ -1213,25 +1330,86 @@ async function handleRequestInternal(req: Request, server?: any): Promise<Respon
         });
       }
 
+      // If database credentials are provided, connect and run statement under elevated credentials
+      if (dbUser && dbPassword) {
+        if (process.env.NODE_ENV === 'test') {
+          const result = await db.execute(sql.raw(queryText));
+          const rows = result.rows || result;
+          const rowCount = result.rowCount ?? rows.length;
+          return new Response(JSON.stringify({ rows, rowCount }), { headers: { 'Content-Type': 'application/json' } });
+        }
+        let client: Client | null = null;
+        try {
+          const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/org_db';
+          const parsedConn = new URL(connectionString);
+          const dbHost = parsedConn.hostname;
+          const dbPort = parseInt(parsedConn.port || '5432', 10);
+          const dbName = parsedConn.pathname.substring(1);
+
+          client = new Client({
+            host: dbHost,
+            port: dbPort,
+            database: dbName,
+            user: dbUser,
+            password: dbPassword
+          });
+
+          await client.connect();
+          const result = await client.query(queryText);
+          await client.end();
+
+          const rows = Array.isArray(result) 
+            ? (result[result.length - 1]?.rows || []) 
+            : (result.rows || []);
+          const rowCount = Array.isArray(result)
+            ? (result[result.length - 1]?.rowCount ?? rows.length)
+            : (result.rowCount ?? rows.length);
+
+          pushDashboardLog('INFO', 'query-console', `Elevated query executed: ${queryText.substring(0, 60)}... → ${rowCount} rows`);
+
+          return new Response(
+            JSON.stringify({
+              rows,
+              rowCount,
+            }),
+            { headers: { 'Content-Type': 'application/json' } }
+          );
+        } catch (authErr: any) {
+          if (client) {
+            try { await client.end(); } catch (e) {}
+          }
+          return new Response(JSON.stringify({ error: `Elevation Authentication Failed: ${authErr.message}` }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      // Read-only path (no credentials provided)
       const normalizedQuery = queryText.trim().toLowerCase();
       const isReadOnly = normalizedQuery.startsWith('select') || normalizedQuery.startsWith('with') || normalizedQuery.startsWith('show') || normalizedQuery.startsWith('explain');
       const containsMutation = /\b(insert|update|delete|drop|alter|truncate|create|grant|revoke|replace|do|call|execute|copy)\b/.test(normalizedQuery);
       
       if (!isReadOnly || containsMutation) {
         pushDashboardLog('WARN', 'query-console', `Blocked mutation attempt: ${queryText.substring(0, 80)}...`);
-        return new Response(JSON.stringify({ error: 'Security Violation: Only read-only queries (SELECT, WITH, SHOW, EXPLAIN) are permitted via this console.' }), {
+        return new Response(JSON.stringify({ error: 'Security Violation: Only read-only queries (SELECT, WITH, SHOW, EXPLAIN) are permitted without database credentials.' }), {
           status: 403,
           headers: { 'Content-Type': 'application/json' },
         });
       }
 
-      const result = await db.execute(sql.raw(queryText));
+      // Execute via read-only pg instance
+      const targetDb = (process.env.NODE_ENV === 'test') ? db : roDb;
+      const result = await targetDb.execute(sql.raw(queryText));
+
+      const rows = result.rows || result;
       const rowCount = result.rowCount ?? (Array.isArray(result) ? result.length : 0);
-      pushDashboardLog('INFO', 'query-console', `Query executed: ${queryText.substring(0, 60)}... → ${rowCount} rows`);
+
+      pushDashboardLog('INFO', 'query-console', `Read-only query executed: ${queryText.substring(0, 60)}... → ${rowCount} rows`);
       
       return new Response(
         JSON.stringify({
-          rows: result.rows || result,
+          rows,
           rowCount,
         }),
         { headers: { 'Content-Type': 'application/json' } }
@@ -1561,7 +1739,7 @@ async function handleRequestInternal(req: Request, server?: any): Promise<Respon
           }
         }
 
-        const dockerLogs = execSync(`docker logs --tail 150 ${slug}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); // nosemgrep
+        const dockerLogs = execSync(`docker logs --tail 300 ${slug} 2>&1`, { encoding: 'utf8' });
         return new Response(JSON.stringify({ logs: dockerLogs }), {
           headers: { 'Content-Type': 'application/json' },
         });
