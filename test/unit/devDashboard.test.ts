@@ -1,7 +1,7 @@
 import { expect, test, describe, spyOn, afterEach, afterAll } from "bun:test";
 import { handleRequest } from "@backend/dev-dashboard/server";
 import { db } from "@database/connection";
-import cp from "child_process";
+import * as cp from "child_process";
 
 // Setup mocks for database execute
 const mockDbExecute = spyOn(db, "execute").mockImplementation(async (sqlObj: any) => {
@@ -313,5 +313,122 @@ describe("SG Forge DevCenter Dashboard Server Router Pipeline", () => {
       execSpy.mockRestore();
       process.env.RUNNING_IN_DOCKER = originalEnv;
     }
+  });
+
+  describe("Security and Robustness Hardening", () => {
+    test("POST /api/query blocks SQL sandbox bypasses (mutations inside comments / PLpgSQL)", async () => {
+      const bypassQueries = [
+        "SELECT 1; UPDATE users SET name = 'hacked'",
+        "DO $$ BEGIN UPDATE users SET name = 'hacked'; END $$",
+        "EXECUTE 'UPDATE users SET name = = \'hacked\''",
+        "EXPLAIN ANALYZE SELECT * FROM users;"
+      ];
+
+      for (const query of bypassQueries) {
+        const req = new Request("http://localhost:3002/api/query", {
+          method: "POST",
+          headers: { 
+            "Cookie": "dev_session=authenticated_sunil_dev",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ query })
+        });
+        const response = await handleRequest(req);
+        expect(response.status).toBe(403);
+        const data = await response.json();
+        expect(data.error).toContain("Security Violation");
+      }
+    });
+
+    test("POST /api/query allows queries with keywords in comments", async () => {
+      mockDbExecute.mockImplementation(async (sqlObj: any) => {
+        return { rows: [{ count: 1 }], rowCount: 1 };
+      });
+
+      const safeQueries = [
+        "SELECT 1; -- update users set name = 'hacked'",
+        "SELECT 1; /* truncate table logs */"
+      ];
+
+      for (const query of safeQueries) {
+        const req = new Request("http://localhost:3002/api/query", {
+          method: "POST",
+          headers: { 
+            "Cookie": "dev_session=authenticated_sunil_dev",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ query })
+        });
+        const response = await handleRequest(req);
+        expect(response.status).toBe(200);
+      }
+    });
+
+    test("GET /api/diff blocks unauthorized path mappings (directory traversal / arbitrary files)", async () => {
+      const traversalReq = new Request("http://localhost:3002/api/diff?codePath=core/src/database&docPath=../../etc/passwd", {
+        method: "GET",
+        headers: { "Cookie": "dev_session=authenticated_sunil_dev" }
+      });
+      const response = await handleRequest(traversalReq);
+      expect(response.status).toBe(403);
+      const data = await response.json();
+      expect(data.error).toContain("Path mapping is not authorized");
+    });
+
+    test("GET /api/diff allows valid mapped path parameters and invokes git safely", async () => {
+      // Mock cp.spawnSync to return dummy output for diff
+      const spawnSpy = spyOn(cp, "spawnSync").mockImplementation((cmd: any, args: any) => {
+        return {
+          stdout: "mock diff output",
+          stderr: "",
+          status: 0,
+          signal: null,
+          output: []
+        } as any;
+      });
+
+      try {
+        const req = new Request("http://localhost:3002/api/diff?codePath=core/src/database&docPath=docs/architecture/system.md", {
+          method: "GET",
+          headers: { "Cookie": "dev_session=authenticated_sunil_dev" }
+        });
+        const response = await handleRequest(req);
+        expect(response.status).toBe(200);
+        const data = await response.json();
+        expect(data.diff).toBe("mock diff output");
+      } finally {
+        spawnSpy.mockRestore();
+      }
+    });
+
+    test("GET /api/status blocks session spoofing via substring matching in Cookies", async () => {
+      const spoofedReq = new Request("http://localhost:3002/api/status", {
+        method: "GET",
+        headers: { "Cookie": "other_key=dev_session=authenticated_sunil_dev" }
+      });
+
+      const response = await handleRequest(spoofedReq);
+      expect(response.status).toBe(401);
+      const data = await response.json();
+      expect(data.error).toBe("Unauthorized");
+    });
+
+    test("GET /api/status allows authentication with exact cookie matching", async () => {
+      let callCount = 0;
+      mockDbExecute.mockImplementation(async (sqlObj: any) => {
+        callCount++;
+        if (callCount === 1) return { rows: [], rowCount: 0 }; // tables fetch
+        if (callCount === 2) return { rows: [{ count: 0 }], rowCount: 1 }; // logs count
+        return { rows: [], rowCount: 0 };
+      });
+
+      const validReq = new Request("http://localhost:3002/api/status", {
+        method: "GET",
+        headers: { "Cookie": "dev_session=authenticated_sunil_dev; other_key=val" }
+      });
+
+      const response = await handleRequest(validReq);
+      expect(response.status).toBe(200);
+    });
   });
 });

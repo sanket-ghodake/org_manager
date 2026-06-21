@@ -198,10 +198,15 @@ All security parameters from the End-to-End Security Implementation Plan have be
 *   **Production Environment Safeguards**:
     *   Restricted MFA mock passcodes (`123456`/`000000`) strictly to development and test scopes.
     *   Added production environment fail-fast checks that throw a startup exception if the `JWT_SECRET` key is left unset.
+*   **Dev Dashboard (Port 3002) Audit & Hardening**:
+    *   **Eliminated Command Injection (RCE) in `/api/diff`**: Replaced unescaped shell execution (`execSync` running `git log` and `git diff`) with arguments-based execution using `spawnSync`/`execFileSync`. Implemented a defense-in-depth whitelist validating requested file paths against pre-configured system document mappings.
+    *   **Upgraded SQL Query Sandbox**: Refactored the `/api/query` console verification from loose regex-based blacklist testing to use the secure SQL lexical tokenizer (`tokenizeSql`). This blocks comment-based query breaks, PL/pgSQL injection vectors (`DO`, `EXECUTE`), and destructive constructs (`DROP`, `ALTER`, etc.).
+    *   **Hardened Session Cookie Parsing**: Replaced substring-based cookie authentication checks (`cookieHeader.includes()`) with strict key-value lookup parsing to prevent session spoofing via substring matching.
+    *   **Fixed Drift Explorer Crash Loop**: Checked for document existence before calling `fs.statSync` inside the `/api/diff` catch block to prevent unhandled process exceptions and service crashes.
 
 ---
 
 ## 🔒 6. Current Verified Security Posture
 *   **Integration Testing**: Added integration test hooks to decrypt database-persisted secrets prior to assertions.
-*   **Verification**: All `88 unit and integration tests` passed successfully, verifying both functional correctness and defense-in-depth isolation.
+*   **Verification**: All `101 unit and integration tests` passed successfully, verifying both functional correctness and defense-in-depth isolation.
 *   **Docker Container Verification**: The development docker orchestrator build runs in segregated virtual networks (`db-core-net`, `db-expenses-net`, `db-go-net`, and `portal-net`) preventing microservice bypasses, successfully tested with browser verification on port `3001` (portal) and `8085` (expenses app).

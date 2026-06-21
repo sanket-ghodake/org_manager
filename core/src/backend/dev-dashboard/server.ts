@@ -1,10 +1,11 @@
 import { db, roDb } from '@database/connection';
 import { sql } from 'drizzle-orm';
-import { spawn, execSync } from 'child_process';
+import { spawn, spawnSync, execSync, execFileSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { Client } from 'pg';
+import { tokenizeSql } from '@backend/api/admin/queryEngine';
 
 const PORT = 3002;
 const AUTH_PASSWORD = process.env.DEV_DASHBOARD_PASSWORD || 'password123';
@@ -128,7 +129,7 @@ for (const subPath of keyWatchDirs) {
   }
 }
 
-// Helper: git diff generator
+// Helper: git diff generator (Fully parameterized to eliminate command injection)
 function getGitDiffForFile(codePath: string, docPath: string): string {
   try {
     const docStats = fs.statSync(docPath);
@@ -163,28 +164,37 @@ function getGitDiffForFile(codePath: string, docPath: string): string {
       }
     }
 
-    const commitHash = execSync(
-      `git log -1 --format="%H" --before="${docMtime}" -- "${targetFile}"`, // nosemgrep
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
-    ).trim();
+    const logProc = spawnSync('git', ['log', '-1', '--format=%H', `--before=${docMtime}`, '--', targetFile], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
+    const commitHash = logProc.stdout ? logProc.stdout.trim() : '';
     
     if (commitHash) {
-      return execSync(
-        `git diff ${commitHash} -- "${targetFile}"`, // nosemgrep
-        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
-      );
+      const diffProc = spawnSync('git', ['diff', commitHash, '--', targetFile], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      });
+      return diffProc.stdout || '';
     } else {
-      return execSync(
-        `git diff HEAD -- "${targetFile}"`, // nosemgrep
-        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
-      );
+      const diffProc = spawnSync('git', ['diff', 'HEAD', '--', targetFile], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+      });
+      return diffProc.stdout || '';
     }
   } catch (e) {
+    let mtimeStr = 'unknown time';
+    try {
+      if (fs.existsSync(docPath)) {
+        mtimeStr = fs.statSync(docPath).mtime.toLocaleString();
+      }
+    } catch (err) {}
     return `diff --git a/${codePath} b/${codePath}
 --- a/${codePath}
 +++ b/${codePath}
 @@ -1,3 +1,6 @@
-+ // Document drift detected: ${docPath} was modified on ${fs.statSync(docPath).mtime.toLocaleString()}
++ // Document drift detected: ${docPath} was modified on ${mtimeStr}
 + // But code path ${codePath} contains newer changes.
 + // Please review and synchronize documentation.
 `;
@@ -989,7 +999,17 @@ function startAppServerLocal(slug: string) {
 
 function isAuthenticated(req: Request): boolean {
   const cookieHeader = req.headers.get('cookie') || '';
-  return cookieHeader.includes(`${COOKIE_NAME}=${COOKIE_VALUE}`);
+  const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+    const parts = cookie.split('=');
+    const key = parts[0]?.trim();
+    const value = parts.slice(1).join('=').trim();
+    if (key) {
+      acc[key] = value;
+    }
+    return acc;
+  }, {} as Record<string, string>);
+  
+  return cookies[COOKIE_NAME] === COOKIE_VALUE;
 }
 
 export async function handleRequest(req: Request, server?: any): Promise<Response> {
@@ -1385,12 +1405,43 @@ async function handleRequestInternal(req: Request, server?: any): Promise<Respon
         }
       }
 
-      // Read-only path (no credentials provided)
-      const normalizedQuery = queryText.trim().toLowerCase();
-      const isReadOnly = normalizedQuery.startsWith('select') || normalizedQuery.startsWith('with') || normalizedQuery.startsWith('show') || normalizedQuery.startsWith('explain');
-      const containsMutation = /\b(insert|update|delete|drop|alter|truncate|create|grant|revoke|replace|do|call|execute|copy)\b/.test(normalizedQuery);
+      // Read-only path (no credentials provided) - Secured using tokenizeSql to prevent comment-based & nested execution bypasses
+      const destructiveKeywords = new Set([
+        'drop', 'delete', 'truncate', 'update', 'insert', 
+        'alter', 'create', 'grant', 'revoke', 'copy', 
+        'call', 'rename', 'do', 'execute'
+      ]);
+
+      const tokens = tokenizeSql(queryText);
+      const activeTokens = tokens.filter(t => t.type !== 'whitespace');
+
+      if (activeTokens.length === 0) {
+        return new Response(JSON.stringify({ error: 'SQL query cannot be empty' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const firstKeyword = activeTokens[0].value.toLowerCase();
+      const isReadOnly = firstKeyword === 'select' || firstKeyword === 'with' || firstKeyword === 'show' || firstKeyword === 'explain';
       
-      if (!isReadOnly || containsMutation) {
+      const hasDestructive = activeTokens.some((token, idx) => {
+        if (token.type !== 'keyword') return false;
+        const val = token.value.toLowerCase();
+        if (destructiveKeywords.has(val)) {
+          return true;
+        }
+        // Block EXPLAIN ANALYZE (but allow safe EXPLAIN SELECT)
+        if (val === 'explain') {
+          const nextToken = activeTokens[idx + 1];
+          if (nextToken && nextToken.type === 'keyword' && nextToken.value.toLowerCase() === 'analyze') {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      if (!isReadOnly || hasDestructive) {
         pushDashboardLog('WARN', 'query-console', `Blocked mutation attempt: ${queryText.substring(0, 80)}...`);
         return new Response(JSON.stringify({ error: 'Security Violation: Only read-only queries (SELECT, WITH, SHOW, EXPLAIN) are permitted without database credentials.' }), {
           status: 403,
@@ -1594,7 +1645,28 @@ async function handleRequestInternal(req: Request, server?: any): Promise<Respon
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      
+
+      // Strictly validate path parameters against hardcoded authorized mappings (defense-in-depth whitelist)
+      const allowedMappings = [
+        { docPath: 'docs/architecture/system.md', codePath: 'core/src/database' },
+        { docPath: 'docs/architecture/security.md', codePath: 'core/src/backend/dev-dashboard/server.ts' },
+        { docPath: 'docs/architecture/sdk-contract.md', codePath: 'packages/sdk/forge-sdk.ts' },
+        { docPath: 'docs/architecture/hierarchy-marketplace.md', codePath: 'sandbox/apps/example-forge-app' },
+        { docPath: 'docs/guides/docker_optimization.md', codePath: 'docker/production/Dockerfile' },
+        { docPath: 'docs/guides/docker.md', codePath: 'docker/development' },
+        { docPath: 'docs/guides/app-developer.md', codePath: 'sandbox/apps' },
+        { docPath: 'docs/guides/app-integration.md', codePath: 'packages/sdk' },
+        { docPath: 'docs/overview/tree.md', codePath: 'core/src' }
+      ];
+
+      const isAuthorized = allowedMappings.some(m => m.codePath === codePath && m.docPath === docPath);
+      if (!isAuthorized) {
+        return new Response(JSON.stringify({ error: 'Security Violation: Path mapping is not authorized' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       const diff = getGitDiffForFile(codePath, docPath);
       return new Response(JSON.stringify({ diff }), {
         headers: { 'Content-Type': 'application/json' },
