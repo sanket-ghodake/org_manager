@@ -84,3 +84,30 @@ To optimize SSO handshake latency, prevent heavy database locks, and bypass sche
 * **Scope Constraints**: App access privileges are restricted strictly to requested OAuth scopes (e.g., `user.profile.read`, `audit.log.write`) encoded in the JWT claims payload.
 * **Backward Compatibility**: If a token does not match the JWT format, the verification engine automatically falls back to a database lookup against the `forge_access_tokens` table. This prevents breaking changes for older, legacy applications.
 
+---
+
+## 🔑 Third-Party OAuth2 Identity Providers (SSO)
+
+To facilitate passwordless corporate access and seamless workforce onboarding, the platform supports authenticating users via external Identity Providers (Google Workspace, GitHub Organizations, Microsoft Entra ID, and Okta).
+
+### Security Architecture
+
+1. **CSRF Protection via Session-bound State**:
+   - During redirection, a cryptographically secure, random `state` token (`crypto.randomUUID()`) is generated and stored in a short-lived, HTTP-only, secure cookie (`oauth_state`).
+   - The returning callback must present a matching `state` query parameter, blocking Cross-Site Request Forgery (CSRF) attempts.
+2. **Dynamic Endpoint Host Resolution**:
+   - Redirect callback URIs are resolved dynamically from request headers (`x-forwarded-proto` and `host`). This eliminates hardcoded application URLs, enabling zero-configuration deployments on corporate intranets and dev proxies.
+3. **Data Collection Scope Minimization**:
+   - The platform strictly requests basic scopes (`openid`, `email`, `profile` / `User.Read`) to retrieve only the user's verified **email address** and **full name**. No access is requested for calendars, directories, files, or sensitive organizational resources.
+
+### Auto-Registration & User Provisioning
+
+When a third-party login completes successfully:
+- The system queries the database for an existing user account matching the provider's verified email.
+- **If the user exists**, they are signed in directly by setting the secure `session_token` cookie.
+- **If the user does not exist**, the portal automatically provisions a new employee profile:
+  - Generates a unique employee ID (`eid`) using the format `E_OA_<random_5_digits>`.
+  - Sets the password hash to a secure placeholder `OAUTH_USER_NO_PASSWORD` (preventing standard credential-matching logins).
+  - Marks `isPasswordChanged` as `true` (skipping the initial password change wizard since they authenticated externally).
+  - Sets their role to the default `user`.
+
