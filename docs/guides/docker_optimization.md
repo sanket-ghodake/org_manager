@@ -83,7 +83,7 @@ We rewritten the GitHub Actions workflow (`.github/workflows/ci.yml`) to execute
 
 ### 1. System Independence
 *   **Docker Setup**: Fully system-independent. Any developer with Docker and Docker Compose installed on their host system (Linux, macOS, or Windows/WSL2) can execute the run scripts, and it will build and run identically. The build context is completely isolated and does not rely on local node dependencies or absolute host file paths.
-*   **Portable Setup**: System-independent for Linux and macOS. The `setup.sh` script dynamically detects the host operating system architecture and downloads the correct portable Bun runtime binary (currently Bun v1.3.14). It then configures local workspace node dependencies and sets up a containerized database before natively starting the frontend and helper microservices.
+*   **Portable Setup**: System-independent for Linux and macOS. The `setup.sh` script (located at `scripts/portable/development/setup.sh`) dynamically detects the host operating system architecture and downloads the correct portable Bun runtime binary (currently Bun v1.3.14). It then configures local workspace node dependencies and sets up a containerized database before natively starting the frontend and helper microservices.
 
 ### 2. Optimization (Storage & Time)
 *   **Docker Environment**:

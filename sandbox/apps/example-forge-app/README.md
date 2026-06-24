@@ -19,9 +19,9 @@
 ## 4. Independent Execution Command
 To run this application independently, execute the orchestration script from the root:
 ```bash
-./scripts/run-example-app.sh
+./test/scripts/run-example-app.sh
 ```
 Or run its docker compose directly from the test folder:
 ```bash
-docker compose -f test/example-forge-app/docker-compose.yml up -d --build
+docker compose -f test/apps/example-forge-app/docker-compose.yml up -d --build
 ```

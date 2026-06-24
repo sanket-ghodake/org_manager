@@ -71,6 +71,4 @@ Below is a map of the helper scripts located in this folder:
 *   **`setup.sh` / `setup.bat`**: Bootstraps the portable environment, installs local `bun`, and runs local schema seeding.
 *   **`run-dev.sh`**: Natively executes the local dev portal, reference expenses app, and developer proxy gateway concurrently (used by `./run.sh portable dev`).
 *   **`developer-proxy.ts`**: Backchannel routing proxy to bridge portal traffic to individual microservices during development.
-*   **`run-example-app.sh`**: Helper script to run individual micro-apps natively.
-*   **`absolute-import-enforcer.ts`**: Script used by lint checkers to ensure source imports conform to boundary rules.
 *   **`replace-relative-imports.py`**: Utility to automatically rewrite relative import statements into tidy absolute imports.

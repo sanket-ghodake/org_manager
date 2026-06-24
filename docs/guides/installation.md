@@ -32,7 +32,7 @@ The setup script configures dependencies and runs database initializers:
 ```bash
 bun run setup
 ```
-*(Alternatively, run `bash scripts/setup.sh` directly).*
+*(Alternatively, run `bash scripts/portable/development/setup.sh` directly).*
 
 ### Step 3: Run Tests to Verify Setup
 Run the unified test suite to make sure the platform, authorization guard, and permissions work correctly:

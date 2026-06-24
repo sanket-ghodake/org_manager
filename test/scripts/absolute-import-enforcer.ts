@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const PROJECT_ROOT = path.resolve(__dirname, "..");
+const PROJECT_ROOT = path.resolve(__dirname, "../..");
 const TARGET_DIRS = ["core/src", "sandbox/apps", "packages/sdk", "test"];
 
 function getFiles(dir: string): string[] {
@@ -32,7 +32,8 @@ function checkImports() {
     const isCodeFile = file.endsWith(".ts") || file.endsWith(".tsx") || file.endsWith(".js") || file.endsWith(".jsx");
     const isDts = file.endsWith(".d.ts");
     const isSelf = file === __filename;
-    return isCodeFile && !isDts && !isSelf;
+    const isBundledAsset = file.endsWith("dev-dashboard/dashboard.js");
+    return isCodeFile && !isDts && !isSelf && !isBundledAsset;
   });
 
   const relativeImportRegex = /(?:import|export)\s+(?:(?:\*|[\w\s{},]*)\s+from\s+)?['"](\.\.?\/[^'"]*)['"]|import\(['"](\.\.?\/[^'"]*)['"]\)|require\(['"](\.\.?\/[^'"]*)['"]\)/g;

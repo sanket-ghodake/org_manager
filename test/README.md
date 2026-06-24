@@ -3,9 +3,11 @@
 This directory is reserved for holding test payloads, unit suites, integration paths, and coverage logs.
 
 ## Directories:
+* **`apps/`:** Isolated external applications used for sandbox and integration flow testing (e.g., `example-forge-app`).
 * **`dummy-data/`:** Static JSON payloads or mockup records.
 * **`unit/`:** Core code logic tests.
 * **`integration/`:** End-to-end user workflow simulations.
+* **`scripts/`:** Orchestration and helper scripts for running test workloads (e.g., `run-example-app.sh`, `absolute-import-enforcer.ts`).
 * **`coverage/`:** Automated test coverage outputs.
 
 ## Rules to Follow:

@@ -58,20 +58,22 @@ Below is the directory tree of the refactored monorepo. This layout separates th
 │   │   └── reference-python
 │   └── README.md
 ├── scripts
-│   ├── absolute-import-enforcer.ts
 │   ├── developer-proxy.ts
 │   ├── README.md
 │   ├── replace-relative-imports.py
 │   ├── run.bat
 │   ├── run-dev.sh
-│   ├── run-example-app.sh
 │   ├── setup.bat
 │   └── setup.sh
 ├── test
+│   ├── apps
+│   │   └── example-forge-app
 │   ├── dummy-data
-│   ├── example-forge-app
 │   ├── integration
 │   ├── README.md
+│   ├── scripts
+│   │   ├── absolute-import-enforcer.ts
+│   │   └── run-example-app.sh
 │   └── unit
 ├── toolchain
 │   ├── docker-compose.yml
