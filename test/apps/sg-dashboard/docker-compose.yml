@@ -17,6 +17,9 @@ services:
       - JWT_SECRET=super_secret_dashboard_jwt_key
     volumes:
       - sg-dashboard-db:/app/db
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+    command: ["bun", "--watch", "backend/server.ts"]
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always

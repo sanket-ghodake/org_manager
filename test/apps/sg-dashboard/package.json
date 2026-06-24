@@ -2,9 +2,9 @@
   "name": "sg-dashboard",
   "version": "1.0.0",
   "description": "SG_Dashboard with ultra-lean Fastify, Bun, and libSQL/SQLite.",
-  "main": "server.ts",
+  "main": "backend/server.ts",
   "scripts": {
-    "start": "bun run server.ts"
+    "start": "bun run backend/server.ts"
   },
   "dependencies": {
     "fastify": "^4.26.2",

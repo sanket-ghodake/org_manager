@@ -9,10 +9,12 @@ COPY package.json ./
 RUN bun install --production
 
 # Copy application source
-COPY server.ts index.html ./
+COPY db ./db
+COPY backend ./backend
+COPY frontend ./frontend
 
 # Expose app port
 EXPOSE 8095
 
 # Command to run the app
-CMD ["bun", "run", "server.ts"]
+CMD ["bun", "run", "backend/server.ts"]

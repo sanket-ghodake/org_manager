@@ -475,7 +475,7 @@ export default function AppContainerPage() {
                   <iframe
                     src={`/forge-apps/${appConfig.slug}`}
                     className="w-full h-full border-none"
-                    sandbox="allow-scripts allow-forms"
+                    sandbox="allow-scripts allow-forms allow-same-origin"
                     onLoad={handleIframeLoad}
                   />
                 </div>

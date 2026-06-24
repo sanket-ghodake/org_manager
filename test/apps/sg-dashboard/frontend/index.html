@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="default">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TRR Strategy // Technical Resource Review</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col custom-scrollbar">
+
+  <!-- Authenticating overlay -->
+  <div id="auth-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--bg-primary)]">
+    <div class="bg-[var(--bg-card)] p-8 rounded-2xl flex flex-col items-center gap-4 max-w-sm text-center border border-[var(--border-color)] shadow-2xl">
+      <div class="w-12 h-12 rounded-full border-4 border-t-[var(--accent)] border-white/10 animate-spin"></div>
+      <h3 class="font-bold text-sm text-white">Authenticating Application Session</h3>
+      <p class="text-[11px] text-[var(--text-secondary)]">Exchanging secure token handshake with parent portal...</p>
+    </div>
+  </div>
+
+  <!-- Top Sticky Header (Full Width) -->
+  <header class="h-16 border-b border-[var(--border-color)] bg-[var(--bg-header)] flex items-center justify-between shrink-0 z-40 relative">
+    <!-- Left Header Section (aligned with Sidebar width) -->
+    <div id="header-left" class="h-full flex items-center px-6 border-r border-[var(--border-color)] shrink-0 transition-all duration-300 relative" style="width: 256px;">
+      <!-- Logo -->
+      <div class="flex items-center gap-3 overflow-hidden">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-lg font-black bg-gradient-to-tr from-purple-600 to-pink-500 text-white shrink-0">
+          📊
+        </div>
+        <div class="logo-text transition-opacity duration-300">
+          <h1 class="text-sm font-black tracking-wider text-[var(--text-primary)] whitespace-nowrap">SG_Dashboard</h1>
+          <p class="text-[10px] text-[var(--text-secondary)] whitespace-nowrap">TRR Strategy Portal</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Header Section (aligned with Main Content) -->
+    <div class="flex-1 h-full"></div>
+  </header>
+
+  <!-- Layout Body Wrapper -->
+  <div class="flex-1 flex overflow-hidden w-full relative">
+    <!-- Left Sidebar Nav -->
+    <aside id="sidebar" class="w-64 h-full flex flex-col justify-between border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] shrink-0 z-30 overflow-hidden">
+      <div>
+        <!-- Menu Items -->
+        <nav class="p-4 space-y-1">
+          <button onclick="switchTab('my-dashboard')" id="nav-my-dashboard" class="sidebar-active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-xs font-bold text-[var(--text-primary)] transition-all">
+            <span>📊</span>
+            <span>My Dashboard</span>
+          </button>
+          <button onclick="switchTab('submissions')" id="nav-submissions" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+            <span>📥</span>
+            <span>Submissions</span>
+          </button>
+          <button onclick="switchTab('team-view')" id="nav-team-view" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all hidden">
+            <span>👥</span>
+            <span>Team View</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- User Profile & Avatar Card -->
+      <div class="p-4 border-t border-[var(--border-color)]">
+        <div class="flex items-center gap-3 bg-[var(--bg-input)] p-2.5 rounded-xl border border-[var(--border-color)]">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-xs" id="user-avatar">
+            AP
+          </div>
+          <div class="overflow-hidden">
+            <p id="user-name" class="text-xs font-bold text-[var(--text-primary)] truncate">Arthur Pendragon</p>
+            <p id="user-role" class="text-[9px] uppercase tracking-wider text-[var(--text-secondary)] truncate">CEO</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Drag Resize Handle -->
+    <div id="sidebar-resizer" class="h-full shrink-0 z-30 relative">
+      <!-- Minimize Button centered on the resizer line, below the header -->
+      <button id="sidebar-toggle-btn" class="absolute left-1/2 top-4 -translate-x-1/2 w-6 h-6 rounded-full bg-[var(--bg-card)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] shadow-md transition-all z-50 cursor-pointer" title="Toggle Sidebar (Ctrl+B)">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 transform transition-transform duration-300" id="sidebar-toggle-chevron">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Main View Area -->
+    <main class="flex-1 h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]">
+    <!-- Scrollable Content Area -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-6" id="tab-content-container">
+
+      <!-- PANEL 1: MY DASHBOARD -->
+      <div id="tab-my-dashboard" class="space-y-6">
+        <!-- 3 Columns Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          <!-- COLUMN 1: KEY SKILLS -->
+          <div class="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden shadow-lg flex flex-col min-h-[450px]">
+            <!-- Column Header -->
+            <div class="bg-blue-600 px-4 py-3 flex items-center justify-between text-white select-none">
+              <h2 class="text-xs font-black uppercase tracking-wider">1. Key Skills Required</h2>
+              <span id="skills-count-pill" class="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full font-mono">0 skills</span>
+            </div>
+            
+            <!-- Column Body -->
+            <div class="p-4 flex-1 flex flex-col justify-between space-y-4">
+              <div class="space-y-4">
+                <!-- Section A -->
+                <div>
+                  <h3 class="text-[10px] font-bold text-[var(--col-skills-text)] uppercase tracking-wider mb-2 border-b border-blue-500/10 pb-1">Core / Technical Skills</h3>
+                  <ul id="core-skills-list" class="space-y-1.5 text-xs">
+                    <!-- Dynamic -->
+                  </ul>
+                  <div class="mt-2">
+                    <input type="text" id="add-core-skill-input" onkeydown="if(event.key==='Enter')addQuickItem('key_skill', 'Core', this)" placeholder="+ Add skill" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]">
+                  </div>
+                </div>
+
+                <!-- Section B -->
+                <div>
+                  <h3 class="text-[10px] font-bold text-[var(--col-skills-text)] uppercase tracking-wider mb-2 border-b border-blue-500/10 pb-1">Transformation / Strategic Skills</h3>
+                  <ul id="strategic-skills-list" class="space-y-1.5 text-xs">
+                    <!-- Dynamic -->
+                  </ul>
+                  <div class="mt-2">
+                    <input type="text" id="add-strategic-skill-input" onkeydown="if(event.key==='Enter')addQuickItem('key_skill', 'Strategic', this)" placeholder="+ Add skill" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUMN 2: SKILL GAPS -->
+          <div class="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden shadow-lg flex flex-col min-h-[450px]">
+            <!-- Column Header -->
+            <div class="bg-red-600 px-4 py-3 flex items-center justify-between text-white select-none">
+              <h2 class="text-xs font-black uppercase tracking-wider">2. Skill Gaps</h2>
+              <span id="gaps-count-pill" class="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full font-mono">0 items</span>
+            </div>
+            
+            <!-- Column Body -->
+            <div class="p-4 flex-1 flex flex-col justify-between space-y-4">
+              <div class="space-y-4 flex-1">
+                <h3 class="text-[10px] font-bold text-[var(--col-gaps-text)] uppercase tracking-wider mb-2 border-b border-red-500/10 pb-1">Gaps Identified</h3>
+                <ul id="gaps-list" class="space-y-2 text-xs">
+                  <!-- Dynamic -->
+                </ul>
+              </div>
+              <div class="pt-2">
+                <input type="text" id="add-gap-input" onkeydown="if(event.key==='Enter')addQuickItem('gap', 'Medium', this)" placeholder="+ Add gap" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-500 text-[var(--text-primary)]">
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUMN 3: TRAINING PLANS -->
+          <div class="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] overflow-hidden shadow-lg flex flex-col min-h-[450px]">
+            <!-- Column Header -->
+            <div class="bg-emerald-600 px-4 py-3 flex items-center justify-between text-white select-none">
+              <h2 class="text-xs font-black uppercase tracking-wider">3. Training Plans</h2>
+              <span id="plans-count-pill" class="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full font-mono">0 items</span>
+            </div>
+            
+            <!-- Column Body -->
+            <div class="p-4 flex-1 flex flex-col justify-between space-y-4">
+              <div class="space-y-4">
+                <!-- Section Strategic -->
+                <div>
+                  <h3 class="text-[10px] font-bold text-[var(--col-plans-text)] uppercase tracking-wider mb-2 border-b border-emerald-500/10 pb-1">Strategic Plan</h3>
+                  <ul id="strategic-plans-list" class="space-y-2 text-xs">
+                    <!-- Dynamic -->
+                  </ul>
+                  <div class="mt-2">
+                    <input type="text" id="add-strategic-plan-input" onkeydown="if(event.key==='Enter')addQuickItem('training_plan', 'Strategic:TRAIN', this)" placeholder="+ Add item" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 text-[var(--text-primary)]">
+                  </div>
+                </div>
+
+                <!-- Section Tactical -->
+                <div>
+                  <h3 class="text-[10px] font-bold text-[var(--col-plans-text)] uppercase tracking-wider mb-2 border-b border-emerald-500/10 pb-1">Tactical Plan</h3>
+                  <ul id="tactical-plans-list" class="space-y-2 text-xs">
+                    <!-- Dynamic -->
+                  </ul>
+                  <div class="mt-2">
+                    <input type="text" id="add-tactical-plan-input" onkeydown="if(event.key==='Enter')addQuickItem('training_plan', 'Tactical:ACTION', this)" placeholder="+ Add item" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 text-[var(--text-primary)]">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer Row: Status Selectors & Notes -->
+        <div class="bg-[var(--bg-card)] p-5 rounded-xl border border-[var(--border-color)] shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 select-none">
+          <!-- Status selectors -->
+          <div class="flex items-center gap-3">
+            <span class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">Status:</span>
+            <div class="flex gap-2">
+              <button onclick="updateDashboardStatus('On Track')" id="status-btn-ontrack" class="px-4 py-2 rounded-lg text-xs font-bold transition-all border border-emerald-500/20 bg-emerald-500/5 text-emerald-400">
+                On Track
+              </button>
+              <button onclick="updateDashboardStatus('At Risk')" id="status-btn-atrisk" class="px-4 py-2 rounded-lg text-xs font-bold transition-all border border-amber-500/20 bg-amber-500/5 text-amber-400">
+                At Risk
+              </button>
+              <button onclick="updateDashboardStatus('Off Track')" id="status-btn-offtrack" class="px-4 py-2 rounded-lg text-xs font-bold transition-all border border-rose-500/20 bg-rose-500/5 text-rose-400">
+                Off Track
+              </button>
+            </div>
+          </div>
+
+          <!-- Notes Area -->
+          <div class="flex-1 flex flex-col md:flex-row items-start md:items-center gap-3">
+            <span class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] shrink-0">Notes:</span>
+            <textarea id="dashboard-notes-textarea" onblur="updateDashboardNotes()" placeholder="Add operational notes here..." class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg p-3 text-xs focus:outline-none focus:border-purple-500 text-[var(--text-primary)] resize-y min-h-[38px]"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 2: SUBMISSIONS -->
+      <div id="tab-submissions" class="hidden bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-6 shadow-lg space-y-6">
+        <div class="border-b border-[var(--border-color)] pb-4">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
+            📥 Manager Review Submissions
+          </h3>
+          <p class="text-xs text-[var(--text-secondary)] mt-1">Review outstanding dashboard submission tasks requested by your reporting managers.</p>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
+                <th class="pb-3 pl-3">Request ID</th>
+                <th class="pb-3">Requestor Manager</th>
+                <th class="pb-3">Target Deadline</th>
+                <th class="pb-3">Submission Status</th>
+                <th class="pb-3 text-right pr-3">Action</th>
+              </tr>
+            </thead>
+            <tbody id="submissions-body" class="divide-y divide-white/5">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PANEL 3: TEAM VIEW -->
+      <div id="tab-team-view" class="hidden bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-6 shadow-lg space-y-6">
+        <div class="border-b border-[var(--border-color)] pb-4">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
+            👥 Team Organizational Hierarchy
+          </h3>
+          <p class="text-xs text-[var(--text-secondary)] mt-1">Monitor development plans, audit health states, and trigger submission request workflows for your reporting chain.</p>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
+                <th class="pb-3 pl-3">Employee Name</th>
+                <th class="pb-3">Role</th>
+                <th class="pb-3">Dashboard Active</th>
+                <th class="pb-3">Current Status</th>
+                <th class="pb-3">Last Submission</th>
+                <th class="pb-3 text-right pr-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="team-body" class="divide-y divide-white/5">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+  </div> <!-- Close Layout Body Wrapper -->
+
+  <!-- Read-Only Employee Dashboard Viewer Modal -->
+  <div id="viewer-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 hidden">
+    <div class="bg-[var(--bg-card)] w-full max-w-4xl p-6 rounded-2xl space-y-6 m-4 max-h-[90vh] overflow-y-auto border border-[var(--border-color)] shadow-2xl custom-scrollbar text-xs">
+      <div class="flex items-center justify-between border-b border-[var(--border-color)] pb-4">
+        <div>
+          <h3 class="text-base font-bold text-[var(--text-primary)]" id="viewer-employee-name">Diana Prince</h3>
+          <p class="text-[10px] text-[var(--text-secondary)]" id="viewer-employee-role">L5 SOFTWARE ENGINEER</p>
+        </div>
+        <button onclick="closeViewerModal()" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] transition-all border border-[var(--border-color)]">
+          Close Viewer
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[var(--bg-input)] p-4 rounded-xl border border-[var(--border-color)]">
+        <div>
+          <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Program Line</div>
+          <div class="text-xs font-bold text-[var(--text-primary)] mt-1" id="viewer-program-line">-</div>
+        </div>
+        <div>
+          <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Health Status</div>
+          <div class="text-xs font-bold mt-1" id="viewer-status">-</div>
+        </div>
+        <div class="md:col-span-2">
+          <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Objective Statement</div>
+          <div class="text-xs text-[var(--text-secondary)] mt-1" id="viewer-objective">-</div>
+        </div>
+        <div class="md:col-span-2">
+          <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Managerial & Operational Notes</div>
+          <div class="text-xs text-[var(--text-secondary)] mt-1" id="viewer-notes">-</div>
+        </div>
+      </div>
+
+      <!-- Strategy items list inside viewer -->
+      <div class="space-y-4">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Strategy Implementation Plan</h4>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-[var(--bg-input)] p-4 rounded-xl border border-[var(--border-color)] space-y-2">
+            <h5 class="text-[11px] font-bold text-[var(--col-skills-text)] border-b border-[var(--border-color)] pb-1">Key Competencies</h5>
+            <div id="viewer-skills" class="space-y-2 text-[11px] max-h-[250px] overflow-y-auto custom-scrollbar">
+              <!-- Dynamic -->
+            </div>
+          </div>
+          <div class="bg-[var(--bg-input)] p-4 rounded-xl border border-[var(--border-color)] space-y-2">
+            <h5 class="text-[11px] font-bold text-[var(--col-gaps-text)] border-b border-[var(--border-color)] pb-1">Identified Gaps</h5>
+            <div id="viewer-gaps" class="space-y-2 text-[11px] max-h-[250px] overflow-y-auto custom-scrollbar">
+              <!-- Dynamic -->
+            </div>
+          </div>
+          <div class="bg-[var(--bg-input)] p-4 rounded-xl border border-[var(--border-color)] space-y-2">
+            <h5 class="text-[11px] font-bold text-[var(--col-plans-text)] border-b border-[var(--border-color)] pb-1">Mitigations & Plans</h5>
+            <div id="viewer-training" class="space-y-2 text-[11px] max-h-[250px] overflow-y-auto custom-scrollbar">
+              <!-- Dynamic -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/sidebar.js"></script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
