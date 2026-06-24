@@ -96,8 +96,8 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
                 dummyName = found.name;
                 dummyRole = found.role === 'admin' || found.role === 'super_admin' ? 'Admin' : (found.role === 'manager' ? 'Manager' : 'Employee');
                 await db.execute({
-                  sql: 'INSERT INTO users (id, name, email, role, manager_id) VALUES (?, ?, ?, ?, ?)',
-                  args: [found.id, found.name, found.email, dummyRole, found.managerId || null],
+                  sql: 'INSERT INTO users (id, name, email, role, manager_id, designation) VALUES (?, ?, ?, ?, ?, ?)',
+                  args: [found.id, found.name, found.email, dummyRole, found.managerId || null, found.designation || null],
                 });
               }
             }
@@ -112,8 +112,8 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
           });
           if (userCheckAfter.rows.length === 0) {
             await db.execute({
-              sql: 'INSERT INTO users (id, name, email, role) VALUES (?, ?, ?, ?)',
-              args: [targetUserId, dummyName, `${targetUserId}@organization.local`, dummyRole],
+              sql: 'INSERT INTO users (id, name, email, role, designation) VALUES (?, ?, ?, ?, ?)',
+              args: [targetUserId, dummyName, `${targetUserId}@organization.local`, dummyRole, null],
             });
           }
         }

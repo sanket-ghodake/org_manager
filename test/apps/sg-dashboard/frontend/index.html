@@ -305,50 +305,43 @@
       </div>
 
       <!-- PANEL 3: MY TEAM -->
-      <div id="tab-team-view" class="hidden bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-6 shadow-lg space-y-6">
-        <div class="border-b border-[var(--border-color)] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div id="tab-team-view" class="hidden space-y-8">
+        <!-- Redesigned Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
-              👥 My Team Management
-            </h3>
-            <p class="text-xs text-[var(--text-secondary)] mt-1">Monitor development plans, audit health states, and trigger submission request workflows for your reporting chain.</p>
+            <h2 class="text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
+              My Team
+            </h2>
+            <p class="text-sm text-[var(--text-secondary)] mt-1">Operational status and development focus across your organization.</p>
           </div>
-          <!-- View Toggle Switcher -->
-          <div class="flex items-center bg-[var(--bg-input)] p-1 rounded-xl border border-[var(--border-color)] shadow-sm">
-            <button onclick="toggleTeamViewMode('list')" id="btn-team-list-mode" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-sm">
-              📋 Directory List
+          <!-- Clean view toggle -->
+          <div class="flex items-center bg-[var(--bg-card)] p-1 rounded-xl border border-[var(--border-color)] shadow-sm">
+            <button onclick="toggleTeamViewMode('list')" id="btn-team-list-mode" class="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-sm">
+              📋 Team Grid
             </button>
-            <button onclick="toggleTeamViewMode('tree')" id="btn-team-tree-mode" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
-              🕸️ Hierarchy Tree
+            <button onclick="toggleTeamViewMode('tree')" id="btn-team-tree-mode" class="px-4 py-2 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              🕸️ Org Chart Explorer
             </button>
           </div>
         </div>
 
-        <!-- Mode A: Flat Directory List -->
-        <div id="team-list-mode-container" class="space-y-4">
-          <div class="overflow-x-auto custom-scrollbar">
-            <table class="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
-                  <th class="pb-3 pl-3">Employee Name</th>
-                  <th class="pb-3">Role</th>
-                  <th class="pb-3">Dashboard Active</th>
-                  <th class="pb-3">Current Status</th>
-                  <th class="pb-3">Last Submission</th>
-                  <th class="pb-3 text-right pr-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="team-body" class="divide-y divide-white/5">
-                <!-- Rendered via JS -->
-              </tbody>
-            </table>
+        <!-- Mode A: Stunning Grid Cards (Redesigned from scratch) -->
+        <div id="team-list-mode-container" class="space-y-6">
+          <!-- Elegant Health Stats Summary -->
+          <div id="team-stats-banner" class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)]">
+            <!-- Populated via JS with large fonts -->
+          </div>
+
+          <!-- Cards Grid -->
+          <div id="team-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Populated via JS -->
           </div>
         </div>
 
         <!-- Mode B: Org Explorer Chart (Microsoft Teams Style) -->
         <div id="team-tree-mode-container" class="hidden space-y-6">
           <!-- Control Bar with Breadcrumbs & Reset -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--bg-input)]/30 p-4 rounded-xl border border-[var(--border-color)]">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-color)]">
             <div class="flex items-center gap-2 text-xs text-[var(--text-secondary)] font-medium overflow-x-auto py-1 custom-scrollbar min-w-0" id="org-breadcrumbs">
               <span class="text-gray-500 font-bold shrink-0">Org Chart Explorer</span>
             </div>
@@ -358,7 +351,7 @@
           </div>
           
           <!-- Modern Org Chart Rendering Box -->
-          <div class="p-6 bg-[var(--bg-input)]/10 rounded-2xl border border-[var(--border-color)] overflow-hidden flex flex-col items-center justify-center min-h-[500px]">
+          <div class="p-6 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] overflow-hidden flex flex-col items-center justify-center min-h-[500px]">
             <div id="org-chart-display" class="w-full max-w-5xl flex flex-col items-center gap-6 select-none">
               <!-- Rendered dynamically -->
             </div>

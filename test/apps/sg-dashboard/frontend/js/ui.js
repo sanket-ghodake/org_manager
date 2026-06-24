@@ -360,47 +360,133 @@ export function renderSubmissions(submissions) {
 
 // Render Team View
 export function renderTeam(team, currentUserId, currentUserRole) {
-  const body = document.getElementById('team-body');
-  body.innerHTML = '';
+  const statsContainer = document.getElementById('team-stats-banner');
+  const gridContainer = document.getElementById('team-grid');
+
+  if (!statsContainer || !gridContainer) return;
+
+  // 1. Calculate stats
+  const totalCount = team.length;
+  const onTrackCount = team.filter(emp => emp.hasDashboard && emp.dashboardStatus === 'On Track').length;
+  const atRiskCount = team.filter(emp => emp.hasDashboard && emp.dashboardStatus === 'At Risk').length;
+  const offTrackCount = team.filter(emp => emp.hasDashboard && emp.dashboardStatus === 'Off Track').length;
+
+  statsContainer.innerHTML = `
+    <div class="flex flex-col">
+      <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Total Team</span>
+      <span class="text-3xl font-black text-[var(--text-primary)] mt-1.5">${totalCount}</span>
+    </div>
+    <div class="flex flex-col border-l border-[var(--border-color)] pl-5">
+      <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">On Track</span>
+      <span class="text-3xl font-black text-emerald-400 mt-1.5">${onTrackCount}</span>
+    </div>
+    <div class="flex flex-col border-l border-[var(--border-color)] pl-5">
+      <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">At Risk</span>
+      <span class="text-3xl font-black text-amber-400 mt-1.5">${atRiskCount}</span>
+    </div>
+    <div class="flex flex-col border-l border-[var(--border-color)] pl-5">
+      <span class="text-[10px] font-bold text-rose-400 uppercase tracking-wider">Off Track</span>
+      <span class="text-3xl font-black text-rose-400 mt-1.5">${offTrackCount}</span>
+    </div>
+  `;
+
+  // 2. Render Cards Grid
+  gridContainer.innerHTML = '';
 
   if (team.length === 0) {
-    body.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-500 font-medium">No reporting employees found in your hierarchy chain.</td></tr>';
+    gridContainer.className = "flex justify-center items-center py-12 text-[var(--text-secondary)] w-full col-span-full";
+    gridContainer.innerHTML = `
+      <div class="text-center space-y-2">
+        <span class="text-3xl">👥</span>
+        <h3 class="font-bold text-sm text-[var(--text-primary)]">No Team Members Found</h3>
+        <p class="text-xs max-w-sm">No reporting employees found in your hierarchy chain.</p>
+      </div>
+    `;
     return;
   }
 
+  gridContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+
   team.forEach(emp => {
-    let statusBadge = '<span class="text-gray-500 italic text-[10px]">No Dashboard</span>';
+    const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    
+    // Status Badge & Styles
+    let statusClass = 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+    let statusLabel = 'No Dashboard';
+    let borderClass = 'border-[var(--border-color)]';
+    let avatarGradient = 'from-slate-600/30 to-slate-500/20';
+
     if (emp.hasDashboard) {
-      let color = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      if (emp.dashboardStatus === 'At Risk') color = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-      if (emp.dashboardStatus === 'Off Track') color = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-      statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-bold border ${color}">${emp.dashboardStatus}</span>`;
+      if (emp.dashboardStatus === 'On Track') {
+        statusClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        statusLabel = 'On Track';
+        borderClass = 'hover:border-emerald-500/20';
+        avatarGradient = 'from-emerald-500/20 to-teal-500/20';
+      } else if (emp.dashboardStatus === 'At Risk') {
+        statusClass = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        statusLabel = 'At Risk';
+        borderClass = 'hover:border-amber-500/20';
+        avatarGradient = 'from-amber-500/20 to-orange-500/20';
+      } else if (emp.dashboardStatus === 'Off Track') {
+        statusClass = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+        statusLabel = 'Off Track';
+        borderClass = 'hover:border-rose-500/20';
+        avatarGradient = 'from-rose-500/20 to-red-500/20';
+      }
     }
 
-    let subBadge = '<span class="text-gray-500 italic text-[10px]">None requested</span>';
+    // Last submission badge
+    let submissionHtml = '';
     if (emp.lastSubmissionStatus) {
-      let color = emp.lastSubmissionStatus === 'Pending' ? 'bg-amber-500/15 text-amber-400' : 'bg-emerald-500/15 text-emerald-400';
-      subBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-bold ${color}">${emp.lastSubmissionStatus} (By ${emp.lastSubmissionDeadline})</span>`;
+      const isPending = emp.lastSubmissionStatus === 'Pending';
+      const subColor = isPending ? 'text-amber-400' : 'text-emerald-400';
+      submissionHtml = `
+        <div class="mt-4 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-[10px]">
+          <span class="text-[var(--text-secondary)]">Submission Status</span>
+          <span class="font-bold ${subColor}">${emp.lastSubmissionStatus} (By ${emp.lastSubmissionDeadline})</span>
+        </div>
+      `;
     }
+
+    // Card element
+    const card = document.createElement('div');
+    card.className = `bg-[var(--bg-card)] border ${borderClass} rounded-2xl p-5 shadow-sm hover:shadow-md hover:translate-y-[-2px] transition-all flex flex-col justify-between`;
 
     let actions = '';
     if (emp.hasDashboard) {
-      actions += `<button onclick="viewEmployeeDashboard('${emp.id}')" class="text-indigo-400 hover:text-indigo-300 font-bold text-[10px] bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1.5 rounded mr-2 hover:bg-indigo-500/25 transition-all">View Profile</button>`;
+      actions += `<button onclick="viewEmployeeDashboard('${emp.id}')" class="flex-1 text-center font-bold text-xs bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-xl transition-all shadow-sm">View Dashboard</button>`;
     }
+    
     if (emp.managerId === currentUserId || currentUserRole === 'Admin') {
-      actions += `<button onclick="triggerRequestSubmission('${emp.id}')" class="text-amber-400 hover:text-amber-300 font-bold text-[10px] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded hover:bg-amber-500/25 transition-all">Request Submission</button>`;
+      const buttonWidth = emp.hasDashboard ? 'w-auto px-3.5' : 'flex-1';
+      actions += `<button onclick="triggerRequestSubmission('${emp.id}')" class="${buttonWidth} text-center font-bold text-xs bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] py-2 rounded-xl transition-all border border-[var(--border-color)]">Request Update</button>`;
     }
 
-    body.innerHTML += `
-      <tr class="hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-color)] font-medium">
-        <td class="py-3.5 pl-3 font-bold text-[var(--text-primary)]">${emp.name} <br> <span class="text-[9px] text-[var(--text-secondary)] font-normal font-mono">${emp.email}</span></td>
-        <td class="py-3.5 text-[var(--text-secondary)] font-medium text-[11px]">${emp.role}</td>
-        <td class="py-3.5 font-mono text-[10px] text-[var(--accent)]">${emp.hasDashboard ? 'Yes ✓' : 'No'}</td>
-        <td class="py-3.5">${statusBadge}</td>
-        <td class="py-3.5">${subBadge}</td>
-        <td class="py-3.5 text-right pr-3">${actions}</td>
-      </tr>
+    card.innerHTML = `
+      <div>
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr ${avatarGradient} text-[var(--text-primary)] flex items-center justify-center font-extrabold text-sm border border-[var(--border-color)] select-none shrink-0">
+              ${initials}
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-base font-bold text-[var(--text-primary)] truncate" title="${emp.name}">${emp.name}</h3>
+              <p class="text-xs text-[var(--text-secondary)] truncate font-semibold mt-0.5" title="${emp.designation || emp.role}">${emp.designation || emp.role}</p>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border shrink-0 ${statusClass}">
+            ${statusLabel}
+          </span>
+        </div>
+        <p class="text-[10px] text-[var(--text-secondary)] font-mono truncate mt-3 select-text">${emp.email}</p>
+        ${submissionHtml}
+      </div>
+      <div class="flex gap-2.5 mt-5">
+        ${actions}
+      </div>
     `;
+
+    gridContainer.appendChild(card);
   });
 }
 

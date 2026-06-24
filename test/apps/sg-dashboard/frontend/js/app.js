@@ -663,6 +663,21 @@ async function initializeApplication() {
     console.warn('Failed to sync current user profile:', err);
   }
 
+  // Pre-fetch directory in background for instant local search & dropdowns
+  Promise.resolve().then(async () => {
+    try {
+      const dirRes = await api.fetchDirectory(apiToken, '', '');
+      if (dirRes.ok) {
+        const dirData = await dirRes.json();
+        cachedUsers = dirData.users || [];
+        directoryFetched = true;
+        ui.populateManagerDropdown(cachedUsers, userData.managerId);
+      }
+    } catch (err) {
+      console.warn('Failed to pre-fetch directory:', err);
+    }
+  });
+
   await changeActiveEmployeeContext(userData.id);
 }
 
@@ -816,6 +831,35 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+export function renderSearchResults(employees, resultsContainer, inputEl) {
+  if (employees.length === 0) {
+    resultsContainer.innerHTML = `<div class="p-3 text-center text-xs text-[var(--text-secondary)]">No matching employees found.</div>`;
+    searchHighlightIndex = -1;
+    return;
+  }
+
+  resultsContainer.innerHTML = '';
+  employees.forEach(emp => {
+    const item = document.createElement('div');
+    item.className = "search-result-item flex items-center justify-between p-2.5 hover:bg-[var(--bg-hover)] cursor-pointer border-b border-[var(--border-color)] last:border-b-0 transition-colors";
+    item.onclick = () => {
+      resultsContainer.classList.add('hidden');
+      inputEl.value = '';
+      viewEmployeeDashboard(emp.id);
+    };
+
+    item.innerHTML = `
+      <div class="overflow-hidden pr-2">
+        <p class="text-xs font-bold text-[var(--text-primary)] truncate">${emp.name}</p>
+        <p class="text-[9px] text-[var(--text-secondary)] truncate font-mono">${emp.email} • ${emp.designation || emp.role}</p>
+      </div>
+      <span class="text-[10px] px-2 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent)] font-bold border border-[var(--accent)]/20 shrink-0">View</span>
+    `;
+    resultsContainer.appendChild(item);
+  });
+  searchHighlightIndex = -1;
+}
+
 export async function handleHeaderSearch(inputEl) {
   const query = inputEl.value.trim();
   const resultsContainer = document.getElementById('header-search-results');
@@ -847,7 +891,7 @@ export async function handleHeaderSearch(inputEl) {
       item.innerHTML = `
         <div class="overflow-hidden pr-2">
           <p class="text-xs font-bold text-[var(--text-primary)] truncate">${emp.name}</p>
-          <p class="text-[9px] text-[var(--text-secondary)] truncate font-mono">${emp.email} • ${emp.role}</p>
+          <p class="text-[9px] text-[var(--text-secondary)] truncate font-mono">${emp.email} • ${emp.designation || emp.role}</p>
         </div>
         <span class="text-[10px] px-2 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent)] font-bold border border-[var(--accent)]/20 shrink-0">View</span>
       `;
@@ -859,7 +903,19 @@ export async function handleHeaderSearch(inputEl) {
     return;
   }
 
-  // Show loading indicator
+  // 1. FAST PATH: Local Cache Search
+  if (directoryFetched && cachedUsers.length > 0) {
+    const lower = query.toLowerCase();
+    const employees = cachedUsers.filter(u => 
+      u.name.toLowerCase().includes(lower) || 
+      (u.designation && u.designation.toLowerCase().includes(lower)) || 
+      u.email.toLowerCase().includes(lower)
+    );
+    renderSearchResults(employees.slice(0, 50), resultsContainer, inputEl);
+    return;
+  }
+
+  // 2. SLOW PATH: Show loading indicator & fetch from network
   resultsContainer.innerHTML = `
     <div class="p-3 text-center text-xs text-[var(--text-secondary)] flex items-center justify-center gap-2">
       <div class="w-3.5 h-3.5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"></div>
@@ -875,12 +931,6 @@ export async function handleHeaderSearch(inputEl) {
       const data = await res.json();
       const employees = data.users || [];
 
-      if (employees.length === 0) {
-        resultsContainer.innerHTML = `<div class="p-3 text-center text-xs text-[var(--text-secondary)]">No matching employees found.</div>`;
-        searchHighlightIndex = -1;
-        return;
-      }
-
       // Add to cachedUsers
       employees.forEach(emp => {
         if (!cachedUsers.some(u => u.id === emp.id)) {
@@ -888,26 +938,7 @@ export async function handleHeaderSearch(inputEl) {
         }
       });
 
-      resultsContainer.innerHTML = '';
-      employees.forEach(emp => {
-        const item = document.createElement('div');
-        item.className = "search-result-item flex items-center justify-between p-2.5 hover:bg-[var(--bg-hover)] cursor-pointer border-b border-[var(--border-color)] last:border-b-0 transition-colors";
-        item.onclick = () => {
-          resultsContainer.classList.add('hidden');
-          inputEl.value = '';
-          viewEmployeeDashboard(emp.id);
-        };
-
-        item.innerHTML = `
-          <div class="overflow-hidden pr-2">
-            <p class="text-xs font-bold text-[var(--text-primary)] truncate">${emp.name}</p>
-            <p class="text-[9px] text-[var(--text-secondary)] truncate font-mono">${emp.email} • ${emp.role}</p>
-          </div>
-          <span class="text-[10px] px-2 py-0.5 rounded bg-[var(--accent)]/10 text-[var(--accent)] font-bold border border-[var(--accent)]/20 shrink-0">View</span>
-        `;
-        resultsContainer.appendChild(item);
-      });
-      searchHighlightIndex = -1;
+      renderSearchResults(employees, resultsContainer, inputEl);
     } catch (err) {
       console.error(err);
       resultsContainer.innerHTML = `<div class="p-3 text-center text-xs text-red-400">Search error.</div>`;

@@ -80,18 +80,19 @@ export default async function authRoutes(fastify: FastifyInstance) {
       // Insert or update logged in user
       await db.execute({
         sql: `
-          INSERT INTO users (id, name, email, role, manager_id)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO users (id, name, email, role, manager_id, designation)
+          VALUES (?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
             email = excluded.email,
             manager_id = COALESCE(excluded.manager_id, users.manager_id),
+            designation = COALESCE(excluded.designation, users.designation),
             role = CASE 
               WHEN users.role IN ('Manager', 'Admin') THEN users.role 
               ELSE excluded.role 
             END
         `,
-        args: [user.id, user.name, user.email, mappedRole, userManagerId],
+        args: [user.id, user.name, user.email, mappedRole, userManagerId, user.designation || null],
       });
 
       // Generate local JWT token
@@ -197,15 +198,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
         await db.execute({
           sql: `
-            INSERT INTO users (id, name, email, role, manager_id)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO users (id, name, email, role, manager_id, designation)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
               name = excluded.name,
               email = excluded.email,
               role = excluded.role,
-              manager_id = excluded.manager_id
+              manager_id = excluded.manager_id,
+              designation = excluded.designation
           `,
-          args: [id, name, email, role, managerId],
+          args: [id, name, email, role, managerId, u.designation || null],
         });
       }
 
@@ -268,8 +270,8 @@ export default async function authRoutes(fastify: FastifyInstance) {
               try {
                 await db.execute({
                   sql: `
-                    INSERT INTO users (id, name, email, role, manager_id)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO users (id, name, email, role, manager_id, designation)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
                       name = excluded.name,
                       email = excluded.email,
@@ -277,9 +279,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
                         WHEN users.role IN ('Manager', 'Admin') THEN users.role
                         ELSE excluded.role
                       END,
-                      manager_id = COALESCE(excluded.manager_id, users.manager_id)
+                      manager_id = COALESCE(excluded.manager_id, users.manager_id),
+                      designation = COALESCE(excluded.designation, users.designation)
                   `,
-                  args: [id, name, email, role, managerId],
+                  args: [id, name, email, role, managerId, u.designation || null],
                 });
               } catch (dbErr: any) {
                 console.error('Background sync user write error:', dbErr.message);
@@ -304,19 +307,19 @@ export default async function authRoutes(fastify: FastifyInstance) {
         const searchPattern = `%${q.trim()}%`;
         localRes = await db.execute({
           sql: `
-            SELECT id, id as eid, name, email, role, manager_id
+            SELECT id, id as eid, name, email, role, manager_id, designation
             FROM users
-            WHERE name LIKE ? OR email LIKE ?
+            WHERE name LIKE ? OR email LIKE ? OR designation LIKE ?
             ORDER BY name ASC
             LIMIT 50
           `,
-          args: [searchPattern, searchPattern],
+          args: [searchPattern, searchPattern, searchPattern],
         });
       } else if (managerId) {
         if (managerId === 'root') {
           localRes = await db.execute({
             sql: `
-              SELECT id, id as eid, name, email, role, manager_id
+              SELECT id, id as eid, name, email, role, manager_id, designation
               FROM users
               WHERE manager_id IS NULL OR manager_id = ''
               ORDER BY name ASC
@@ -326,7 +329,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         } else {
           localRes = await db.execute({
             sql: `
-              SELECT id, id as eid, name, email, role, manager_id
+              SELECT id, id as eid, name, email, role, manager_id, designation
               FROM users
               WHERE manager_id = ?
               ORDER BY name ASC
@@ -337,7 +340,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       } else {
         localRes = await db.execute({
           sql: `
-            SELECT id, id as eid, name, email, role, manager_id
+            SELECT id, id as eid, name, email, role, manager_id, designation
             FROM users
             ORDER BY name ASC
           `,
@@ -353,6 +356,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         role: row.role === 'Admin' ? 'admin' : (row.role === 'Manager' ? 'manager' : 'employee'),
         managerId: row.manager_id,
         manager_id: row.manager_id,
+        designation: row.designation || '',
       }));
 
       return reply.send({ users, metadata: [] });

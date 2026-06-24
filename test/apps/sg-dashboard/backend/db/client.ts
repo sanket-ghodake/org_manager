@@ -1,5 +1,17 @@
 import { createClient } from '@libsql/client';
 import { DATABASE_URL } from '../config';
+import fs from 'fs';
+import path from 'path';
+
+// Ensure parent directory of the database file exists before instantiating the client
+if (DATABASE_URL.startsWith('file:')) {
+  const dbPath = DATABASE_URL.substring(5);
+  const dbDir = path.dirname(dbPath);
+  if (dbDir && dbDir !== '.' && !fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+    console.log(`Created database volume directory: ${dbDir}`);
+  }
+}
 
 export const db = createClient({
   url: DATABASE_URL,
@@ -15,8 +27,14 @@ export async function initDb() {
       (row: any) => row.from === 'manager_id'
     );
 
-    if (hasManagerFk) {
-      console.log('Recreating tables to remove manager_id foreign key constraint...');
+    // Check if designation column is missing in users table
+    const tableInfo = await db.execute(`PRAGMA table_info(users)`);
+    const hasDesignation = tableInfo.rows?.some(
+      (row: any) => row.name === 'designation'
+    );
+
+    if (hasManagerFk || (tableInfo.rows && tableInfo.rows.length > 0 && !hasDesignation)) {
+      console.log('Recreating tables to add designation column or remove manager_id foreign key constraint...');
       await db.execute(`DROP TABLE IF EXISTS submission_requests`);
       await db.execute(`DROP TABLE IF EXISTS dashboard_items`);
       await db.execute(`DROP TABLE IF EXISTS dashboards`);
@@ -29,7 +47,8 @@ export async function initDb() {
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         role TEXT CHECK(role IN ('Employee', 'Manager', 'Admin')) NOT NULL,
-        manager_id TEXT
+        manager_id TEXT,
+        designation TEXT
       )
     `);
 

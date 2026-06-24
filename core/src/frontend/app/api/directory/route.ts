@@ -18,10 +18,10 @@ export async function GET(request: Request) {
       const appResult = await roDb.execute(sql`
         SELECT client_secret as "clientSecret" FROM forge_apps WHERE client_id = ${clientIdHeader}
       `);
-      const appRows = appResult.rows || appResult;
+      const appRows = (appResult.rows || appResult) as any[];
       if (appRows && appRows.length > 0) {
         try {
-          const decrypted = decryptText(appRows[0].clientSecret);
+          const decrypted = decryptText(appRows[0].clientSecret as string);
           if (decrypted === clientSecretHeader) {
             isAuthorized = true;
             isS2S = true;
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
           const userResult = await roDb.execute(sql`
             SELECT role FROM users WHERE id = ${verified.userId}
           `);
-          const userRows = userResult.rows || userResult;
+          const userRows = (userResult.rows || userResult) as any[];
           if (userRows && userRows.length > 0) {
             userRole = userRows[0].role || 'user';
           }
@@ -88,15 +88,17 @@ export async function GET(request: Request) {
     const isEmployee = !isS2S && !['super_admin', 'admin', 'read_only_admin'].includes(userRole);
 
     let usersQuery = sql`
-      SELECT id, eid, name, email, role, designation_id, vertical_id, manager_id
-      FROM users
-      ORDER BY name ASC
+      SELECT u.id, u.eid, u.name, u.email, u.role, u.designation_id as "designationId", u.vertical_id as "verticalId", u.manager_id as "managerId", dm.name as designation
+      FROM users u
+      LEFT JOIN structural_metadata dm ON u.designation_id = dm.id
+      ORDER BY u.name ASC
     `;
     if (isEmployee && !q && !managerId) {
       usersQuery = sql`
-        SELECT id, eid, name, email, role, designation_id, vertical_id, manager_id
-        FROM users
-        ORDER BY name ASC
+        SELECT u.id, u.eid, u.name, u.email, u.role, u.designation_id as "designationId", u.vertical_id as "verticalId", u.manager_id as "managerId", dm.name as designation
+        FROM users u
+        LEFT JOIN structural_metadata dm ON u.designation_id = dm.id
+        ORDER BY u.name ASC
         LIMIT 50
       `;
     }
@@ -106,27 +108,30 @@ export async function GET(request: Request) {
       isFiltered = true;
       const searchPattern = `%${q.trim()}%`;
       usersQuery = sql`
-        SELECT id, eid, name, email, role, designation_id, vertical_id, manager_id
-        FROM users
-        WHERE name ILIKE ${searchPattern} OR email ILIKE ${searchPattern} OR eid ILIKE ${searchPattern}
-        ORDER BY name ASC
+        SELECT u.id, u.eid, u.name, u.email, u.role, u.designation_id as "designationId", u.vertical_id as "verticalId", u.manager_id as "managerId", dm.name as designation
+        FROM users u
+        LEFT JOIN structural_metadata dm ON u.designation_id = dm.id
+        WHERE u.name ILIKE ${searchPattern} OR u.email ILIKE ${searchPattern} OR u.eid ILIKE ${searchPattern} OR dm.name ILIKE ${searchPattern}
+        ORDER BY u.name ASC
         LIMIT 50
       `;
     } else if (managerId) {
       isFiltered = true;
       if (managerId === 'root') {
         usersQuery = sql`
-          SELECT id, eid, name, email, role, designation_id, vertical_id, manager_id
-          FROM users
-          WHERE manager_id IS NULL
-          ORDER BY name ASC
+          SELECT u.id, u.eid, u.name, u.email, u.role, u.designation_id as "designationId", u.vertical_id as "verticalId", u.manager_id as "managerId", dm.name as designation
+          FROM users u
+          LEFT JOIN structural_metadata dm ON u.designation_id = dm.id
+          WHERE u.manager_id IS NULL
+          ORDER BY u.name ASC
         `;
       } else {
         usersQuery = sql`
-          SELECT id, eid, name, email, role, designation_id, vertical_id, manager_id
-          FROM users
-          WHERE manager_id = ${managerId}
-          ORDER BY name ASC
+          SELECT u.id, u.eid, u.name, u.email, u.role, u.designation_id as "designationId", u.vertical_id as "verticalId", u.manager_id as "managerId", dm.name as designation
+          FROM users u
+          LEFT JOIN structural_metadata dm ON u.designation_id = dm.id
+          WHERE u.manager_id = ${managerId}
+          ORDER BY u.name ASC
         `;
       }
     }
@@ -136,14 +141,14 @@ export async function GET(request: Request) {
     const users = usersResult.rows || usersResult;
 
     // Fetch structural metadata only if not filtering, to optimize bandwidth
-    let metadata = [];
+    let metadata: any[] = [];
     if (!isFiltered) {
       const metaResult = await roDb.execute(sql`
         SELECT id, type, name, parent_id, sort_order
         FROM structural_metadata
         ORDER BY type, name ASC
       `);
-      metadata = metaResult.rows || metaResult;
+      metadata = (metaResult.rows || metaResult) as any[];
     }
 
     return NextResponse.json({ users, metadata });
