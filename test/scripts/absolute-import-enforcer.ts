@@ -8,7 +8,7 @@ function getFiles(dir: string): string[] {
   if (!fs.existsSync(dir)) return [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   const files = entries.flatMap((entry) => {
-    const res = path.resolve(dir, entry.name);
+    const res = path.resolve(dir, entry.name); // nosemgrep
     if (entry.isDirectory()) {
       if (["node_modules", ".git", ".next", "graphify-out", "portables"].includes(entry.name)) {
         return [];

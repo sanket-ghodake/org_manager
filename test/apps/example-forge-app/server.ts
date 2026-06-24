@@ -40,7 +40,7 @@ async function initDb() {
       console.log('Database schema initialized successfully!');
       break;
     } catch (err: any) {
-      console.error(`Database initialization failed, retrying... (${retries} left)`, err.message);
+      console.error('Database initialization failed, retrying... (%d left)', retries, err.message);
       retries--;
       await new Promise(res => setTimeout(res, 3000));
     }
