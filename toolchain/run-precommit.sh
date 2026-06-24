@@ -27,7 +27,7 @@ if [ -d "node_modules/.bin" ]; then
   export PATH="$(pwd)/node_modules/.bin:$PATH"
 fi
 
-# 1. Identify all staged files, excluding deleted ones to avoid lint failures on deleted assets
+# 1. Identify all staged files, excluding deleted ones
 STAGED_FILES=()
 while IFS= read -r line; do
   [ -n "$line" ] && STAGED_FILES+=("$line")
@@ -38,13 +38,13 @@ if [ ${#STAGED_FILES[@]} -eq 0 ]; then
   exit 0
 fi
 
-# 2. Check for merge conflict markers in staged changes to prevent broken commits
+# 2. Check for merge conflict markers
 if git diff --cached | grep -qE '^\+(<<<<<<<|=======|>>>>>>>)'; then
   echo -e "${RED}❌ Error: Merge conflict markers detected in staged files! Please resolve them before committing.${RESET}"
   exit 1
 fi
 
-# 3. Categorize staged files for granular analysis
+# 3. Categorize staged files
 STAGED_JS_TS=()
 STAGED_PY=()
 STAGED_SQL=()
@@ -79,8 +79,7 @@ for file in "${STAGED_FILES[@]}"; do
   fi
 done
 
-# 4. Check tool availability on host to determine container fallback requirements
-NEED_CONTAINER=false
+# 4. Check tool availability on host
 HAS_DOCKER=false
 if command -v docker &>/dev/null; then
   HAS_DOCKER=true
@@ -95,24 +94,14 @@ has_gitleaks() { command -v gitleaks &>/dev/null; }
 has_semgrep() { command -v semgrep &>/dev/null; }
 has_trivy() { command -v trivy &>/dev/null; }
 has_govulncheck() { command -v govulncheck &>/dev/null && command -v go &>/dev/null; }
+has_tsc() { command -v tsc &>/dev/null; }
 
-if [ ${#STAGED_JS_TS[@]} -gt 0 ] && ! has_biome; then NEED_CONTAINER=true; fi
-if [ ${#STAGED_PY[@]} -gt 0 ] && ! has_ruff; then NEED_CONTAINER=true; fi
-if [ ${#STAGED_SQL[@]} -gt 0 ] && ! has_sqlfluff; then NEED_CONTAINER=true; fi
-if [ ${#STAGED_DEPS_SRC[@]} -gt 0 ] && ! has_depcruise; then NEED_CONTAINER=true; fi
-if [ ${#STAGED_GO[@]} -gt 0 ] && ! has_go; then NEED_CONTAINER=true; fi
-if ! has_gitleaks; then NEED_CONTAINER=true; fi
+# Determine which checks need container fallback
+NEED_CONTAINER=false
+CONTAINER_COMMANDS=()
+CONTAINER_JOB_NAMES=()
 
-local_sast_scan=()
-local_sast_scan+=("${STAGED_JS_TS[@]}")
-local_sast_scan+=("${STAGED_PY[@]}")
-local_sast_scan+=("${STAGED_GO[@]}")
-if [ ${#local_sast_scan[@]} -gt 0 ] && ! has_semgrep; then NEED_CONTAINER=true; fi
-
-if [ "$LOCKFILES_CHANGED" = true ] && ! has_trivy; then NEED_CONTAINER=true; fi
-if [ "$GO_DEPS_CHANGED" = true ] && ! has_govulncheck; then NEED_CONTAINER=true; fi
-
-# 5. Upfront Docker Image Preparation (resolves race conditions in parallel container builds)
+# 5. Upfront Docker Image Preparation
 ensure_docker_image() {
   if [ "$HAS_DOCKER" = true ]; then
     if ! docker image inspect sgforge-toolchain:latest &>/dev/null; then
@@ -124,145 +113,95 @@ ensure_docker_image() {
   fi
 }
 
-if [ "$NEED_CONTAINER" = true ]; then
-  ensure_docker_image
-fi
-
-# 6. Define check runners (will run concurrently in subshells)
+# 6. Define check runners (for local execution)
 check_biome() {
-  if has_biome; then
-    if command -v bunx &>/dev/null; then
-      bunx biome ci "${STAGED_JS_TS[@]}"
-    else
-      biome ci "${STAGED_JS_TS[@]}"
-    fi
-  elif [ "$HAS_DOCKER" = true ]; then
-    echo -e "${YELLOW}⚠️ Biome not found on host. Running in container...${RESET}"
-    docker compose -f toolchain/docker-compose.yml run --rm --entrypoint "sh" toolchain -c "bunx biome ci ${STAGED_JS_TS[*]}"
+  if command -v bunx &>/dev/null; then
+    bunx biome ci --config-path=config "${STAGED_JS_TS[@]}"
   else
-    echo -e "${RED}❌ Error: Biome is not available locally and Docker is not running.${RESET}"
-    return 1
+    biome ci --config-path=config "${STAGED_JS_TS[@]}"
   fi
 }
 
 check_ruff() {
-  if has_ruff; then
-    ruff check "${STAGED_PY[@]}"
-  elif [ "$HAS_DOCKER" = true ]; then
-    echo -e "${YELLOW}⚠️ Ruff not found on host. Running in container...${RESET}"
-    docker compose -f toolchain/docker-compose.yml run --rm --entrypoint "sh" toolchain -c "ruff check ${STAGED_PY[*]}"
-  else
-    echo -e "${RED}❌ Error: Ruff is not available locally and Docker is not running.${RESET}"
-    return 1
-  fi
+  ruff check "${STAGED_PY[@]}" && ruff format --check "${STAGED_PY[@]}"
 }
 
 check_sqlfluff() {
-  if has_sqlfluff; then
-    sqlfluff lint "${STAGED_SQL[@]}" --dialect postgres
-  elif [ "$HAS_DOCKER" = true ]; then
-    echo -e "${YELLOW}⚠️ SQLFluff not found on host. Running in container...${RESET}"
-    docker compose -f toolchain/docker-compose.yml run --rm --entrypoint "sh" toolchain -c "sqlfluff lint ${STAGED_SQL[*]} --dialect postgres"
-  else
-    echo -e "${RED}❌ Error: SQLFluff is not available locally and Docker is not running.${RESET}"
-    return 1
-  fi
+  sqlfluff lint "${STAGED_SQL[@]}" --dialect postgres
 }
 
 check_depcruise() {
-  if has_depcruise; then
-    depcruise --config .dependency-cruiser.json core packages sandbox
-  elif [ "$HAS_DOCKER" = true ]; then
-    echo -e "${YELLOW}⚠️ dependency-cruiser not found on host. Running in container...${RESET}"
-    docker compose -f toolchain/docker-compose.yml run --rm --entrypoint "sh" toolchain -c "depcruise --config .dependency-cruiser.json core packages sandbox"
-  else
-    echo -e "${RED}❌ Error: dependency-cruiser is not available locally and Docker is not running.${RESET}"
-    return 1
-  fi
+  depcruise --config .dependency-cruiser.json "${STAGED_DEPS_SRC[@]}"
 }
 
 check_golangci() {
-  if has_go; then
-    (cd sandbox/apps/reference-go && golangci-lint run --timeout=5m ./...)
-  elif [ "$HAS_DOCKER" = true ]; then
-    echo -e "${YELLOW}⚠️ Go/golangci-lint not found on host. Running in container...${RESET}"
-    docker compose -f toolchain/docker-compose.yml run --rm -e GOFLAGS="-buildvcs=false" --entrypoint "sh" toolchain -c "git config --global --add safe.directory /app && cd sandbox/apps/reference-go && golangci-lint run --timeout=5m ./..."
-  else
-    echo -e "${RED}❌ Error: Go/golangci-lint is not available locally and Docker is not running.${RESET}"
-    return 1
-  fi
+  (cd sandbox/apps/reference-go && golangci-lint run --timeout=5m ./...)
 }
 
 check_gitleaks() {
-  if has_gitleaks; then
-    gitleaks protect --staged --verbose --redact
-  elif [ "$HAS_DOCKER" = true ]; then
-    echo -e "${YELLOW}⚠️ Gitleaks not found on host. Running in container...${RESET}"
-    docker compose -f toolchain/docker-compose.yml run --rm --entrypoint "sh" toolchain -c "git config --global --add safe.directory /app && gitleaks protect --staged --verbose --redact"
-  else
-    echo -e "${RED}❌ Error: Gitleaks is not available locally and Docker is not running.${RESET}"
-    return 1
-  fi
+  gitleaks protect --staged --verbose --redact
 }
 
 check_semgrep() {
-  local scan_files=()
-  scan_files+=("${STAGED_JS_TS[@]}")
-  scan_files+=("${STAGED_PY[@]}")
-  scan_files+=("${STAGED_GO[@]}")
-
-  if [ ${#scan_files[@]} -eq 0 ]; then
-    return 0
-  fi
-
-  if has_semgrep; then
-    semgrep scan --config auto --error --skip-unknown-extensions "${scan_files[@]}"
-  elif [ "$HAS_DOCKER" = true ]; then
-    echo -e "${YELLOW}⚠️ Semgrep not found on host. Running in container...${RESET}"
-    docker compose -f toolchain/docker-compose.yml run --rm --entrypoint "sh" toolchain -c "git config --global --add safe.directory /app && semgrep scan --config auto --error --skip-unknown-extensions ${scan_files[*]}"
-  else
-    echo -e "${RED}❌ Error: Semgrep is not available locally and Docker is not running.${RESET}"
-    return 1
-  fi
+  semgrep scan --config auto --error --skip-unknown-extensions "${sast_files[@]}"
 }
 
-check_dependencies() {
+check_trivy() {
   local failed=0
-  if [ "$LOCKFILES_CHANGED" = true ]; then
-    echo -e "${BLUE}* Scanning lockfile vulnerabilities (Trivy)...${RESET}"
-    for lockfile in "${STAGED_LOCKFILES[@]}"; do
-      echo -e "${BLUE}Scanning $lockfile...${RESET}"
-      if has_trivy; then
-        trivy fs --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed "$lockfile" || failed=1
-      elif [ "$HAS_DOCKER" = true ]; then
-        echo -e "${YELLOW}⚠️ Trivy not found on host. Running in container for $lockfile...${RESET}"
-        docker compose -f toolchain/docker-compose.yml run --rm --entrypoint "sh" toolchain -c "git config --global --add safe.directory /app && trivy fs --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed $lockfile" || failed=1
-      else
-        echo -e "${RED}❌ Error: Trivy is not available locally and Docker is not running.${RESET}"
-        failed=1
-        break
-      fi
-    done
-  fi
-
-  if [ "$GO_DEPS_CHANGED" = true ]; then
-    echo -e "${BLUE}* Checking Go dependencies (Govulncheck)...${RESET}"
-    if has_govulncheck; then
-      (cd sandbox/apps/reference-go && govulncheck ./...) || failed=1
-    elif [ "$HAS_DOCKER" = true ]; then
-      echo -e "${YELLOW}⚠️ govulncheck not found on host. Running in container...${RESET}"
-      docker compose -f toolchain/docker-compose.yml run --rm --entrypoint "sh" toolchain -c "git config --global --add safe.directory /app && cd sandbox/apps/reference-go && govulncheck ./..." || failed=1
-    else
-      echo -e "${RED}❌ Error: govulncheck is not available locally and Docker is not running.${RESET}"
-      failed=1
-    fi
-  fi
+  for lockfile in "${STAGED_LOCKFILES[@]}"; do
+    echo -e "${BLUE}Scanning $lockfile...${RESET}"
+    trivy fs --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed "$lockfile" || failed=1
+  done
   return $failed
+}
+
+check_govulncheck() {
+  (cd sandbox/apps/reference-go && govulncheck ./...)
+}
+
+check_tsc() {
+  local staged_ts_files=()
+  for file in "${STAGED_JS_TS[@]}"; do
+    if [[ "$file" =~ \.tsx?$ ]]; then
+      staged_ts_files+=("$file")
+    fi
+  done
+  
+  if [ ${#staged_ts_files[@]} -eq 0 ]; then
+    return 0
+  fi
+  
+  local tsc_output
+  tsc_output=$(tsc --noEmit --incremental --tsBuildInfoFile .tsbuildinfo 2>&1) || true
+  
+  local failed=0
+  local errors=()
+  
+  while IFS= read -r line; do
+    if [ -n "$line" ]; then
+      for file in "${staged_ts_files[@]}"; do
+        if [[ "$line" == *"$file"* ]]; then
+          errors+=("$line")
+          failed=1
+        fi
+      done
+    fi
+  done <<< "$tsc_output"
+  
+  if [ $failed -eq 1 ]; then
+    echo -e "${RED}TypeScript compilation errors detected in staged files:${RESET}"
+    for err in "${errors[@]}"; do
+      echo -e "  $err"
+    done
+    return 1
+  fi
+  return 0
 }
 
 # 7. Initialize job management system
 TEMP_DIR=$(mktemp -d -t precommit-XXXXXX)
-trap 'rm -rf "$TEMP_DIR"' EXIT
+CONTAINER_LOGS_DIR=".precommit_container_logs"
+trap 'rm -rf "$TEMP_DIR" "$CONTAINER_LOGS_DIR"' EXIT
 
 job_names=()
 job_pids=()
@@ -274,7 +213,6 @@ run_job() {
   shift
   local log_file="$TEMP_DIR/job_${#job_names[@]}.log"
   
-  # Run target function in background, redirecting output to isolate job results
   "$@" > "$log_file" 2>&1 &
   local pid=$!
   
@@ -286,42 +224,137 @@ run_job() {
   echo -e "${BLUE}* Started $name...${RESET}"
 }
 
-# 8. Dispatch all checks in parallel to minimize git commit lag
+# Orchestrator for coalesced container checks
+run_container_checks() {
+  local container_script_file="$CONTAINER_LOGS_DIR/run_checks.sh"
+  
+  cat << 'EOF' > "$container_script_file"
+#!/usr/bin/env bash
+export GOFLAGS="-buildvcs=false"
+git config --global --add safe.directory /app
+EOF
+
+  for i in "${!CONTAINER_COMMANDS[@]}"; do
+    local cmd="${CONTAINER_COMMANDS[$i]}"
+    cat << EOF >> "$container_script_file"
+( $cmd ) > /app/$CONTAINER_LOGS_DIR/job_$i.log 2>&1 &
+pid_$i=\$!
+EOF
+  done
+
+  for i in "${!CONTAINER_COMMANDS[@]}"; do
+    cat << EOF >> "$container_script_file"
+exit_code_$i=0
+wait \$pid_$i || exit_code_$i=\$?
+echo \$exit_code_$i > /app/$CONTAINER_LOGS_DIR/job_$i.exit
+EOF
+  done
+
+  chmod +x "$container_script_file"
+  
+  docker compose -f toolchain/docker-compose.yml run --rm --entrypoint "bash" toolchain "/app/$container_script_file"
+}
+
+schedule_check() {
+  local name="$1"
+  local local_func="$2"
+  local has_tool_func="$3"
+  local container_cmd="$4"
+  local condition="${5:-true}"
+  
+  if [ "$condition" = "false" ]; then
+    return 0
+  fi
+  
+  if $has_tool_func; then
+    run_job "$name" "$local_func"
+  elif [ -n "$container_cmd" ] && [ "$HAS_DOCKER" = true ]; then
+    CONTAINER_COMMANDS+=("$container_cmd")
+    CONTAINER_JOB_NAMES+=("$name")
+    NEED_CONTAINER=true
+  else
+    if [ -n "$container_cmd" ]; then
+      run_job "$name" "echo -e \"${RED}❌ Error: $name is not available locally and Docker is not running.${RESET}\" && exit 1"
+    fi
+  fi
+}
+
+# 8. Dispatch all checks
+run_biome=false
+run_ruff=false
+run_sqlfluff=false
+run_depcruise=false
+run_golangci=false
+run_semgrep=false
+run_trivy=false
+run_govulncheck=false
+run_tsc=false
+
 if [ ${#STAGED_JS_TS[@]} -gt 0 ]; then
-  run_job "JS/TS Linting (Biome)" check_biome
+  run_biome=true
+  run_semgrep=true
+  for file in "${STAGED_JS_TS[@]}"; do
+    if [[ "$file" =~ \.tsx? ]]; then
+      run_tsc=true
+      break
+    fi
+  done
 fi
 
 if [ ${#STAGED_PY[@]} -gt 0 ]; then
-  run_job "Python Linting (Ruff)" check_ruff
+  run_ruff=true
+  run_semgrep=true
 fi
 
 if [ ${#STAGED_SQL[@]} -gt 0 ]; then
-  run_job "SQL Linting (SQLFluff)" check_sqlfluff
+  run_sqlfluff=true
 fi
 
 if [ ${#STAGED_DEPS_SRC[@]} -gt 0 ]; then
-  run_job "Architecture Boundaries (Dependency-Cruiser)" check_depcruise
+  run_depcruise=true
 fi
 
 if [ ${#STAGED_GO[@]} -gt 0 ]; then
-  run_job "Go Linting (golangci-lint)" check_golangci
+  run_golangci=true
+  run_semgrep=true
 fi
 
-# Always protect staged assets from credentials leaks (Gitleaks)
-run_job "Secret Scanning (Gitleaks)" check_gitleaks
+if [ "$LOCKFILES_CHANGED" = true ]; then
+  run_trivy=true
+fi
 
-# Run SAST vulnerability check if relevant source files are modified
+if [ "$GO_DEPS_CHANGED" = true ]; then
+  run_govulncheck=true
+fi
+
+# Schedule checks
+schedule_check "JS/TS Linting (Biome)" check_biome has_biome "bunx biome ci --config-path=config ${STAGED_JS_TS[*]}" "$run_biome"
+schedule_check "Python Linting & Formatting (Ruff)" check_ruff has_ruff "ruff check ${STAGED_PY[*]} && ruff format --check ${STAGED_PY[*]}" "$run_ruff"
+schedule_check "SQL Linting (SQLFluff)" check_sqlfluff has_sqlfluff "sqlfluff lint ${STAGED_SQL[*]} --dialect postgres" "$run_sqlfluff"
+schedule_check "Architecture Boundaries (Dependency-Cruiser)" check_depcruise has_depcruise "depcruise --config .dependency-cruiser.json ${STAGED_DEPS_SRC[*]}" "$run_depcruise"
+schedule_check "Go Linting (golangci-lint)" check_golangci has_go "cd sandbox/apps/reference-go && golangci-lint run --timeout=5m ./..." "$run_golangci"
+schedule_check "Secret Scanning (Gitleaks)" check_gitleaks has_gitleaks "gitleaks protect --staged --verbose --redact" "true"
+
 sast_files=()
 sast_files+=("${STAGED_JS_TS[@]}")
 sast_files+=("${STAGED_PY[@]}")
 sast_files+=("${STAGED_GO[@]}")
-if [ ${#sast_files[@]} -gt 0 ]; then
-  run_job "SAST Vulnerability Scan (Semgrep)" check_semgrep
-fi
+schedule_check "SAST Vulnerability Scan (Semgrep)" check_semgrep has_semgrep "semgrep scan --config auto --error --skip-unknown-extensions ${sast_files[*]}" "$run_semgrep"
 
-# Run package/dependency audit if lockfiles or packages changed
-if [ "$LOCKFILES_CHANGED" = true ] || [ "$GO_DEPS_CHANGED" = true ]; then
-  run_job "Dependency Security Audit" check_dependencies
+trivy_container_cmd="failed=0; for lockfile in ${STAGED_LOCKFILES[*]}; do trivy fs --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed \$lockfile || failed=1; done; exit \$failed"
+schedule_check "Dependency Security Audit (Trivy)" check_trivy has_trivy "$trivy_container_cmd" "$run_trivy"
+schedule_check "Go Vulnerability Audit (Govulncheck)" check_govulncheck has_govulncheck "cd sandbox/apps/reference-go && govulncheck ./..." "$run_govulncheck"
+
+# TypeScript Compilation Check (Local only)
+schedule_check "TypeScript Compilation (tsc)" check_tsc has_tsc "" "$run_tsc"
+
+# Setup container directory
+rm -rf "$CONTAINER_LOGS_DIR"
+mkdir -p "$CONTAINER_LOGS_DIR"
+
+if [ "$NEED_CONTAINER" = true ]; then
+  ensure_docker_image
+  run_job "Containerized Checks" run_container_checks
 fi
 
 # 9. Wait for all background checks to complete and aggregate results
@@ -340,20 +373,55 @@ for i in "${!job_pids[@]}"; do
   end_time=$(date +%s)
   duration=$((end_time - start_time))
   
-  if [ $exit_code -ne 0 ]; then
-    results+=("${RED}❌ [FAIL] $name (${duration}s)${RESET}")
-    GLOBAL_FAILED=1
-    echo -e "\n${RED}=========================================${RESET}"
-    echo -e "${RED}   DETAILED FAILURE: $name${RESET}"
-    echo -e "${RED}=========================================${RESET}"
-    cat "$log_file"
-    echo -e "${RED}-----------------------------------------${RESET}"
+  if [ "$name" = "Containerized Checks" ]; then
+    if [ $exit_code -ne 0 ]; then
+      echo -e "\n${RED}⚠️ Container runner failed to execute properly. Docker logs:${RESET}"
+      cat "$log_file"
+      echo -e "${RED}-----------------------------------------${RESET}"
+    fi
+    
+    for j in "${!CONTAINER_JOB_NAMES[@]}"; do
+      c_name="${CONTAINER_JOB_NAMES[$j]}"
+      c_exit_file="$CONTAINER_LOGS_DIR/job_$j.exit"
+      c_log_file="$CONTAINER_LOGS_DIR/job_$j.log"
+      
+      c_exit=1
+      if [ -f "$c_exit_file" ]; then
+        c_exit=$(cat "$c_exit_file")
+      fi
+      
+      if [ "$c_exit" -ne 0 ]; then
+        results+=("${RED}❌ [FAIL] $c_name (Containerized)${RESET}")
+        GLOBAL_FAILED=1
+        echo -e "\n${RED}=========================================${RESET}"
+        echo -e "${RED}   DETAILED FAILURE: $c_name (Containerized)${RESET}"
+        echo -e "${RED}=========================================${RESET}"
+        if [ -f "$c_log_file" ]; then
+          cat "$c_log_file"
+        else
+          echo "No log file found. Container check might not have executed."
+        fi
+        echo -e "${RED}-----------------------------------------${RESET}"
+      else
+        results+=("${GREEN}✅ [PASS] $c_name (Containerized)${RESET}")
+      fi
+    done
   else
-    results+=("${GREEN}✅ [PASS] $name (${duration}s)${RESET}")
+    if [ $exit_code -ne 0 ]; then
+      results+=("${RED}❌ [FAIL] $name (${duration}s)${RESET}")
+      GLOBAL_FAILED=1
+      echo -e "\n${RED}=========================================${RESET}"
+      echo -e "${RED}   DETAILED FAILURE: $name${RESET}"
+      echo -e "${RED}=========================================${RESET}"
+      cat "$log_file"
+      echo -e "${RED}-----------------------------------------${RESET}"
+    else
+      results+=("${GREEN}✅ [PASS] $name (${duration}s)${RESET}")
+    fi
   fi
 done
 
-# 10. Print comprehensive architectural and security report
+# 10. Print report
 echo -e "\n${BLUE}=========================================${RESET}"
 echo -e "${CYAN}      PRE-COMMIT VALIDATION REPORT       ${RESET}"
 echo -e "${BLUE}=========================================${RESET}"
