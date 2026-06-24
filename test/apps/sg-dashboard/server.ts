@@ -472,6 +472,48 @@ fastify.delete('/api/dashboard/items/:itemId', { preValidation: [fastify.authent
   }
 });
 
+// 8.5. Update Dashboard Item (Owner only)
+fastify.put('/api/dashboard/items/:itemId', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+  const user = request.user;
+  const itemId = request.params.itemId;
+  const { category, title, description, deadline } = request.body || {};
+
+  try {
+    const res = await db.execute({
+      sql: `
+        SELECT d.user_id, i.category, i.title, i.description, i.deadline
+        FROM dashboard_items i
+        JOIN dashboards d ON i.dashboard_id = d.id
+        WHERE i.id = ?
+      `,
+      args: [itemId],
+    });
+
+    if (res.rows.length === 0) {
+      return reply.status(404).send({ error: 'Item not found' });
+    }
+
+    if (res.rows[0].user_id !== user.id) {
+      return reply.status(403).send({ error: 'Forbidden: Only the owner can update this item' });
+    }
+
+    const current = res.rows[0];
+    const newCategory = category !== undefined ? category : current.category;
+    const newTitle = title !== undefined ? title : current.title;
+    const newDescription = description !== undefined ? description : current.description;
+    const newDeadline = deadline !== undefined ? deadline : current.deadline;
+
+    await db.execute({
+      sql: 'UPDATE dashboard_items SET category = ?, title = ?, description = ?, deadline = ? WHERE id = ?',
+      args: [newCategory, newTitle, newDescription, newDeadline, itemId],
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    return reply.status(500).send({ error: err.message });
+  }
+});
+
 // 9. Get Team Members & Dashboards (Manager/Admin only)
 fastify.get('/api/team', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
   const user = request.user;
