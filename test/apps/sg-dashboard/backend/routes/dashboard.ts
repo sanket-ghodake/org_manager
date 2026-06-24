@@ -11,7 +11,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     try {
       let res = await db.execute({
         sql: `
-          SELECT d.*, u.name, u.email, u.role
+          SELECT d.*, u.name, u.email, u.role, u.designation
           FROM dashboards d
           LEFT JOIN users u ON d.user_id = u.id
           WHERE d.user_id = ?
@@ -35,7 +35,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
 
         res = await db.execute({
           sql: `
-            SELECT d.*, u.name, u.email, u.role
+            SELECT d.*, u.name, u.email, u.role, u.designation
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
             WHERE d.user_id = ?
@@ -63,7 +63,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     try {
       const res = await db.execute({
         sql: `
-          SELECT d.*, u.name, u.email, u.role
+          SELECT d.*, u.name, u.email, u.role, u.designation
           FROM dashboards d
           LEFT JOIN users u ON d.user_id = u.id
           WHERE d.user_id = ?
@@ -133,7 +133,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
 
         const freshRes = await db.execute({
           sql: `
-            SELECT d.*, u.name, u.email, u.role
+            SELECT d.*, u.name, u.email, u.role, u.designation
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
             WHERE d.user_id = ?

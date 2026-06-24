@@ -142,8 +142,8 @@ function generateMockCompany(count = 70): {
   // L12: CEO
   const ceo: Employee = {
     eid: "E0003",
-    name: "Reyansh",
-    email: "reyansh@sgforge.com",
+    name: "Sundar Pichai",
+    email: "sundar.pichai@sgforge.com",
     role: "user",
     designation: "L12 CEO",
     vertical: "Executive",
@@ -153,52 +153,52 @@ function generateMockCompany(count = 70): {
   employees.push(ceo);
 
   // L10: VPs
-  const vpEng: Employee = { eid: "E0004", name: "Saanvi", email: "saanvi@sgforge.com", role: "user", designation: "L10 VP of Engineering", vertical: "Engineering", subsidiary, managerEid: "E0003" };
-  const vpProd: Employee = { eid: "E0025", name: "Aditya", email: "aditya@sgforge.com", role: "user", designation: "L10 VP of Product", vertical: "Product Management", subsidiary, managerEid: "E0003" };
-  const vpOps: Employee = { eid: "E0026", name: "Rohan", email: "rohan@sgforge.com", role: "user", designation: "L10 VP of Operations", vertical: "Sales & Operations", subsidiary, managerEid: "E0003" };
-  employees.push(vpEng, vpProd, vpOps);
+  const vpDeepMind: Employee = { eid: "E0004", name: "Demis Hassabis", email: "demis.hassabis@sgforge.com", role: "user", designation: "L10 VP of DeepMind", vertical: "Engineering", subsidiary, managerEid: "E0003" };
+  const vpSearch: Employee = { eid: "E0025", name: "Prabhakar Raghavan", email: "prabhakar.raghavan@sgforge.com", role: "user", designation: "L10 VP of Search", vertical: "Product Management", subsidiary, managerEid: "E0003" };
+  const vpCloud: Employee = { eid: "E0026", name: "Thomas Kurian", email: "thomas.kurian@sgforge.com", role: "user", designation: "L10 VP of Cloud", vertical: "Sales & Operations", subsidiary, managerEid: "E0003" };
+  const vpCFO: Employee = { eid: "E0022", name: "Ruth Porat", email: "ruth.porat@sgforge.com", role: "user", designation: "L10 CFO & President", vertical: "Finance", subsidiary, managerEid: "E0003" };
+  employees.push(vpDeepMind, vpSearch, vpCloud, vpCFO);
 
   // L8: Directors
-  const dirEng1: Employee = { eid: "E0008", name: "Vivaan", email: "vivaan@sgforge.com", role: "user", designation: "L8 Director of Engineering", vertical: "Engineering", subsidiary, managerEid: "E0004" };
-  const dirEng2: Employee = { eid: "E0009", name: "Pranav", email: "pranav@sgforge.com", role: "user", designation: "L8 Director of Engineering", vertical: "Engineering", subsidiary, managerEid: "E0004" };
-  const dirProd: Employee = { eid: "E0010", name: "Kiara", email: "kiara@sgforge.com", role: "user", designation: "L8 Director of Product", vertical: "Product Management", subsidiary, managerEid: "E0025" };
-  const dirOps: Employee = { eid: "E0021", name: "Dev", email: "dev@sgforge.com", role: "user", designation: "L8 Director of Operations", vertical: "Sales & Operations", subsidiary, managerEid: "E0026" };
-  const dirHR: Employee = { eid: "E0022", name: "Rahul", email: "rahul@sgforge.com", role: "user", designation: "L8 Director of HR", vertical: "Human Resources", subsidiary, managerEid: "E0003" };
-  const dirFinance: Employee = { eid: "E0023", name: "Aditi", email: "aditi@sgforge.com", role: "user", designation: "L8 Director of Finance", vertical: "Finance", subsidiary, managerEid: "E0003" };
-  employees.push(dirEng1, dirEng2, dirProd, dirOps, dirHR, dirFinance);
+  const dirResearch: Employee = { eid: "E0008", name: "Jeff Dean", email: "jeff.dean@sgforge.com", role: "user", designation: "L8 Director of Research", vertical: "Engineering", subsidiary, managerEid: "E0004" };
+  const dirSystems: Employee = { eid: "E0009", name: "Sanjay Ghemawat", email: "sanjay@sgforge.com", role: "user", designation: "L8 Director of Systems", vertical: "Engineering", subsidiary, managerEid: "E0004" };
+  const dirSearchExp: Employee = { eid: "E0010", name: "Ben Gomes", email: "ben.gomes@sgforge.com", role: "user", designation: "L8 Director of Search Experience", vertical: "Product Management", subsidiary, managerEid: "E0025" };
+  const dirInfra: Employee = { eid: "E0021", name: "Urs Hölzle", email: "urs.holzle@sgforge.com", role: "user", designation: "L8 Director of Infrastructure", vertical: "Sales & Operations", subsidiary, managerEid: "E0026" };
+  const dirHR: Employee = { eid: "E0023", name: "Fiona Cicconi", email: "fiona.cicconi@sgforge.com", role: "user", designation: "L8 Director of People Ops", vertical: "Human Resources", subsidiary, managerEid: "E0022" };
+  employees.push(dirResearch, dirSystems, dirSearchExp, dirInfra, dirHR);
 
   // L6: Managers
-  const mgrEng1: Employee = { eid: "E0005", name: "Aditya", email: "aditya_mgr@sgforge.com", role: "user", designation: "L6 Engineering Manager", vertical: "Engineering", subsidiary, managerEid: "E0008" };
-  const mgrEng2: Employee = { eid: "E0027", name: "Siddharth", email: "siddharth@sgforge.com", role: "user", designation: "L6 Engineering Manager", vertical: "Engineering", subsidiary, managerEid: "E0008" };
-  const mgrEng3: Employee = { eid: "E0028", name: "Aman", email: "aman@sgforge.com", role: "user", designation: "L6 Engineering Manager", vertical: "Engineering", subsidiary, managerEid: "E0009" };
-  const mgrEng4: Employee = { eid: "E0029", name: "Rishi", email: "rishi@sgforge.com", role: "user", designation: "L6 Engineering Manager", vertical: "Engineering", subsidiary, managerEid: "E0009" };
-  const mgrProd: Employee = { eid: "E0030", name: "Neil", email: "neil@sgforge.com", role: "user", designation: "L6 Product Manager", vertical: "Product Management", subsidiary, managerEid: "E0010" };
-  const mgrOps: Employee = { eid: "E0031", name: "Yash", email: "yash@sgforge.com", role: "user", designation: "L6 Operations Manager", vertical: "Sales & Operations", subsidiary, managerEid: "E0021" };
-  const mgrSales: Employee = { eid: "E0032", name: "Dhruv", email: "dhruv@sgforge.com", role: "user", designation: "L6 Sales Manager", vertical: "Sales & Operations", subsidiary, managerEid: "E0021" };
-  const mgrHR: Employee = { eid: "E0033", name: "Ansh", email: "ansh@sgforge.com", role: "user", designation: "L6 HR Manager", vertical: "Human Resources", subsidiary, managerEid: "E0022" };
-  const mgrFinance: Employee = { eid: "E0034", name: "Kunwar", email: "kunwar@sgforge.com", role: "user", designation: "L6 Finance Manager", vertical: "Finance", subsidiary, managerEid: "E0023" };
-  employees.push(mgrEng1, mgrEng2, mgrEng3, mgrEng4, mgrProd, mgrOps, mgrSales, mgrHR, mgrFinance);
+  const mgrCloud: Employee = { eid: "E0005", name: "Diane Greene", email: "diane.greene@sgforge.com", role: "user", designation: "L6 Cloud Manager", vertical: "Engineering", subsidiary, managerEid: "E0021" };
+  const mgrTechOps: Employee = { eid: "E0027", name: "Eric Schmidt", email: "eric.schmidt@sgforge.com", role: "user", designation: "L6 Tech Ops Manager", vertical: "Engineering", subsidiary, managerEid: "E0021" };
+  const mgrSearchUI: Employee = { eid: "E0028", name: "Marissa Mayer", email: "marissa.mayer@sgforge.com", role: "user", designation: "L6 Search UI Manager", vertical: "Product Management", subsidiary, managerEid: "E0010" };
+  const mgrAds: Employee = { eid: "E0029", name: "Susan Wojcicki", email: "susan.wojcicki@sgforge.com", role: "user", designation: "L6 Ads Manager", vertical: "Product Management", subsidiary, managerEid: "E0010" };
+  const mgrRanking: Employee = { eid: "E0030", name: "Amit Singhal", email: "amit.singhal@sgforge.com", role: "user", designation: "L6 Ranking Manager", vertical: "Product Management", subsidiary, managerEid: "E0010" };
+  const mgrML: Employee = { eid: "E0031", name: "Blaise Agüera", email: "blaise@sgforge.com", role: "user", designation: "L6 ML Research Manager", vertical: "Engineering", subsidiary, managerEid: "E0008" };
+  const mgrDeepLearning: Employee = { eid: "E0032", name: "Ilya Sutskever", email: "ilya.sutskever@sgforge.com", role: "user", designation: "L6 Deep Learning Manager", vertical: "Engineering", subsidiary, managerEid: "E0008" };
+  const mgrNY: Employee = { eid: "E0033", name: "Corinna Cortes", email: "corinna.cortes@sgforge.com", role: "user", designation: "L6 NY Research Manager", vertical: "Engineering", subsidiary, managerEid: "E0009" };
+  const mgrFinance: Employee = { eid: "E0034", name: "Hal Varian", email: "hal.varian@sgforge.com", role: "user", designation: "L6 Chief Economist Manager", vertical: "Finance", subsidiary, managerEid: "E0023" };
+  employees.push(mgrCloud, mgrTechOps, mgrSearchUI, mgrAds, mgrRanking, mgrML, mgrDeepLearning, mgrNY, mgrFinance);
 
   // L5: Team Leads / Senior ICs
-  const leadEng0: Employee = { eid: "E0006", name: "Rohan", email: "rohan_eng@sgforge.com", role: "user", designation: "L5 Senior Software Engineer", vertical: "Engineering", subsidiary, managerEid: "E0005" };
-  const leadEng1: Employee = { eid: "E0007", name: "Sai", email: "sai@sgforge.com", role: "user", designation: "L4 Software Engineer II", vertical: "Engineering", subsidiary, managerEid: "E0005" };
-  const leadEng2: Employee = { eid: "E0035", name: "Shaurya", email: "shaurya@sgforge.com", role: "user", designation: "L5 Senior Software Engineer", vertical: "Engineering", subsidiary, managerEid: "E0005" };
-  const leadEng3: Employee = { eid: "E0036", name: "Kshitiz", email: "kshitiz@sgforge.com", role: "user", designation: "L5 Senior Software Engineer", vertical: "Engineering", subsidiary, managerEid: "E0027" };
-  const leadEng4: Employee = { eid: "E0037", name: "Tushar", email: "tushar@sgforge.com", role: "user", designation: "L5 Senior Software Engineer", vertical: "Engineering", subsidiary, managerEid: "E0027" };
-  const leadEng5: Employee = { eid: "E0038", name: "Ayush", email: "ayush@sgforge.com", role: "user", designation: "L5 Senior Software Engineer", vertical: "Engineering", subsidiary, managerEid: "E0028" };
-  const leadEng6: Employee = { eid: "E0039", name: "Madhav", email: "madhav@sgforge.com", role: "user", designation: "L5 Senior Software Engineer", vertical: "Engineering", subsidiary, managerEid: "E0028" };
-  const leadEng7: Employee = { eid: "E0040", name: "Kartik", email: "kartik@sgforge.com", role: "user", designation: "L5 Senior Software Engineer", vertical: "Engineering", subsidiary, managerEid: "E0029" };
-  const leadEng8: Employee = { eid: "E0041", name: "Ganesh", email: "ganesh@sgforge.com", role: "user", designation: "L5 Senior Software Engineer", vertical: "Engineering", subsidiary, managerEid: "E0029" };
-  const leadProd: Employee = { eid: "E0042", name: "Sanjay", email: "sanjay@sgforge.com", role: "user", designation: "L5 Senior Product Specialist", vertical: "Product Management", subsidiary, managerEid: "E0030" };
-  const leadSales: Employee = { eid: "E0043", name: "Suresh", email: "suresh@sgforge.com", role: "user", designation: "L5 Senior Sales Executive", vertical: "Sales & Operations", subsidiary, managerEid: "E0032" };
-  const leadOps: Employee = { eid: "E0044", name: "Sunil", email: "sunil@sgforge.com", role: "user", designation: "L5 Senior Operations Specialist", vertical: "Sales & Operations", subsidiary, managerEid: "E0031" };
-  employees.push(leadEng0, leadEng1, leadEng2, leadEng3, leadEng4, leadEng5, leadEng6, leadEng7, leadEng8, leadProd, leadSales, leadOps);
+  const leadHinton: Employee = { eid: "E0006", name: "Geoffrey Hinton", email: "geoff.hinton@sgforge.com", role: "user", designation: "L5 Staff Research Scientist", vertical: "Engineering", subsidiary, managerEid: "E0032" };
+  const leadLeCun: Employee = { eid: "E0007", name: "Yann LeCun", email: "yann.lecun@sgforge.com", role: "user", designation: "L5 Staff Scientist", vertical: "Engineering", subsidiary, managerEid: "E0032" };
+  const leadBengio: Employee = { eid: "E0035", name: "Yoshua Bengio", email: "yoshua.bengio@sgforge.com", role: "user", designation: "L5 Staff Scientist", vertical: "Engineering", subsidiary, managerEid: "E0032" };
+  const leadManning: Employee = { eid: "E0036", name: "Chris Manning", email: "chris.manning@sgforge.com", role: "user", designation: "L5 Staff Scientist", vertical: "Engineering", subsidiary, managerEid: "E0031" };
+  const leadLi: Employee = { eid: "E0037", name: "Fei-Fei Li", email: "feifei.li@sgforge.com", role: "user", designation: "L5 Staff Scientist", vertical: "Engineering", subsidiary, managerEid: "E0031" };
+  const leadKarpathy: Employee = { eid: "E0038", name: "Andrej Karpathy", email: "andrej.karpathy@sgforge.com", role: "user", designation: "L5 Staff Engineer", vertical: "Engineering", subsidiary, managerEid: "E0032" };
+  const leadGoodfellow: Employee = { eid: "E0039", name: "Ian Goodfellow", email: "ian.goodfellow@sgforge.com", role: "user", designation: "L5 Staff Engineer", vertical: "Engineering", subsidiary, managerEid: "E0032" };
+  const leadNg: Employee = { eid: "E0040", name: "Andrew Ng", email: "andrew.ng@sgforge.com", role: "user", designation: "L5 Staff Scientist", vertical: "Engineering", subsidiary, managerEid: "E0028" };
+  const leadThrun: Employee = { eid: "E0041", name: "Sebastian Thrun", email: "sebastian.thrun@sgforge.com", role: "user", designation: "L5 Staff Scientist", vertical: "Engineering", subsidiary, managerEid: "E0028" };
+  const leadRossum: Employee = { eid: "E0042", name: "Guido van Rossum", email: "guido@sgforge.com", role: "user", designation: "L5 Staff Engineer", vertical: "Engineering", subsidiary, managerEid: "E0005" };
+  const leadStroustrup: Employee = { eid: "E0043", name: "Bjarne Stroustrup", email: "bjarne@sgforge.com", role: "user", designation: "L5 Staff Engineer", vertical: "Engineering", subsidiary, managerEid: "E0027" };
+  const leadThompson: Employee = { eid: "E0044", name: "Ken Thompson", email: "ken@sgforge.com", role: "user", designation: "L5 Staff Engineer", vertical: "Engineering", subsidiary, managerEid: "E0033" };
+  employees.push(leadHinton, leadLeCun, leadBengio, leadManning, leadLi, leadKarpathy, leadGoodfellow, leadNg, leadThrun, leadRossum, leadStroustrup, leadThompson);
 
   // Remaining list of managers and leads to assign reporting ICs to
-  const engLeads = [leadEng0, leadEng1, leadEng2, leadEng3, leadEng4, leadEng5, leadEng6, leadEng7, leadEng8];
-  const prodLeads = [leadProd];
-  const opsSalesLeads = [leadOps, leadSales];
-  const hrManagers = [mgrHR];
+  const engLeads = [leadHinton, leadLeCun, leadBengio, leadManning, leadLi, leadKarpathy, leadGoodfellow, leadNg, leadThrun, leadRossum, leadStroustrup, leadThompson];
+  const prodLeads = [mgrSearchUI, mgrAds, mgrRanking];
+  const opsSalesLeads = [vpCloud, dirInfra, mgrCloud, mgrTechOps];
+  const hrManagers = [dirHR];
   const financeManagers = [mgrFinance];
 
   // 3. Generate Individual Contributors (E0045 to E0085)

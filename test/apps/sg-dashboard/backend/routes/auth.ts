@@ -124,9 +124,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
   fastify.post('/api/sync', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
-    if (user.role !== 'Admin' && user.role !== 'Manager') {
-      return reply.status(403).send({ error: 'Forbidden: Only managers and admins can sync the user directory' });
-    }
+    // Allow any authenticated user to sync their data
     const { users } = request.body || {};
     if (!Array.isArray(users)) {
       return reply.status(400).send({ error: 'Invalid user directory payload' });

@@ -547,10 +547,12 @@ export function renderTeam(team, currentUserId, currentUserRole) {
   if (team.length === 0) {
     gridContainer.className = "flex justify-center items-center py-12 text-[var(--text-secondary)] w-full col-span-full";
     gridContainer.innerHTML = `
-      <div class="text-center space-y-2">
+      <div class="text-center space-y-3 flex flex-col items-center">
         <span class="text-3xl">👥</span>
         <h3 class="font-bold text-sm text-[var(--text-primary)]">No Team Members Found</h3>
-        <p class="text-xs max-w-sm">No reporting employees found in your hierarchy chain.</p>
+        <p class="text-xs max-w-sm text-center">No reporting employees found in this team list.</p>
+        <p class="text-[10px] text-[var(--accent)] text-center">Try switching to the <strong>Org Chart Explorer</strong> to view their leadership chain, peers, and department context.</p>
+        <button onclick="resetToMyWorkspace()" class="mt-2 px-3 py-1.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-white font-bold text-xs shadow-sm transition-all select-none">Reset to My Workspace</button>
       </div>
     `;
     return;
@@ -844,7 +846,7 @@ export function renderOrgExplorer({
             </div>
             <div class="min-w-0 flex-1 text-left">
               <div class="text-xs font-bold text-[var(--text-primary)] truncate">${mgr.name}</div>
-              <div class="text-[9px] text-[var(--text-secondary)] truncate font-semibold uppercase tracking-wider">${mgr.role}</div>
+              <div class="text-[9px] text-[var(--text-secondary)] truncate font-semibold uppercase tracking-wider">${mgr.designation || mgr.role}</div>
             </div>
             <span class="text-[9px] text-[var(--text-secondary)] font-mono font-bold pr-1">▲ Up</span>
           </div>
@@ -925,6 +927,7 @@ export function renderOrgExplorer({
             <span class="text-sm font-black text-[var(--text-primary)] truncate">${focusedUser.name}</span>
             <span class="px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-color)] select-none shrink-0">${focusedUser.role}</span>
           </div>
+          <div class="text-xs text-[var(--text-secondary)] font-semibold mt-0.5 truncate">${focusedUser.designation || ''}</div>
           <div class="text-[10px] text-[var(--text-secondary)] truncate font-mono mt-0.5 select-text">${focusedUser.email}</div>
           
           <!-- Health Dashboard Status -->
@@ -956,7 +959,7 @@ export function renderOrgExplorer({
           </div>
           <div class="min-w-0 flex-1">
             <div class="text-xs font-bold text-[var(--text-primary)] truncate">${report.name}</div>
-            <div class="text-[9px] text-[var(--text-secondary)] truncate font-semibold uppercase tracking-wider">${report.role}</div>
+            <div class="text-[9px] text-[var(--text-secondary)] truncate font-semibold uppercase tracking-wider">${report.designation || report.role}</div>
           </div>
           <span class="text-[9px] text-[var(--text-secondary)] font-mono font-bold pr-1">▼ Down</span>
         </div>

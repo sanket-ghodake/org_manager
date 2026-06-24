@@ -7,89 +7,112 @@ export default async function teamRoutes(fastify: FastifyInstance) {
     const { managerId, rootsOnly } = (request.query as any) || {};
 
     try {
-      let reportsRes;
+      let sql = '';
+      let args: any[] = [];
+
+      const selectFields = `
+        u.id, u.name, u.email, u.role, u.manager_id, u.designation,
+        d.id AS dashboard_id, d.status AS dashboard_status, d.updated_at AS dashboard_updated_at,
+        s.status AS last_submission_status, s.deadline AS last_submission_deadline
+      `;
+
+      const subqueryJoin = `
+        LEFT JOIN dashboards d ON d.user_id = u.id
+        LEFT JOIN (
+          SELECT employee_id, status, deadline,
+                 ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY deadline DESC) as rn
+          FROM submission_requests
+        ) s ON s.employee_id = u.id AND s.rn = 1
+      `;
+
       if (managerId) {
         // View mode open to all authenticated users
-        reportsRes = await db.execute({
-          sql: 'SELECT id, name, email, role, manager_id FROM users WHERE manager_id = ? ORDER BY name ASC',
-          args: [managerId],
-        });
+        sql = `
+          SELECT ${selectFields}
+          FROM users u
+          ${subqueryJoin}
+          WHERE u.manager_id = ?
+          ORDER BY u.name ASC
+        `;
+        args = [managerId];
       } else {
         if (user.role === 'Admin') {
           if (rootsOnly === 'true') {
-            reportsRes = await db.execute({
-              sql: `
-                SELECT id, name, email, role, manager_id 
-                FROM users 
-                WHERE manager_id IS NULL OR manager_id = ''
-                ORDER BY name ASC
-              `,
-              args: [],
-            });
+            sql = `
+              SELECT ${selectFields}
+              FROM users u
+              ${subqueryJoin}
+              WHERE u.manager_id IS NULL OR u.manager_id = ''
+              ORDER BY u.name ASC
+            `;
+            args = [];
           } else {
             // Admin sees everyone
-            reportsRes = await db.execute({
-              sql: 'SELECT id, name, email, role, manager_id FROM users WHERE id != ? ORDER BY name ASC',
-              args: [user.id],
-            });
+            sql = `
+              SELECT ${selectFields}
+              FROM users u
+              ${subqueryJoin}
+              WHERE u.id != ?
+              ORDER BY u.name ASC
+            `;
+            args = [user.id];
           }
         } else {
           if (rootsOnly === 'true') {
-            reportsRes = await db.execute({
-              sql: 'SELECT id, name, email, role, manager_id FROM users WHERE manager_id = ? ORDER BY name ASC',
-              args: [user.id],
-            });
+            sql = `
+              SELECT ${selectFields}
+              FROM users u
+              ${subqueryJoin}
+              WHERE u.manager_id = ?
+              ORDER BY u.name ASC
+            `;
+            args = [user.id];
           } else {
             // Managers see direct and indirect reports (recursive manager chain)
-            reportsRes = await db.execute({
-              sql: `
-                WITH RECURSIVE reports AS (
-                  SELECT id, name, email, role, manager_id
-                  FROM users
-                  WHERE manager_id = ?
-                  UNION ALL
-                  SELECT u.id, u.name, u.email, u.role, u.manager_id
-                  FROM users u
-                  JOIN reports r ON u.manager_id = r.id
-                )
-                SELECT DISTINCT id, name, email, role, manager_id FROM reports ORDER BY name ASC
-              `,
-              args: [user.id],
-            });
+            sql = `
+              WITH RECURSIVE reports AS (
+                SELECT id, name, email, role, manager_id, designation
+                FROM users
+                WHERE manager_id = ?
+                UNION ALL
+                SELECT u.id, u.name, u.email, u.role, u.manager_id, u.designation
+                FROM users u
+                JOIN reports r ON u.manager_id = r.id
+              )
+              SELECT DISTINCT 
+                u.id, u.name, u.email, u.role, u.manager_id, u.designation,
+                d.id AS dashboard_id, d.status AS dashboard_status, d.updated_at AS dashboard_updated_at,
+                s.status AS last_submission_status, s.deadline AS last_submission_deadline
+              FROM reports u
+              LEFT JOIN dashboards d ON d.user_id = u.id
+              LEFT JOIN (
+                SELECT employee_id, status, deadline,
+                       ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY deadline DESC) as rn
+                FROM submission_requests
+              ) s ON s.employee_id = u.id AND s.rn = 1
+              ORDER BY u.name ASC
+            `;
+            args = [user.id];
           }
         }
       }
 
-      const reports = reportsRes.rows;
-      const teamData = [];
+      const res = await db.execute({ sql, args });
 
-      for (const report of reports) {
-        // Find dashboard
-        const dashRes = await db.execute({
-          sql: 'SELECT id, status, updated_at FROM dashboards WHERE user_id = ?',
-          args: [report.id],
-        });
-
-        // Find pending submission requests
-        const subRes = await db.execute({
-          sql: 'SELECT id, deadline, status FROM submission_requests WHERE employee_id = ? ORDER BY deadline DESC LIMIT 1',
-          args: [report.id],
-        });
-
-        teamData.push({
-          id: report.id,
-          name: report.name,
-          email: report.email,
-          role: report.role,
-          managerId: report.manager_id,
-          hasDashboard: dashRes.rows.length > 0,
-          dashboardId: dashRes.rows[0]?.id || null,
-          dashboardStatus: dashRes.rows[0]?.status || 'Not Started',
-          dashboardUpdatedAt: dashRes.rows[0]?.updated_at || null,
-          lastSubmissionStatus: subRes.rows[0]?.status || null,
-          lastSubmissionDeadline: subRes.rows[0]?.deadline || null,
-        });
-      }
+      const teamData = res.rows.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        role: row.role,
+        managerId: row.manager_id,
+        designation: row.designation || '',
+        hasDashboard: row.dashboard_id !== null && row.dashboard_id !== undefined,
+        dashboardId: row.dashboard_id || null,
+        dashboardStatus: row.dashboard_status || 'Not Started',
+        dashboardUpdatedAt: row.dashboard_updated_at || null,
+        lastSubmissionStatus: row.last_submission_status || null,
+        lastSubmissionDeadline: row.last_submission_deadline || null,
+      }));
 
       return { team: teamData };
     } catch (err: any) {

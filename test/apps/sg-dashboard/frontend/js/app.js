@@ -12,6 +12,31 @@ let parentOrigin = '';
 let portalOrigin = '';
 let directoryFetched = false;
 
+function setDirectoryCache(rawUsers) {
+  const uuidToEid = {};
+  rawUsers.forEach(u => {
+    if (u.id && u.eid) {
+      uuidToEid[u.id] = u.eid;
+    }
+  });
+
+  cachedUsers = rawUsers.map(u => {
+    let mId = u.manager_id || u.managerId || null;
+    if (mId && uuidToEid[mId]) {
+      mId = uuidToEid[mId];
+    }
+    return {
+      id: u.eid || u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role === 'super_admin' || u.role === 'admin' ? 'Admin' : (u.role === 'manager' ? 'Manager' : 'Employee'),
+      managerId: mId,
+      designation: u.designation || ''
+    };
+  });
+  directoryFetched = true;
+}
+
 async function getPortalOrigin() {
   if (parentOrigin && parentOrigin !== 'null') return parentOrigin;
   if (portalOrigin) return portalOrigin;
@@ -244,7 +269,7 @@ export async function updateAllSuggestions() {
         }
       }
     } catch (e) {
-      console.warn(`Failed to update suggestions for ${section}:`, e);
+      console.warn('Failed to update suggestions for %s:', section, e);
     }
   }
 }
@@ -408,10 +433,14 @@ export async function changeActiveEmployeeContext(userId) {
     if (warningBanner) {
       if (isReadOnly) {
         warningBanner.classList.remove('hidden');
-        const textSpan = warningBanner.querySelector('span:nth-child(2)');
-        if (textSpan) {
-          textSpan.innerHTML = `<strong>Read-Only Mode:</strong> You are viewing <strong>${ownerName}</strong>'s development dashboard workspace. Editing, status updates, and modifications are disabled.`;
-        }
+        warningBanner.className = "bg-amber-500/10 border-b border-amber-500/20 text-amber-500 px-6 py-2 text-xs font-medium flex items-center justify-between gap-2 select-none";
+        warningBanner.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span>⚠️</span>
+            <span><strong>Read-Only Mode:</strong> You are viewing <strong>${ownerName}</strong>'s development dashboard workspace. Editing, status updates, and modifications are disabled.</span>
+          </div>
+          <button onclick="resetToMyWorkspace()" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/35 text-amber-400 font-bold border border-amber-500/30 transition-all text-[10px] shrink-0">Reset to My Workspace</button>
+        `;
       } else {
         warningBanner.classList.add('hidden');
       }
@@ -468,22 +497,17 @@ export async function changeActiveEmployeeContext(userId) {
     }
     ui.renderTeam(teamData.team, currentDashboardUserId, ownerRole);
 
-    // Update Team Navigation Tab Visibility based on reporting lines
+    // Update Team Navigation Tab Visibility (always visible to allow org chart exploration / directory lookup)
     const hasReports = teamData && teamData.team && teamData.team.length > 0;
     const teamNavBtn = document.getElementById('nav-team-view');
     if (teamNavBtn) {
-      if (hasReports) {
-        teamNavBtn.classList.remove('hidden');
-        const navText = teamNavBtn.querySelector('span:last-child');
-        if (navText) {
+      teamNavBtn.classList.remove('hidden');
+      const navText = teamNavBtn.querySelector('span:last-child');
+      if (navText) {
+        if (hasReports) {
           navText.textContent = isSelf ? 'My Team' : `${ownerName}'s Team`;
-        }
-      } else {
-        teamNavBtn.classList.add('hidden');
-        // If we are currently on the team view tab and it is hidden, switch to dashboard
-        const teamViewTab = document.getElementById('tab-team-view');
-        if (teamViewTab && !teamViewTab.classList.contains('hidden')) {
-          ui.switchTab('my-dashboard');
+        } else {
+          navText.textContent = 'Org Chart';
         }
       }
     }
@@ -511,6 +535,11 @@ export async function changeActiveEmployeeContext(userId) {
 export async function viewEmployeeDashboard(empId) {
   ui.switchTab('my-dashboard');
   await changeActiveEmployeeContext(empId);
+}
+
+export async function resetToMyWorkspace() {
+  ui.switchTab('my-dashboard');
+  await changeActiveEmployeeContext(userData.id);
 }
 
 export function closeViewerModal() {
@@ -817,8 +846,7 @@ async function initializeApplication() {
       const dirRes = await api.fetchDirectory(apiToken, '', '');
       if (dirRes.ok) {
         const dirData = await dirRes.json();
-        cachedUsers = dirData.users || [];
-        directoryFetched = true;
+        setDirectoryCache(dirData.users || []);
         ui.populateManagerDropdown(cachedUsers, userData.managerId);
       }
     } catch (err) {
@@ -910,6 +938,7 @@ window.addQuickItem = addQuickItem;
 window.submitDashboard = submitDashboard;
 window.viewEmployeeDashboard = viewEmployeeDashboard;
 window.changeActiveEmployeeContext = changeActiveEmployeeContext;
+window.resetToMyWorkspace = resetToMyWorkspace;
 window.triggerRequestSubmission = triggerRequestSubmission;
 window.closeViewerModal = closeViewerModal;
 window.switchSubmissionsTab = switchSubmissionsTab;
@@ -1082,16 +1111,35 @@ export async function handleHeaderSearch(inputEl) {
       const res = await api.fetchDirectory(apiToken, query, '');
       if (!res.ok) throw new Error('Search failed');
       const data = await res.json();
-      const employees = data.users || [];
+      const rawEmployees = data.users || [];
 
-      // Add to cachedUsers
-      employees.forEach(emp => {
+      const uuidToEid = {};
+      rawEmployees.forEach(u => {
+        if (u.id && u.eid) uuidToEid[u.id] = u.eid;
+      });
+
+      const mappedEmployees = rawEmployees.map(emp => {
+        let mId = emp.manager_id || emp.managerId || null;
+        if (mId && uuidToEid[mId]) {
+          mId = uuidToEid[mId];
+        }
+        return {
+          id: emp.eid || emp.id,
+          name: emp.name,
+          email: emp.email,
+          role: emp.role === 'super_admin' || emp.role === 'admin' ? 'Admin' : (emp.role === 'manager' ? 'Manager' : 'Employee'),
+          managerId: mId,
+          designation: emp.designation || ''
+        };
+      });
+
+      mappedEmployees.forEach(emp => {
         if (!cachedUsers.some(u => u.id === emp.id)) {
           cachedUsers.push(emp);
         }
       });
 
-      renderSearchResults(employees, resultsContainer, inputEl);
+      renderSearchResults(mappedEmployees, resultsContainer, inputEl);
     } catch (err) {
       console.error(err);
       resultsContainer.innerHTML = `<div class="p-3 text-center text-xs text-red-400">Search error.</div>`;
@@ -1177,8 +1225,7 @@ export async function loadOrgExplorer(focusedUserId) {
       const dirRes = await api.fetchDirectory(apiToken, '', '');
       if (dirRes.ok) {
         const dirData = await dirRes.json();
-        cachedUsers = dirData.users || [];
-        directoryFetched = true;
+        setDirectoryCache(dirData.users || []);
       }
     }
 
