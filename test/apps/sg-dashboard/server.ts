@@ -630,7 +630,7 @@ fastify.post('/api/submissions/:id/submit', { preValidation: [fastify.authentica
 });
 
 // Serve spa entrypoint for all non-api routes
-fastify.get('*', async (request, reply) => {
+fastify.setNotFoundHandler(async (request, reply) => {
   return reply.sendFile('index.html');
 });
 
