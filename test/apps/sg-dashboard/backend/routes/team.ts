@@ -12,7 +12,7 @@ export default async function teamRoutes(fastify: FastifyInstance) {
 
       const selectFields = `
         u.id, u.name, u.email, u.role, u.manager_id, u.designation,
-        d.id AS dashboard_id, d.status AS dashboard_status, d.updated_at AS dashboard_updated_at,
+        d.id AS dashboard_id, d.updated_at AS dashboard_updated_at,
         s.status AS last_submission_status, s.deadline AS last_submission_deadline
       `;
 
@@ -81,7 +81,7 @@ export default async function teamRoutes(fastify: FastifyInstance) {
               )
               SELECT DISTINCT 
                 u.id, u.name, u.email, u.role, u.manager_id, u.designation,
-                d.id AS dashboard_id, d.status AS dashboard_status, d.updated_at AS dashboard_updated_at,
+                d.id AS dashboard_id, d.updated_at AS dashboard_updated_at,
                 s.status AS last_submission_status, s.deadline AS last_submission_deadline
               FROM reports u
               LEFT JOIN dashboards d ON d.user_id = u.id
@@ -108,7 +108,6 @@ export default async function teamRoutes(fastify: FastifyInstance) {
         designation: row.designation || '',
         hasDashboard: row.dashboard_id !== null && row.dashboard_id !== undefined,
         dashboardId: row.dashboard_id || null,
-        dashboardStatus: row.dashboard_status || 'Not Started',
         dashboardUpdatedAt: row.dashboard_updated_at || null,
         lastSubmissionStatus: row.last_submission_status || null,
         lastSubmissionDeadline: row.last_submission_deadline || null,

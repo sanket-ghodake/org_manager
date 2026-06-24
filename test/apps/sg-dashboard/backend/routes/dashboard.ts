@@ -3,32 +3,71 @@ import { db } from '../db/client';
 import { checkUplineManager } from '../utils/hierarchy';
 import { CLIENT_ID, CLIENT_SECRET } from '../config';
 import { getWorkingPortalUrl } from '../utils/portal';
+import crypto from 'crypto';
 
 export default async function dashboardRoutes(fastify: FastifyInstance) {
+  // Get List of All Dashboards for a User
+  fastify.get('/api/dashboards', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const targetUserId = (request.query as any).userId || user.id;
+
+    try {
+      const res = await db.execute({
+        sql: `
+          SELECT id, program_line, updated_at
+          FROM dashboards
+          WHERE user_id = ?
+          ORDER BY updated_at DESC
+        `,
+        args: [targetUserId],
+      });
+      return { dashboards: res.rows };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   // Get Current User's Dashboard
   fastify.get('/api/dashboard', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
-    try {
-      let res = await db.execute({
-        sql: `
-          SELECT d.*, u.name, u.email, u.role, u.designation
-          FROM dashboards d
-          LEFT JOIN users u ON d.user_id = u.id
-          WHERE d.user_id = ?
-        `,
-        args: [user.id],
-      });
+    const queryDashboardId = (request.query as any).dashboardId;
 
-      if (res.rows.length === 0) {
+    try {
+      let res: any = null;
+      if (queryDashboardId) {
+        res = await db.execute({
+          sql: `
+            SELECT d.*, u.name, u.email, u.role, u.designation
+            FROM dashboards d
+            LEFT JOIN users u ON d.user_id = u.id
+            WHERE d.id = ? AND d.user_id = ?
+          `,
+          args: [queryDashboardId, user.id],
+        });
+      }
+
+      if (!queryDashboardId || !res || res.rows.length === 0) {
+        res = await db.execute({
+          sql: `
+            SELECT d.*, u.name, u.email, u.role, u.designation
+            FROM dashboards d
+            LEFT JOIN users u ON d.user_id = u.id
+            WHERE d.user_id = ?
+            ORDER BY d.updated_at DESC
+          `,
+          args: [user.id],
+        });
+      }
+
+      if (!res || res.rows.length === 0) {
         const dashboardId = crypto.randomUUID();
         await db.execute({
-          sql: 'INSERT INTO dashboards (id, user_id, program_line, objective, status, notes) VALUES (?, ?, ?, ?, ?, ?)',
+          sql: 'INSERT INTO dashboards (id, user_id, program_line, objective, notes) VALUES (?, ?, ?, ?, ?)',
           args: [
             dashboardId,
             user.id,
-            'Engineering Strategy',
-            'Optimize local resource utilization to achieve enterprise readiness within constraints.',
-            'On Track',
+            'AI/ML Enablement',
+            'Accelerate technical excellence and lead delivery on AI/ML Enablement deliverables.',
             'Automatically created upon initial login.',
           ],
         });
@@ -38,13 +77,13 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
             SELECT d.*, u.name, u.email, u.role, u.designation
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
-            WHERE d.user_id = ?
+            WHERE d.id = ?
           `,
-          args: [user.id],
+          args: [dashboardId],
         });
       }
 
-      const dashboard = res.rows[0];
+      const dashboard = res?.rows[0];
       const itemsRes = await db.execute({
         sql: 'SELECT * FROM dashboard_items WHERE dashboard_id = ?',
         args: [dashboard.id],
@@ -59,19 +98,36 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
   // Get Specified Dashboard (View mode open to all authenticated users)
   fastify.get('/api/dashboard/:userId', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const targetUserId = request.params.userId;
+    const queryDashboardId = (request.query as any).dashboardId;
 
     try {
-      const res = await db.execute({
-        sql: `
-          SELECT d.*, u.name, u.email, u.role, u.designation
-          FROM dashboards d
-          LEFT JOIN users u ON d.user_id = u.id
-          WHERE d.user_id = ?
-        `,
-        args: [targetUserId],
-      });
+      let res: any = null;
+      if (queryDashboardId) {
+        res = await db.execute({
+          sql: `
+            SELECT d.*, u.name, u.email, u.role, u.designation
+            FROM dashboards d
+            LEFT JOIN users u ON d.user_id = u.id
+            WHERE d.id = ? AND d.user_id = ?
+          `,
+          args: [queryDashboardId, targetUserId],
+        });
+      }
 
-      if (res.rows.length === 0) {
+      if (!queryDashboardId || !res || res.rows.length === 0) {
+        res = await db.execute({
+          sql: `
+            SELECT d.*, u.name, u.email, u.role, u.designation
+            FROM dashboards d
+            LEFT JOIN users u ON d.user_id = u.id
+            WHERE d.user_id = ?
+            ORDER BY d.updated_at DESC
+          `,
+          args: [targetUserId],
+        });
+      }
+
+      if (!res || res.rows.length === 0) {
         // Defensive check: ensure user exists to avoid FOREIGN KEY constraints
         const userCheck = await db.execute({
           sql: 'SELECT id FROM users WHERE id = ?',
@@ -120,13 +176,12 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
 
         const dashboardId = crypto.randomUUID();
         await db.execute({
-          sql: 'INSERT INTO dashboards (id, user_id, program_line, objective, status, notes) VALUES (?, ?, ?, ?, ?, ?)',
+          sql: 'INSERT INTO dashboards (id, user_id, program_line, objective, notes) VALUES (?, ?, ?, ?, ?)',
           args: [
             dashboardId,
             targetUserId,
-            'Engineering Strategy',
-            'Optimize local resource utilization to achieve enterprise readiness within constraints.',
-            'On Track',
+            'AI/ML Enablement',
+            'Accelerate technical excellence and lead delivery on AI/ML Enablement deliverables.',
             'Automatically initialized by manager review.',
           ],
         });
@@ -136,15 +191,15 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
             SELECT d.*, u.name, u.email, u.role, u.designation
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
-            WHERE d.user_id = ?
+            WHERE d.id = ?
           `,
-          args: [targetUserId],
+          args: [dashboardId],
         });
         const dashboard = freshRes.rows[0];
         return { dashboard, items: [] };
       }
 
-      const dashboard = res.rows[0];
+      const dashboard = res?.rows[0];
       const itemsRes = await db.execute({
         sql: 'SELECT * FROM dashboard_items WHERE dashboard_id = ?',
         args: [dashboard.id],
@@ -160,7 +215,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.put('/api/dashboard/:id', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
     const dashboardId = request.params.id;
-    const { program_line, objective, status, notes } = request.body || {};
+    const { program_line, objective, notes } = request.body || {};
 
     try {
       const ownerRes = await db.execute({
@@ -179,10 +234,10 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       await db.execute({
         sql: `
           UPDATE dashboards
-          SET program_line = ?, objective = ?, status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+          SET program_line = ?, objective = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
         `,
-        args: [program_line || 'Default Program', objective || '', status || 'On Track', notes || '', dashboardId],
+        args: [program_line || 'Default Program', objective || '', notes || '', dashboardId],
       });
 
       return { success: true };
@@ -313,6 +368,125 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       await db.execute({
         sql: 'UPDATE dashboard_items SET category = ?, title = ?, description = ?, deadline = ? WHERE id = ?',
         args: [newCategory, newTitle, newDescription, newDeadline, itemId],
+      });
+
+      return { success: true };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Create New Dashboard
+  fastify.post('/api/dashboard', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const { program_line } = request.body || {};
+
+    try {
+      const newDashboardId = crypto.randomUUID();
+      const pName = (program_line && program_line.trim()) || 'New Program';
+
+      await db.execute({
+        sql: 'INSERT INTO dashboards (id, user_id, program_line, objective, notes) VALUES (?, ?, ?, ?, ?)',
+        args: [
+          newDashboardId,
+          user.id,
+          pName,
+          'Accelerate technical excellence and lead delivery on deliverables.',
+          'Successfully initialized.'
+        ]
+      });
+
+      return { success: true, newDashboardId, newProgramName: pName };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Duplicate Dashboard
+  fastify.post('/api/dashboard/:id/duplicate', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const dashboardId = request.params.id;
+
+    try {
+      const dashRes = await db.execute({
+        sql: 'SELECT * FROM dashboards WHERE id = ?',
+        args: [dashboardId]
+      });
+
+      if (dashRes.rows.length === 0) {
+        return reply.status(404).send({ error: 'Dashboard not found' });
+      }
+
+      const original = dashRes.rows[0];
+      if (original.user_id !== user.id) {
+        return reply.status(403).send({ error: 'Forbidden: Only the owner can duplicate this dashboard' });
+      }
+
+      const newDashboardId = crypto.randomUUID();
+      const newProgramName = `${original.program_line || 'Default Program'} (Copy)`;
+
+      await db.execute({
+        sql: 'INSERT INTO dashboards (id, user_id, program_line, objective, notes) VALUES (?, ?, ?, ?, ?)',
+        args: [
+          newDashboardId,
+          user.id,
+          newProgramName,
+          original.objective,
+          original.notes
+        ]
+      });
+
+      const itemsRes = await db.execute({
+        sql: 'SELECT * FROM dashboard_items WHERE dashboard_id = ?',
+        args: [dashboardId]
+      });
+
+      for (const item of itemsRes.rows) {
+        const newItemId = crypto.randomUUID();
+        await db.execute({
+          sql: 'INSERT INTO dashboard_items (id, dashboard_id, section, category, title, description, deadline) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          args: [newItemId, newDashboardId, item.section, item.category, item.title, item.description, item.deadline]
+        });
+      }
+
+      return { success: true, newDashboardId, newProgramName };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Delete Dashboard
+  fastify.delete('/api/dashboard/:id', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const dashboardId = request.params.id;
+
+    try {
+      const dashRes = await db.execute({
+        sql: 'SELECT user_id FROM dashboards WHERE id = ?',
+        args: [dashboardId]
+      });
+
+      if (dashRes.rows.length === 0) {
+        return reply.status(404).send({ error: 'Dashboard not found' });
+      }
+
+      if (dashRes.rows[0].user_id !== user.id) {
+        return reply.status(403).send({ error: 'Forbidden: Only the owner can delete this dashboard' });
+      }
+
+      const countRes = await db.execute({
+        sql: 'SELECT COUNT(*) as count FROM dashboards WHERE user_id = ?',
+        args: [user.id]
+      });
+
+      const count = countRes.rows[0].count as number;
+      if (count <= 1) {
+        return reply.status(400).send({ error: 'Cannot delete your only dashboard. You must have at least one program.' });
+      }
+
+      await db.execute({
+        sql: 'DELETE FROM dashboards WHERE id = ?',
+        args: [dashboardId]
       });
 
       return { success: true };

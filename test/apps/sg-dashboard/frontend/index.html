@@ -57,14 +57,11 @@
         <span id="header-active-user-name" class="text-xs font-bold text-[var(--text-primary)] bg-[var(--bg-input)] px-2.5 py-1 rounded-lg border border-[var(--border-color)]">--</span>
       </div>
 
-      <!-- Header Right Actions (Theme, Date) -->
+      <!-- Header Right Actions (Theme) -->
       <div class="flex items-center gap-4">
-        <!-- Date display -->
-        <span id="header-date-display" class="text-[10px] font-mono font-bold text-[var(--text-secondary)] select-none">--/--/----</span>
-        
         <!-- Theme Selector Toggle -->
         <button onclick="toggleTheme()" id="theme-toggle-btn" class="w-8 h-8 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] flex items-center justify-center border border-[var(--border-color)] text-sm transition-all" title="Toggle Theme">
-          🌙
+          🌌
         </button>
       </div>
     </div>
@@ -129,26 +126,46 @@
 
       <!-- PANEL 1: MY DASHBOARD -->
       <div id="tab-my-dashboard" class="space-y-6">
-        <!-- Dashboard Sub-Header / Settings -->
-        <div class="bg-[var(--bg-card)] p-5 rounded-xl border border-[var(--border-color)] shadow-lg space-y-4">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--border-color)] pb-3">
-            <div>
-              <span class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">Program Line</span>
-              <div id="sub-program-display" class="text-sm font-bold text-[var(--text-primary)] mt-0.5">--</div>
-              <input type="text" id="header-program-input" onblur="updateProgramSetting()" onkeydown="if(event.key==='Enter')this.blur()" class="hidden bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-purple-500 text-[var(--text-primary)] mt-1 w-full max-w-md">
-            </div>
-            <div id="program-edit-btn-container">
-              <button onclick="document.getElementById('sub-program-display').classList.add('hidden'); document.getElementById('header-program-input').classList.remove('hidden'); document.getElementById('header-program-input').focus();" class="text-[10px] font-bold text-[var(--accent)] hover:underline">
-                ✏️ Edit Program
-              </button>
+
+        <!-- Program Selector and Controls Bar -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-color)] shadow-md select-none">
+          <div class="flex items-center gap-3 w-full sm:w-auto">
+            <span class="text-xs font-bold text-[var(--text-secondary)] whitespace-nowrap uppercase tracking-wider">Active Program:</span>
+            <div class="relative flex-1 sm:flex-initial">
+              <select id="program-select" class="w-full sm:w-64 bg-[var(--bg-input)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer appearance-none pr-8">
+                <!-- Dynamic Options -->
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--text-secondary)]">
+                <svg class="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              </div>
             </div>
           </div>
-          <div>
-            <span class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">Strategic Objective</span>
-            <div onclick="startEditingObjective()" id="sub-objective-display" class="text-xs text-[var(--text-secondary)] mt-1 cursor-pointer hover:text-[var(--text-primary)] transition-all">
-              --
-            </div>
-            <textarea id="sub-objective-input" onblur="saveObjectiveEdit()" class="hidden w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg p-2.5 text-xs focus:outline-none focus:border-purple-500 text-[var(--text-primary)] mt-1" rows="2"></textarea>
+          <div class="flex items-center gap-2.5 self-end sm:self-auto">
+            <button id="program-add-btn" class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--bg-input)] text-emerald-400 hover:bg-[var(--bg-hover)] border border-[var(--border-color)] transition-all cursor-pointer" title="Add new program">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </button>
+            <button id="program-rename-btn" class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--bg-input)] text-indigo-400 hover:bg-[var(--bg-hover)] border border-[var(--border-color)] transition-all cursor-pointer" title="Rename active program">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+              </svg>
+            </button>
+            <button id="program-duplicate-btn" class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--bg-input)] text-blue-400 hover:bg-[var(--bg-hover)] border border-[var(--border-color)] transition-all cursor-pointer" title="Duplicate program">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.15 1.586m5.8 0c.065.21.1.433.1.664v.75h-6V4.5c0-.231.035-.454.1-.664M6.75 7.5H4.875c-.621 0-1.125.504-1.125 1.125v12c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V16.5a9 9 0 00-9-9z" />
+              </svg>
+            </button>
+            <button id="program-export-btn" class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--bg-input)] text-amber-400 hover:bg-[var(--bg-hover)] border border-[var(--border-color)] transition-all cursor-pointer" title="Export program to JSON">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            </button>
+            <button id="program-delete-btn" class="flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all cursor-pointer" title="Delete active program">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -164,7 +181,7 @@
             </div>
             
             <!-- Column Body -->
-            <div class="p-4 flex-1 flex flex-col justify-between space-y-4">
+            <div class="p-4 flex-1 flex flex-col justify-between space-y-4 overflow-y-auto custom-scrollbar">
               <div class="space-y-4">
                 <!-- Section A -->
                 <div>
@@ -173,7 +190,7 @@
                     <!-- Dynamic -->
                   </ul>
                   <div class="mt-2">
-                    <input type="text" id="add-core-skill-input" list="suggestions-key_skill" onkeydown="if(event.key==='Enter')addQuickItem('key_skill', 'Core', this)" placeholder="+ Add skill" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]">
+                    <input type="text" id="add-core-skill-input" list="suggestions-key_skill" onkeydown="if(event.key==='Enter')addQuickItem('key_skill', 'Core:Low', this)" placeholder="+ Add skill" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]">
                   </div>
                 </div>
 
@@ -184,7 +201,7 @@
                     <!-- Dynamic -->
                   </ul>
                   <div class="mt-2">
-                    <input type="text" id="add-strategic-skill-input" list="suggestions-key_skill" onkeydown="if(event.key==='Enter')addQuickItem('key_skill', 'Strategic', this)" placeholder="+ Add skill" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]">
+                    <input type="text" id="add-strategic-skill-input" list="suggestions-key_skill" onkeydown="if(event.key==='Enter')addQuickItem('key_skill', 'Strategic:Low', this)" placeholder="+ Add skill" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]">
                   </div>
                 </div>
               </div>
@@ -208,7 +225,7 @@
                 </ul>
               </div>
               <div class="pt-2">
-                <input type="text" id="add-gap-input" list="suggestions-gap" onkeydown="if(event.key==='Enter')addQuickItem('gap', 'Medium', this)" placeholder="+ Add gap" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-500 text-[var(--text-primary)]">
+                <input type="text" id="add-gap-input" list="suggestions-gap" onkeydown="if(event.key==='Enter')addQuickItem('gap', 'Low', this)" placeholder="+ Add gap" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-500 text-[var(--text-primary)]">
               </div>
             </div>
           </div>
@@ -222,7 +239,7 @@
             </div>
             
             <!-- Column Body -->
-            <div class="p-4 flex-1 flex flex-col justify-between space-y-4">
+            <div class="p-4 flex-1 flex flex-col justify-between space-y-4 overflow-y-auto custom-scrollbar">
               <div class="space-y-4">
                 <!-- Section Strategic -->
                 <div>
@@ -231,7 +248,7 @@
                     <!-- Dynamic -->
                   </ul>
                   <div class="mt-2">
-                    <input type="text" id="add-strategic-plan-input" list="suggestions-training_plan" onkeydown="if(event.key==='Enter')addQuickItem('training_plan', 'Strategic:TRAIN', this)" placeholder="+ Add item" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 text-[var(--text-primary)]">
+                    <input type="text" id="add-strategic-plan-input" list="suggestions-training_plan" onkeydown="if(event.key==='Enter')addQuickItem('training_plan', 'Strategic:Low', this)" placeholder="+ Add item" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 text-[var(--text-primary)]">
                   </div>
                 </div>
 
@@ -242,7 +259,7 @@
                     <!-- Dynamic -->
                   </ul>
                   <div class="mt-2">
-                    <input type="text" id="add-tactical-plan-input" list="suggestions-training_plan" onkeydown="if(event.key==='Enter')addQuickItem('training_plan', 'Tactical:ACTION', this)" placeholder="+ Add item" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 text-[var(--text-primary)]">
+                    <input type="text" id="add-tactical-plan-input" list="suggestions-training_plan" onkeydown="if(event.key==='Enter')addQuickItem('training_plan', 'Tactical:Low', this)" placeholder="+ Add item" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 text-[var(--text-primary)]">
                   </div>
                 </div>
               </div>
@@ -251,24 +268,8 @@
 
         </div>
 
-        <!-- Footer Row: Status Selectors & Notes -->
+        <!-- Footer Row: Notes -->
         <div class="bg-[var(--bg-card)] p-5 rounded-xl border border-[var(--border-color)] shadow-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 select-none">
-          <!-- Status selectors -->
-          <div class="flex items-center gap-3">
-            <span class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">Status:</span>
-            <div class="flex gap-2">
-              <button onclick="updateDashboardStatus('On Track')" id="status-btn-ontrack" class="px-4 py-2 rounded-lg text-xs font-bold transition-all border border-emerald-500/20 bg-emerald-500/5 text-emerald-400">
-                On Track
-              </button>
-              <button onclick="updateDashboardStatus('At Risk')" id="status-btn-atrisk" class="px-4 py-2 rounded-lg text-xs font-bold transition-all border border-amber-500/20 bg-amber-500/5 text-amber-400">
-                At Risk
-              </button>
-              <button onclick="updateDashboardStatus('Off Track')" id="status-btn-offtrack" class="px-4 py-2 rounded-lg text-xs font-bold transition-all border border-rose-500/20 bg-rose-500/5 text-rose-400">
-                Off Track
-              </button>
-            </div>
-          </div>
-
           <!-- Notes Area -->
           <div class="flex-1 flex flex-col md:flex-row items-start md:items-center gap-3">
             <span class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] shrink-0">Notes:</span>
@@ -508,13 +509,9 @@
           <h4 class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-color)] pb-1.5">Submitted Development Plan</h4>
           
           <div class="grid grid-cols-2 gap-4 bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)]">
-            <div>
+            <div class="col-span-2">
               <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Program Line</div>
               <div class="text-xs font-bold text-[var(--text-primary)] mt-1" id="review-modal-program-line">-</div>
-            </div>
-            <div>
-              <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Current Health Status</div>
-              <div class="text-xs font-bold mt-1" id="review-modal-status">-</div>
             </div>
             <div class="col-span-2">
               <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Objective Statement</div>

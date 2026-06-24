@@ -37,16 +37,27 @@ export async function syncUserDirectory(apiToken, users) {
   return res.json();
 }
 
-export async function fetchMyDashboard(apiToken) {
-  const res = await fetch(`${apiPrefix}/dashboard`, {
+export async function fetchDashboards(apiToken, userId = '') {
+  const url = userId ? `${apiPrefix}/dashboards?userId=${encodeURIComponent(userId)}` : `${apiPrefix}/dashboards`;
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) throw new Error('Failed to retrieve user programs list.');
+  return res.json();
+}
+
+export async function fetchMyDashboard(apiToken, dashboardId = '') {
+  const url = dashboardId ? `${apiPrefix}/dashboard?dashboardId=${encodeURIComponent(dashboardId)}` : `${apiPrefix}/dashboard`;
+  const res = await fetch(url, {
     headers: { 'Authorization': `Bearer ${apiToken}` }
   });
   if (!res.ok) throw new Error('Failed to retrieve dashboard.');
   return res.json();
 }
 
-export async function fetchUserDashboard(apiToken, userId) {
-  const res = await fetch(`${apiPrefix}/dashboard/${userId}`, {
+export async function fetchUserDashboard(apiToken, userId, dashboardId = '') {
+  const url = dashboardId ? `${apiPrefix}/dashboard/${userId}?dashboardId=${encodeURIComponent(dashboardId)}` : `${apiPrefix}/dashboard/${userId}`;
+  const res = await fetch(url, {
     headers: { 'Authorization': `Bearer ${apiToken}` }
   });
   if (!res.ok) {
@@ -189,4 +200,38 @@ export async function fetchDirectory(apiToken, q = '', managerId = '') {
       'Authorization': `Bearer ${apiToken}`
     }
   });
+}
+
+export async function duplicateDashboard(apiToken, dashboardId) {
+  const res = await fetch(`${apiPrefix}/dashboard/${dashboardId}/duplicate`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) throw new Error('Failed to duplicate dashboard');
+  return res.json();
+}
+
+export async function deleteDashboard(apiToken, dashboardId) {
+  const res = await fetch(`${apiPrefix}/dashboard/${dashboardId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to delete dashboard');
+  }
+  return res.json();
+}
+
+export async function createDashboard(apiToken, programName) {
+  const res = await fetch(`${apiPrefix}/dashboard`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiToken}`
+    },
+    body: JSON.stringify({ program_line: programName })
+  });
+  if (!res.ok) throw new Error('Failed to create new program dashboard');
+  return res.json();
 }

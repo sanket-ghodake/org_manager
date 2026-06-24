@@ -70,72 +70,86 @@ export async function seedDummyData(db: any) {
     }
 
     // Pools for realistic dashboard content generation
-    const programLines = ['Core Engineering', 'NextGen Platforms', 'AI/ML Enablement', 'Security Hardening', 'Enterprise Cloud'];
-    const statuses = ['On Track', 'At Risk', 'Off Track'];
+    const programLines = ['AI/ML Enablement', 'Cloud Architecture', 'Engineering Excellence', 'Security Hardening', 'Enterprise Cloud'];
     const skillPool = [
-      { category: 'Strategic', title: 'Golang Microservices', desc: 'Designing and building high-concurrency RPC services using Bun/Go.' },
-      { category: 'Strategic', title: 'Next.js 15 & SSR', desc: 'Leveraging Server Components and optimized server side rendering.' },
-      { category: 'Core', title: 'React State Orchestration', desc: 'Advanced state management with Redux/Zustand and context providers.' },
-      { category: 'Core', title: 'TypeScript Integration', desc: 'Strict typing structures and compilation rules across mono-repos.' },
-      { category: 'Strategic', title: 'Kubernetes Orchestration', desc: 'Writing Helm charts and managing zero-downtime cluster configurations.' },
-      { category: 'Core', title: 'PostgreSQL Architecture', desc: 'Indexing strategies, query optimization, and connection pooling rules.' },
-      { category: 'Strategic', title: 'Docker Containers', desc: 'Multi-stage builds and optimized runtime layers.' },
-      { category: 'Core', title: 'Fastify API Framework', desc: 'High-performance HTTP routing, JSON schema serialization, and plugins.' }
+      { category: 'Critical', title: 'Golang Microservices', desc: 'Designing and building high-concurrency RPC services using Bun/Go.' },
+      { category: 'Medium', title: 'Next.js 15 & SSR', desc: 'Leveraging Server Components and optimized server side rendering.' },
+      { category: 'Low', title: 'React State Orchestration', desc: 'Advanced state management with Redux/Zustand and context providers.' },
+      { category: 'Critical', title: 'TypeScript Integration', desc: 'Strict typing structures and compilation rules across mono-repos.' },
+      { category: 'Medium', title: 'Kubernetes Orchestration', desc: 'Writing Helm charts and managing zero-downtime cluster configurations.' },
+      { category: 'Low', title: 'PostgreSQL Architecture', desc: 'Indexing strategies, query optimization, and connection pooling rules.' },
+      { category: 'Critical', title: 'Docker Containers', desc: 'Multi-stage builds and optimized runtime layers.' },
+      { category: 'Medium', title: 'Fastify API Framework', desc: 'High-performance HTTP routing, JSON schema serialization, and plugins.' }
     ];
 
     const gapPool = [
-      { category: 'Conceptual', title: 'Distributed Tracing', desc: 'Understanding OpenTelemetry instrumentation across microservices.' },
-      { category: 'Technical', title: 'Rust Systems Programming', desc: 'Learning memory safety rules and compile-time check invariants.' },
-      { category: 'Conceptual', title: 'GraphQL Federation', desc: 'Designing unified gateway graphs across separate GraphQL schemas.' },
-      { category: 'Technical', title: 'E2E Cypress Testing', desc: 'Configuring parallel runner checks and automated session setups.' }
+      { category: 'Critical', title: 'Distributed Tracing', desc: 'Understanding OpenTelemetry instrumentation across microservices.' },
+      { category: 'Medium', title: 'Rust Systems Programming', desc: 'Learning memory safety rules and compile-time check invariants.' },
+      { category: 'Low', title: 'GraphQL Federation', desc: 'Designing unified gateway graphs across separate GraphQL schemas.' },
+      { category: 'Critical', title: 'E2E Cypress Testing', desc: 'Configuring parallel runner checks and automated session setups.' }
     ];
 
     const planPool = [
-      { category: 'Mitigation:Training', title: 'Google Cloud Architect Prep', desc: 'Complete the official cloud infrastructure syllabus.' },
-      { category: 'Mitigation:Mentorship', title: 'Rust Programming Workshop', desc: 'Pair programming with a staff engineer 1 hour weekly.' },
-      { category: 'Mitigation:Internal Course', title: 'Advanced GraphQL Academy', desc: 'Take the federation course on internal portals.' },
-      { category: 'Mitigation:Self Study', title: 'OpenTelemetry Deep Dive', desc: 'Read trace documentation and complete sandbox tasks.' }
+      { category: 'Critical', title: 'Google Cloud Architect Prep', desc: 'Complete the official cloud infrastructure syllabus.' },
+      { category: 'Medium', title: 'Rust Programming Workshop', desc: 'Pair programming with a staff engineer 1 hour weekly.' },
+      { category: 'Low', title: 'Advanced GraphQL Academy', desc: 'Take the federation course on internal portals.' },
+      { category: 'Medium', title: 'OpenTelemetry Deep Dive', desc: 'Read trace documentation and complete sandbox tasks.' }
     ];
 
     for (const user of userMap.values()) {
       if (user.role === 'Admin') continue; // Admins don't hold personal TRR plans
 
-      const dashboardId = `dash-${user.id}`;
-      const programLine = programLines[Math.floor(Math.random() * programLines.length)];
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      const objective = `Accelerate technical excellence and lead delivery on ${programLine} deliverables for the next performance cycle.`;
-      const notes = `Targeting completion of strategic goals by end of next quarter. Regular 1:1 check-ins established with manager.`;
-      const updated_at = new Date().toISOString();
+      // Create two dashboards for each user to showcase the multiple dashboard capability
+      const dashboardsToCreate = [
+        { id: `dash-${user.id}-1`, programLine: 'AI/ML Enablement' },
+        { id: `dash-${user.id}-2`, programLine: 'Cloud Architecture' }
+      ];
 
-      await db.execute({
-        sql: `INSERT OR REPLACE INTO dashboards (id, user_id, program_line, objective, status, notes, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        args: [dashboardId, user.id, programLine, objective, status, notes, updated_at]
-      });
+      for (const d of dashboardsToCreate) {
+        const dashboardId = d.id;
+        const programLine = d.programLine;
+        const objective = `Accelerate technical excellence and lead delivery on ${programLine} deliverables for the next performance cycle.`;
+        const notes = `Targeting completion of strategic goals by end of next quarter. Regular 1:1 check-ins established with manager.`;
+        const updated_at = new Date().toISOString();
 
-      // Add a few skills
-      const numSkills = 2 + Math.floor(Math.random() * 3);
-      const shuffledSkills = [...skillPool].sort(() => 0.5 - Math.random());
-      for (let i = 0; i < numSkills; i++) {
-        const skill = shuffledSkills[i];
+        await db.execute({
+          sql: `INSERT OR REPLACE INTO dashboards (id, user_id, program_line, objective, notes, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+          args: [dashboardId, user.id, programLine, objective, notes, updated_at]
+        });
+
+        // Add a few skills
+        const numSkills = 2 + Math.floor(Math.random() * 3);
+        const shuffledSkills = [...skillPool].sort(() => 0.5 - Math.random());
+        for (let i = 0; i < numSkills; i++) {
+          const skill = shuffledSkills[i];
+          const subType = i % 2 === 0 ? 'Core' : 'Strategic';
+          const combinedCategory = `${subType}:${skill.category}`;
+          await db.execute({
+            sql: `INSERT OR REPLACE INTO dashboard_items (id, dashboard_id, section, category, title, description) VALUES (?, ?, ?, ?, ?, ?)`,
+            args: [`item-sk-${user.id}-${dashboardId}-${i}`, dashboardId, 'key_skill', combinedCategory, skill.title, skill.desc]
+          });
+        }
+
+        // Add a gap
+        const gap = gapPool[Math.floor(Math.random() * gapPool.length)];
         await db.execute({
           sql: `INSERT OR REPLACE INTO dashboard_items (id, dashboard_id, section, category, title, description) VALUES (?, ?, ?, ?, ?, ?)`,
-          args: [`item-sk-${user.id}-${i}`, dashboardId, 'key_skill', skill.category, skill.title, skill.desc]
+          args: [`item-gp-${user.id}-${dashboardId}`, dashboardId, 'gap', gap.category, gap.title, gap.desc]
         });
+
+        // Add plans
+        const numPlans = 1 + Math.floor(Math.random() * 2);
+        const shuffledPlans = [...planPool].sort(() => 0.5 - Math.random());
+        for (let i = 0; i < numPlans; i++) {
+          const plan = shuffledPlans[i];
+          const subType = i % 2 === 0 ? 'Strategic' : 'Tactical';
+          const combinedCategory = `${subType}:${plan.category}`;
+          await db.execute({
+            sql: `INSERT OR REPLACE INTO dashboard_items (id, dashboard_id, section, category, title, description) VALUES (?, ?, ?, ?, ?, ?)`,
+            args: [`item-pl-${user.id}-${dashboardId}-${i}`, dashboardId, 'training_plan', combinedCategory, plan.title, plan.desc]
+          });
+        }
       }
-
-      // Add a gap
-      const gap = gapPool[Math.floor(Math.random() * gapPool.length)];
-      await db.execute({
-        sql: `INSERT OR REPLACE INTO dashboard_items (id, dashboard_id, section, category, title, description) VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [`item-gp-${user.id}`, dashboardId, 'gap', gap.category, gap.title, gap.desc]
-      });
-
-      // Add a plan
-      const plan = planPool[Math.floor(Math.random() * planPool.length)];
-      await db.execute({
-        sql: `INSERT OR REPLACE INTO dashboard_items (id, dashboard_id, section, category, title, description) VALUES (?, ?, ?, ?, ?, ?)`,
-        args: [`item-pl-${user.id}`, dashboardId, 'training_plan', plan.category, plan.title, plan.desc]
-      });
     }
 
     // 3. Seed submission requests for direct reports

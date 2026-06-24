@@ -9,24 +9,41 @@ import {
 } from './app.js';
 
 // Apply persisted theme on load
-const savedTheme = localStorage.getItem('selected-theme');
-if (savedTheme) {
-  document.documentElement.setAttribute('data-theme', savedTheme);
+const savedTheme = localStorage.getItem('selected-theme') || 'default';
+document.documentElement.setAttribute('data-theme', savedTheme);
+
+// Helper to update the single theme toggle button icon
+function updateThemeActiveIcon(theme) {
+  const toggleBtn = document.getElementById('theme-toggle-btn');
+  if (toggleBtn) {
+    const icons = {
+      'default': '🌌',
+      'light': '☀️',
+      'dark': '🌙',
+      'solarized-dark': '🪐',
+      'solarized-light': '🌻'
+    };
+    toggleBtn.textContent = icons[theme] || '🌌';
+  }
 }
 
 // Automatically sync theme toggle button icon with html[data-theme]
 const themeObserver = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
     if (mutation.attributeName === 'data-theme') {
-      const theme = document.documentElement.getAttribute('data-theme');
-      const toggleBtn = document.getElementById('theme-toggle-btn');
-      if (toggleBtn) {
-        toggleBtn.textContent = (theme === 'light' || theme === 'solarized-light') ? '☀️' : '🌙';
-      }
+      const theme = document.documentElement.getAttribute('data-theme') || 'default';
+      updateThemeActiveIcon(theme);
     }
   });
 });
 themeObserver.observe(document.documentElement, { attributes: true });
+
+// Initialize theme button icon on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => updateThemeActiveIcon(savedTheme));
+} else {
+  updateThemeActiveIcon(savedTheme);
+}
 
 // Tab Switcher
 export function switchTab(tab) {
@@ -49,6 +66,24 @@ export function switchTab(tab) {
   }
 }
 
+// Set Theme
+export function setTheme(newTheme) {
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('selected-theme', newTheme);
+
+  const themeIcons = {
+    'default': '🌌',
+    'light': '☀️',
+    'dark': '🌙',
+    'solarized-dark': '🪐',
+    'solarized-light': '🌅'
+  };
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) {
+    btn.textContent = themeIcons[newTheme] || '🌌';
+  }
+}
+
 // Toggle Theme
 export function toggleTheme() {
   const themes = ['default', 'light', 'dark', 'solarized-dark', 'solarized-light'];
@@ -56,8 +91,7 @@ export function toggleTheme() {
   const currentIndex = themes.indexOf(currentTheme);
   const nextIndex = (currentIndex + 1) % themes.length;
   const newTheme = themes[nextIndex];
-  document.documentElement.setAttribute('data-theme', newTheme);
-  localStorage.setItem('selected-theme', newTheme);
+  setTheme(newTheme);
 }
 
 // Auth error display
@@ -96,154 +130,144 @@ export function populateManagerDropdown(users, currentManagerId) {
   }
 }
 
-// Highlight Status Button
-export function highlightStatusBtn(status) {
-  const buttons = {
-    'On Track': document.getElementById('status-btn-ontrack'),
-    'At Risk': document.getElementById('status-btn-atrisk'),
-    'Off Track': document.getElementById('status-btn-offtrack')
-  };
 
-  Object.keys(buttons).forEach(key => {
-    const btn = buttons[key];
-    if (!btn) return;
-    if (key === status) {
-      if (key === 'On Track') {
-        btn.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all border border-emerald-500 bg-emerald-500 text-black";
-      } else if (key === 'At Risk') {
-        btn.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all border border-amber-500 bg-amber-500 text-black";
-      } else {
-        btn.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all border border-rose-500 bg-rose-500 text-white";
-      }
-    } else {
-      if (key === 'On Track') {
-        btn.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all border border-emerald-500/20 bg-emerald-500/5 text-emerald-400";
-      } else if (key === 'At Risk') {
-        btn.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all border border-amber-500/20 bg-amber-500/5 text-amber-400";
-      } else {
-        btn.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all border border-rose-500/20 bg-rose-500/5 text-rose-400";
-      }
-    }
-  });
-}
 
+// Render Dashboard Items
 // Render Dashboard Items
 export function renderDashboardItems(items, isReadOnly = false) {
   // 1. Key Skills
   const coreList = document.getElementById('core-skills-list');
   const stratList = document.getElementById('strategic-skills-list');
-  coreList.innerHTML = '';
-  stratList.innerHTML = '';
+  if (coreList && stratList) {
+    coreList.innerHTML = '';
+    stratList.innerHTML = '';
+    const skills = items.filter(i => i.section === 'key_skill');
+    document.getElementById('skills-count-pill').textContent = `${skills.length} skills`;
 
-  const skills = items.filter(i => i.section === 'key_skill');
-  document.getElementById('skills-count-pill').textContent = `${skills.length} skills`;
-
-  const coreSkills = skills.filter(s => s.category.toLowerCase().includes('core') || !s.category.toLowerCase().includes('strategic'));
-  const stratSkills = skills.filter(s => s.category.toLowerCase().includes('strategic') || s.category.toLowerCase().includes('transformation'));
-
-  if (coreSkills.length === 0) {
-    coreList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No core skills listed.</li>';
-  } else {
-    coreSkills.forEach(item => {
-      coreList.appendChild(createItemElement(item, isReadOnly));
+    const coreSkills = skills.filter(s => {
+      const cat = (s.category || '').toLowerCase();
+      return cat.startsWith('core:') || (!cat.startsWith('strategic:') && !cat.includes('strategic') && !cat.includes('transformation'));
     });
-  }
-
-  if (stratSkills.length === 0) {
-    stratList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No strategic skills listed.</li>';
-  } else {
-    stratSkills.forEach(item => {
-      stratList.appendChild(createItemElement(item, isReadOnly));
+    const stratSkills = skills.filter(s => {
+      const cat = (s.category || '').toLowerCase();
+      return cat.startsWith('strategic:') || cat.includes('strategic') || cat.includes('transformation');
     });
+
+    if (coreSkills.length === 0) {
+      coreList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No core skills listed.</li>';
+    } else {
+      coreSkills.forEach(item => {
+        coreList.appendChild(createGenericElement(item, isReadOnly));
+      });
+    }
+
+    if (stratSkills.length === 0) {
+      stratList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No strategic skills listed.</li>';
+    } else {
+      stratSkills.forEach(item => {
+        stratList.appendChild(createGenericElement(item, isReadOnly));
+      });
+    }
   }
 
   // 2. Gaps
   const gapsList = document.getElementById('gaps-list');
-  gapsList.innerHTML = '';
-  const gaps = items.filter(i => i.section === 'gap');
-  
-  const criticalCount = gaps.filter(g => g.category === 'Critical').length;
-  const highCount = gaps.filter(g => g.category === 'High').length;
-  const mediumCount = gaps.filter(g => g.category === 'Medium').length;
-  document.getElementById('gaps-count-pill').textContent = `${criticalCount} critical, ${highCount} high, ${mediumCount} medium`;
+  if (gapsList) {
+    gapsList.innerHTML = '';
+    const gaps = items.filter(i => i.section === 'gap');
+    
+    const criticalCount = gaps.filter(g => {
+      let p = g.category || 'Low';
+      if (p.includes(':')) p = p.split(':')[1];
+      return p === 'Critical';
+    }).length;
+    const mediumCount = gaps.filter(g => {
+      let p = g.category || 'Low';
+      if (p.includes(':')) p = p.split(':')[1];
+      return p === 'Medium';
+    }).length;
+    const lowCount = gaps.filter(g => {
+      let p = g.category || 'Low';
+      if (p.includes(':')) p = p.split(':')[1];
+      return p === 'Low';
+    }).length;
+    document.getElementById('gaps-count-pill').textContent = `${criticalCount} critical, ${mediumCount} medium, ${lowCount} low`;
 
-  if (gaps.length === 0) {
-    gapsList.innerHTML = '<li class="text-gray-500 italic py-1">No skill gaps identified.</li>';
-  } else {
-    gaps.forEach(item => {
-      gapsList.appendChild(createGapElement(item, isReadOnly));
-    });
+    if (gaps.length === 0) {
+      gapsList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No skill gaps identified.</li>';
+    } else {
+      gaps.forEach(item => {
+        gapsList.appendChild(createGenericElement(item, isReadOnly));
+      });
+    }
   }
 
   // 3. Training Plans
   const stratPlansList = document.getElementById('strategic-plans-list');
   const tactPlansList = document.getElementById('tactical-plans-list');
-  stratPlansList.innerHTML = '';
-  tactPlansList.innerHTML = '';
+  if (stratPlansList && tactPlansList) {
+    stratPlansList.innerHTML = '';
+    tactPlansList.innerHTML = '';
+    const plans = items.filter(i => i.section === 'training_plan');
+    document.getElementById('plans-count-pill').textContent = `${plans.length} items`;
 
-  const plans = items.filter(i => i.section === 'training_plan');
-  document.getElementById('plans-count-pill').textContent = `${plans.length} items`;
-
-  const stratPlans = plans.filter(p => p.category.startsWith('Strategic:'));
-  const tactPlans = plans.filter(p => p.category.startsWith('Tactical:'));
-
-  if (stratPlans.length === 0) {
-    stratPlansList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No strategic plans scheduled.</li>';
-  } else {
-    stratPlans.forEach(item => {
-      stratPlansList.appendChild(createPlanElement(item, 'Strategic', isReadOnly));
+    const stratPlans = plans.filter(p => {
+      const cat = (p.category || '').toLowerCase();
+      return cat.startsWith('strategic:');
     });
-  }
-
-  if (tactPlans.length === 0) {
-    tactPlansList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No tactical plans scheduled.</li>';
-  } else {
-    tactPlans.forEach(item => {
-      tactPlansList.appendChild(createPlanElement(item, 'Tactical', isReadOnly));
+    const tactPlans = plans.filter(p => {
+      const cat = (p.category || '').toLowerCase();
+      return cat.startsWith('tactical:');
     });
+
+    if (stratPlans.length === 0) {
+      stratPlansList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No strategic plans scheduled.</li>';
+    } else {
+      stratPlans.forEach(item => {
+        stratPlansList.appendChild(createGenericElement(item, isReadOnly));
+      });
+    }
+
+    if (tactPlans.length === 0) {
+      tactPlansList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No tactical plans scheduled.</li>';
+    } else {
+      tactPlans.forEach(item => {
+        tactPlansList.appendChild(createGenericElement(item, isReadOnly));
+      });
+    }
   }
 }
 
 // Helpers to build list elements
-function createItemElement(item, isReadOnly = false) {
-  const li = document.createElement('li');
-  li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)] font-medium";
-  
-  const contentSpan = document.createElement('span');
-  contentSpan.className = "select-text truncate flex items-center gap-2" + (isReadOnly ? "" : " cursor-pointer");
-  contentSpan.innerHTML = `<span class="text-blue-500 font-bold">•</span> <span class="item-title-text">${item.title}</span>`;
-  if (!isReadOnly) {
-    contentSpan.onclick = () => startEditingItem(item, contentSpan);
+export function getGenericBadgeStyle(category) {
+  const base = "px-2 py-0.5 rounded text-[9px] font-black tracking-wide uppercase select-none cursor-pointer ";
+  let val = category || 'Low';
+  if (val.includes(':')) {
+    val = val.split(':')[1];
   }
-
-  li.appendChild(contentSpan);
-
-  if (!isReadOnly) {
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px]";
-    deleteBtn.innerHTML = "✕";
-    deleteBtn.onclick = (e) => {
-      e.stopPropagation();
-      deleteItem(item.id);
-    };
-    li.appendChild(deleteBtn);
-  }
-
-  return li;
+  if (val === 'Critical') return base + "bg-red-500 text-white shadow-sm shadow-red-500/20";
+  if (val === 'Medium') return base + "bg-amber-500 text-black";
+  return base + "bg-blue-500 text-white shadow-sm shadow-blue-500/10";
 }
 
-function createGapElement(item, isReadOnly = false) {
+function createGenericElement(item, isReadOnly = false) {
   const li = document.createElement('li');
-  li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)]";
+  li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)] font-medium";
 
   const leftSide = document.createElement('div');
   leftSide.className = "flex items-center gap-2.5 truncate flex-1";
 
+  // Parse priority
+  let priority = item.category || 'Low';
+  if (priority.includes(':')) {
+    priority = priority.split(':')[1];
+  }
+
   const badge = document.createElement('span');
-  badge.className = getGapBadgeStyle(item.category);
-  badge.textContent = item.category.toUpperCase();
+  badge.className = getGenericBadgeStyle(item.category);
+  badge.textContent = priority.toUpperCase();
   if (!isReadOnly) {
-    badge.title = "Click to cycle severity";
+    badge.title = "Click to cycle priority";
     badge.onclick = (e) => {
       e.stopPropagation();
       cycleGapSeverity(item);
@@ -251,60 +275,7 @@ function createGapElement(item, isReadOnly = false) {
   }
 
   const titleSpan = document.createElement('span');
-  titleSpan.className = "font-medium truncate item-title-text" + (isReadOnly ? "" : " cursor-pointer") + (item.title === 'Click to describe gap' ? ' italic text-gray-500' : '');
-  titleSpan.textContent = item.title;
-  if (!isReadOnly) {
-    titleSpan.onclick = () => startEditingItem(item, titleSpan);
-  }
-
-  leftSide.appendChild(badge);
-  leftSide.appendChild(titleSpan);
-  li.appendChild(leftSide);
-
-  if (!isReadOnly) {
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px]";
-    deleteBtn.innerHTML = "✕";
-    deleteBtn.onclick = (e) => {
-      e.stopPropagation();
-      deleteItem(item.id);
-    };
-    li.appendChild(deleteBtn);
-  }
-
-  return li;
-}
-
-function getGapBadgeStyle(severity) {
-  const base = "px-2 py-0.5 rounded text-[9px] font-black tracking-wide uppercase select-none cursor-pointer ";
-  if (severity === 'Critical') return base + "bg-red-500 text-white shadow-sm shadow-red-500/20";
-  if (severity === 'High') return base + "bg-amber-500 text-black";
-  return base + "bg-blue-500 text-white";
-}
-
-function createPlanElement(item, planType, isReadOnly = false) {
-  const li = document.createElement('li');
-  li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)]";
-
-  const leftSide = document.createElement('div');
-  leftSide.className = "flex items-center gap-2.5 truncate flex-1";
-
-  const parts = item.category.split(':');
-  const badgeText = parts[1] || 'TRAIN';
-
-  const badge = document.createElement('span');
-  badge.className = "px-2 py-0.5 rounded text-[9px] font-black tracking-wide uppercase select-none cursor-pointer bg-emerald-500 text-black";
-  badge.textContent = badgeText;
-  if (!isReadOnly) {
-    badge.title = "Click to cycle type";
-    badge.onclick = (e) => {
-      e.stopPropagation();
-      cyclePlanBadgeType(item, planType, badgeText);
-    };
-  }
-
-  const titleSpan = document.createElement('span');
-  titleSpan.className = "font-medium truncate item-title-text" + (isReadOnly ? "" : " cursor-pointer") + (item.title.startsWith('Click to add') ? ' italic text-gray-500' : '');
+  titleSpan.className = "font-medium truncate item-title-text" + (isReadOnly ? "" : " cursor-pointer");
   titleSpan.textContent = item.title;
   if (!isReadOnly) {
     titleSpan.onclick = () => startEditingItem(item, titleSpan);
@@ -416,18 +387,7 @@ export function populateReviewModal(review, data) {
   document.getElementById('review-modal-employee-role').textContent = `${review.employee_name} — ${review.employee_designation || review.employee_role}`;
   document.getElementById('review-modal-program-line').textContent = data.dashboard.program_line || 'Not set';
   document.getElementById('review-modal-objective').textContent = data.dashboard.objective || 'No objective logged.';
-  document.getElementById('review-modal-status').textContent = data.dashboard.status || 'On Track';
   document.getElementById('review-modal-notes').textContent = data.dashboard.notes || 'No operational notes logged.';
-
-  // Highlight health status
-  const statusEl = document.getElementById('review-modal-status');
-  if (data.dashboard.status === 'On Track') {
-    statusEl.className = 'text-xs font-bold text-emerald-400';
-  } else if (data.dashboard.status === 'At Risk') {
-    statusEl.className = 'text-xs font-bold text-amber-400';
-  } else {
-    statusEl.className = 'text-xs font-bold text-rose-400';
-  }
 
   // Populate feedback text if any
   document.getElementById('review-comments-input').value = review.feedback || '';
@@ -449,9 +409,9 @@ export function populateReviewModal(review, data) {
   } else {
     skills.forEach(item => {
       rSkills.innerHTML += `
-        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1">
-          <div class="font-bold text-[var(--text-primary)] text-[10px]">${item.title}</div>
-          <div class="text-[8px] text-[var(--col-skills-text)] font-mono mt-0.5">${item.category}</div>
+        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1 flex items-center justify-between">
+          <div class="font-bold text-[var(--text-primary)] text-[10px] truncate max-w-[70%]">${item.title}</div>
+          <span class="${getGenericBadgeStyle(item.category)} text-[8px] font-black uppercase tracking-wider scale-90 origin-right">${(item.category || 'Medium').toUpperCase()}</span>
         </div>
       `;
     });
@@ -462,9 +422,9 @@ export function populateReviewModal(review, data) {
   } else {
     gaps.forEach(item => {
       rGaps.innerHTML += `
-        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1">
-          <div class="font-bold text-[var(--text-primary)] text-[10px]">${item.title}</div>
-          <div class="text-[8px] text-[var(--col-gaps-text)] font-mono mt-0.5">${item.category}</div>
+        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1 flex items-center justify-between">
+          <div class="font-bold text-[var(--text-primary)] text-[10px] truncate max-w-[70%]">${item.title}</div>
+          <span class="${getGenericBadgeStyle(item.category)} text-[8px] font-black uppercase tracking-wider scale-90 origin-right">${(item.category || 'Medium').toUpperCase()}</span>
         </div>
       `;
     });
@@ -474,11 +434,10 @@ export function populateReviewModal(review, data) {
     rTraining.innerHTML = '<div class="text-gray-500 italic py-1 pl-1">None logged.</div>';
   } else {
     training.forEach(item => {
-      const badgeText = item.category.split(':')[1] || 'PLAN';
       rTraining.innerHTML += `
-        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1">
-          <div class="font-bold text-[var(--text-primary)] text-[10px]">${item.title}</div>
-          <div class="text-[8px] text-[var(--col-plans-text)] font-mono mt-0.5">${badgeText}</div>
+        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1 flex items-center justify-between">
+          <div class="font-bold text-[var(--text-primary)] text-[10px] truncate max-w-[70%]">${item.title}</div>
+          <span class="${getGenericBadgeStyle(item.category)} text-[8px] font-black uppercase tracking-wider scale-90 origin-right">${(item.category || 'Medium').toUpperCase()}</span>
         </div>
       `;
     });
@@ -518,26 +477,11 @@ export function renderTeam(team, currentUserId, currentUserRole) {
 
   // 1. Calculate stats
   const totalCount = team.length;
-  const onTrackCount = team.filter(emp => emp.hasDashboard && emp.dashboardStatus === 'On Track').length;
-  const atRiskCount = team.filter(emp => emp.hasDashboard && emp.dashboardStatus === 'At Risk').length;
-  const offTrackCount = team.filter(emp => emp.hasDashboard && emp.dashboardStatus === 'Off Track').length;
 
   statsContainer.innerHTML = `
     <div class="flex flex-col">
       <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Total Team</span>
       <span class="text-3xl font-black text-[var(--text-primary)] mt-1.5">${totalCount}</span>
-    </div>
-    <div class="flex flex-col border-l border-[var(--border-color)] pl-5">
-      <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">On Track</span>
-      <span class="text-3xl font-black text-emerald-400 mt-1.5">${onTrackCount}</span>
-    </div>
-    <div class="flex flex-col border-l border-[var(--border-color)] pl-5">
-      <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">At Risk</span>
-      <span class="text-3xl font-black text-amber-400 mt-1.5">${atRiskCount}</span>
-    </div>
-    <div class="flex flex-col border-l border-[var(--border-color)] pl-5">
-      <span class="text-[10px] font-bold text-rose-400 uppercase tracking-wider">Off Track</span>
-      <span class="text-3xl font-black text-rose-400 mt-1.5">${offTrackCount}</span>
     </div>
   `;
 
@@ -570,22 +514,10 @@ export function renderTeam(team, currentUserId, currentUserRole) {
     let avatarGradient = 'from-slate-600/30 to-slate-500/20';
 
     if (emp.hasDashboard) {
-      if (emp.dashboardStatus === 'On Track') {
-        statusClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-        statusLabel = 'On Track';
-        borderClass = 'hover:border-emerald-500/20';
-        avatarGradient = 'from-emerald-500/20 to-teal-500/20';
-      } else if (emp.dashboardStatus === 'At Risk') {
-        statusClass = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-        statusLabel = 'At Risk';
-        borderClass = 'hover:border-amber-500/20';
-        avatarGradient = 'from-amber-500/20 to-orange-500/20';
-      } else if (emp.dashboardStatus === 'Off Track') {
-        statusClass = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-        statusLabel = 'Off Track';
-        borderClass = 'hover:border-rose-500/20';
-        avatarGradient = 'from-rose-500/20 to-red-500/20';
-      }
+      statusClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+      statusLabel = 'Active';
+      borderClass = 'hover:border-emerald-500/20';
+      avatarGradient = 'from-emerald-500/20 to-teal-500/20';
     }
 
     // Last submission badge
@@ -728,10 +660,7 @@ export function renderTreeNodes(container, list) {
     // Determine status badge
     let statusBadge = '<span class="text-[9px] text-[var(--text-secondary)] italic px-2 py-0.5 border border-[var(--border-color)] rounded bg-[var(--bg-input)]">No Dashboard</span>';
     if (emp.hasDashboard) {
-      let color = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      if (emp.dashboardStatus === 'At Risk') color = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-      if (emp.dashboardStatus === 'Off Track') color = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-      statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-bold border ${color}">${emp.dashboardStatus}</span>`;
+      statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-bold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">Active</span>`;
     }
 
     // Actions
@@ -807,14 +736,10 @@ export function renderOrgExplorer({
 
   const getPresence = (userId) => {
     const status = statusMap[userId];
-    if (status === 'On Track') {
-      return { presenceClass: 'presence-dot-green', presenceStatus: 'Available (On Track)', statusText: 'On Track', colorClass: 'text-emerald-400' };
-    } else if (status === 'At Risk') {
-      return { presenceClass: 'presence-dot-amber', presenceStatus: 'Away (At Risk)', statusText: 'At Risk', colorClass: 'text-amber-400' };
-    } else if (status === 'Off Track') {
-      return { presenceClass: 'presence-dot-rose', presenceStatus: 'Do Not Disturb (Off Track)', statusText: 'Off Track', colorClass: 'text-rose-400' };
+    if (status === 'Active') {
+      return { presenceClass: 'presence-dot-green', presenceStatus: 'Active Dashboard', statusText: 'Active', colorClass: 'text-emerald-400' };
     } else {
-      return { presenceClass: 'presence-dot-gray', presenceStatus: 'Status Restricted / Offline', statusText: status || 'Not Logged', colorClass: 'text-gray-400' };
+      return { presenceClass: 'presence-dot-gray', presenceStatus: 'No active dashboard', statusText: 'No Dashboard', colorClass: 'text-gray-400' };
     }
   };
 
@@ -998,3 +923,432 @@ export function renderOrgExplorer({
     </div>
   `;
 }
+
+// New-age Custom Dialog Popups
+export function showCustomAlert(message, title = 'Notification') {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] opacity-0 transition-opacity duration-300';
+    overlay.style.pointerEvents = 'auto';
+    
+    overlay.innerHTML = `
+      <div class="bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl scale-90 opacity-0 transition-all duration-300 select-none">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-[var(--accent)] text-lg">💡</span>
+          <h3 class="text-xs font-black uppercase tracking-wider">${title}</h3>
+        </div>
+        <p class="text-xs text-[var(--text-secondary)] mb-6 leading-relaxed">${message}</p>
+        <div class="flex justify-end">
+          <button id="custom-alert-ok" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--accent)] text-white shadow-lg active:scale-95 transition-all select-none hover:opacity-90">OK</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    requestAnimationFrame(() => {
+      overlay.classList.add('opacity-100');
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-90', 'opacity-0');
+      dialog.classList.add('scale-100', 'opacity-100');
+    });
+    
+    overlay.querySelector('#custom-alert-ok').onclick = () => {
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve();
+      }, 300);
+    };
+  });
+}
+
+export function showCustomConfirm(message, title = 'Confirm Action') {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] opacity-0 transition-opacity duration-300';
+    overlay.style.pointerEvents = 'auto';
+    
+    overlay.innerHTML = `
+      <div class="bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl scale-90 opacity-0 transition-all duration-300 select-none">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-[var(--accent)] text-lg">❓</span>
+          <h3 class="text-xs font-black uppercase tracking-wider">${title}</h3>
+        </div>
+        <p class="text-xs text-[var(--text-secondary)] mb-6 leading-relaxed">${message}</p>
+        <div class="flex justify-end gap-3">
+          <button id="custom-confirm-cancel" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-color)] active:scale-95 hover:bg-[var(--bg-input)] transition-all select-none">Cancel</button>
+          <button id="custom-confirm-ok" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--accent)] text-white shadow-lg active:scale-95 transition-all select-none hover:opacity-90">Confirm</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    requestAnimationFrame(() => {
+      overlay.classList.add('opacity-100');
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-90', 'opacity-0');
+      dialog.classList.add('scale-100', 'opacity-100');
+    });
+    
+    overlay.querySelector('#custom-confirm-cancel').onclick = () => {
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve(false);
+      }, 300);
+    };
+    
+    overlay.querySelector('#custom-confirm-ok').onclick = () => {
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve(true);
+      }, 300);
+    };
+  });
+}
+
+export function showCustomPrompt(message, defaultValue = '', title = 'Required Input') {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] opacity-0 transition-opacity duration-300';
+    overlay.style.pointerEvents = 'auto';
+    
+    overlay.innerHTML = `
+      <div class="bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl scale-90 opacity-0 transition-all duration-300">
+        <div class="flex items-center gap-2 mb-3 select-none">
+          <span class="text-[var(--accent)] text-lg">✏️</span>
+          <h3 class="text-xs font-black uppercase tracking-wider select-none">${title}</h3>
+        </div>
+        <p class="text-xs text-[var(--text-secondary)] mb-4 leading-relaxed select-none">${message}</p>
+        <input type="text" id="custom-prompt-input" value="${defaultValue}" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)] mb-6 transition-colors font-medium">
+        <div class="flex justify-end gap-3 select-none">
+          <button id="custom-prompt-cancel" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-color)] active:scale-95 hover:bg-[var(--bg-input)] transition-all select-none">Cancel</button>
+          <button id="custom-prompt-ok" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--accent)] text-white shadow-lg active:scale-95 transition-all select-none hover:opacity-90">Submit</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    const input = overlay.querySelector('#custom-prompt-input');
+    input.focus();
+    input.select();
+    
+    requestAnimationFrame(() => {
+      overlay.classList.add('opacity-100');
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-90', 'opacity-0');
+      dialog.classList.add('scale-100', 'opacity-100');
+    });
+    
+    overlay.querySelector('#custom-prompt-cancel').onclick = () => {
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve(null);
+      }, 300);
+    };
+    
+    overlay.querySelector('#custom-prompt-ok').onclick = () => {
+      const val = input.value;
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve(val);
+      }, 300);
+    };
+ 
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        overlay.querySelector('#custom-prompt-ok').click();
+      }
+      if (e.key === 'Escape') {
+        overlay.querySelector('#custom-prompt-cancel').click();
+      }
+    };
+  });
+}
+
+const suggestionCache = {
+  key_skill: [],
+  gap: [],
+  training_plan: []
+};
+
+export function setSuggestions(section, list) {
+  suggestionCache[section] = list || [];
+}
+
+export function setupCustomAutocompletes() {
+  const inputs = document.querySelectorAll('input[list^="suggestions-"], input[id^="add-"]');
+  inputs.forEach(input => {
+    const listAttr = input.getAttribute('list');
+    let section = '';
+    if (listAttr) {
+      section = listAttr.replace('suggestions-', '');
+    } else {
+      const id = input.id;
+      if (id.includes('skill')) section = 'key_skill';
+      else if (id.includes('gap')) section = 'gap';
+      else if (id.includes('plan')) section = 'training_plan';
+    }
+    if (!section) return;
+    
+    // Remove native datalist association to prevent traditional browser dropdown
+    input.removeAttribute('list');
+    
+    // Create suggestion box and append to body to prevent hidden/overflow trimming
+    const boxId = `suggest-box-${input.id}`;
+    let box = document.getElementById(boxId);
+    if (!box) {
+      box = document.createElement('div');
+      box.id = boxId;
+      box.className = 'custom-suggest-box fixed bg-[var(--bg-sidebar)] backdrop-blur-md border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl shadow-2xl overflow-hidden hidden z-[99999] transition-all duration-200 opacity-0 scale-95 max-h-48 overflow-y-auto custom-scrollbar select-none';
+      document.body.appendChild(box);
+    }
+    
+    const showSuggestions = () => {
+      const query = input.value.trim().toLowerCase();
+      const items = suggestionCache[section] || [];
+      const filtered = items.filter(item => item.toLowerCase().includes(query));
+      
+      if (filtered.length === 0) {
+        box.classList.add('hidden', 'opacity-0', 'scale-95');
+        return;
+      }
+      
+      box.innerHTML = filtered.map(item => `
+        <div class="px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] cursor-pointer transition-colors font-medium text-left truncate">
+          ${item}
+        </div>
+      `).join('');
+      
+      // Bind clicks to items
+      const options = box.querySelectorAll('div');
+      options.forEach((opt, idx) => {
+        opt.onmousedown = (e) => {
+          // Prevent input blur before click is registered
+          e.preventDefault();
+        };
+        opt.onclick = () => {
+          input.value = filtered[idx];
+          box.classList.add('hidden', 'opacity-0', 'scale-95');
+          // Trigger any change event
+          input.dispatchEvent(new Event('input'));
+        };
+      });
+      
+      box.classList.remove('hidden');
+      
+      // Fixed position calculations relative to viewport
+      const rect = input.getBoundingClientRect();
+      const boxHeight = Math.min(filtered.length * 32, 192);
+      const spaceBelow = window.innerHeight - rect.bottom;
+      
+      box.style.left = `${rect.left}px`;
+      box.style.width = `${rect.width}px`;
+      
+      if (spaceBelow < boxHeight + 10 && rect.top > boxHeight) {
+        box.style.top = `${rect.top - boxHeight - 4}px`;
+        box.style.bottom = 'auto';
+        box.style.transformOrigin = 'bottom';
+      } else {
+        box.style.top = `${rect.bottom + 4}px`;
+        box.style.bottom = 'auto';
+        box.style.transformOrigin = 'top';
+      }
+      
+      requestAnimationFrame(() => {
+        box.classList.remove('opacity-0', 'scale-95');
+        box.classList.add('opacity-100', 'scale-100');
+      });
+    };
+    
+    input.onfocus = showSuggestions;
+    input.oninput = showSuggestions;
+    
+    // Hide suggestions box on blur
+    input.onblur = () => {
+      box.classList.add('opacity-0', 'scale-95');
+      setTimeout(() => {
+        box.classList.add('hidden');
+      }, 200);
+    };
+  });
+}
+
+export function convertNativeSelectsToCustom() {
+  const selects = document.querySelectorAll('select');
+  selects.forEach((select, selectIdx) => {
+    const menuId = `custom-select-menu-${selectIdx}`;
+    let menu = document.getElementById(menuId);
+    
+    // Check if we already wrapped this select
+    if (select.nextElementSibling && select.nextElementSibling.classList.contains('custom-select-wrapper')) {
+      const wrapper = select.nextElementSibling;
+      const trigger = wrapper.querySelector('.custom-select-trigger');
+      
+      if (!menu) {
+        menu = document.createElement('div');
+        menu.id = menuId;
+        menu.className = 'custom-select-menu fixed bg-[var(--bg-sidebar)] backdrop-blur-md border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl shadow-2xl overflow-hidden hidden z-[99999] transition-all duration-200 opacity-0 scale-95 max-h-56 overflow-y-auto custom-scrollbar select-none';
+        document.body.appendChild(menu);
+      }
+      
+      const currentSelectedText = select.options[select.selectedIndex]?.text || '';
+      const textSpan = trigger.querySelector('span:first-child');
+      if (textSpan) textSpan.textContent = currentSelectedText;
+      
+      menu.innerHTML = Array.from(select.options).map((opt, idx) => `
+        <div class="px-3.5 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] cursor-pointer transition-colors font-semibold truncate ${idx === select.selectedIndex ? 'text-[var(--accent)] bg-[var(--bg-hover)]' : ''}">
+          ${opt.text}
+        </div>
+      `).join('');
+      
+      menu.querySelectorAll('div').forEach((item, idx) => {
+        item.onclick = () => {
+          select.selectedIndex = idx;
+          select.dispatchEvent(new Event('change'));
+          if (textSpan) textSpan.textContent = select.options[idx].text;
+          menu.classList.add('hidden', 'opacity-0', 'scale-95');
+          const arrowEl = trigger.querySelector('span:last-child');
+          if (arrowEl) arrowEl.style.transform = 'rotate(0deg)';
+        };
+      });
+      return;
+    }
+    
+    // Hide native select
+    select.style.display = 'none';
+    
+    // Create wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'custom-select-wrapper relative inline-block w-full';
+    
+    // Create trigger button
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-select-trigger w-full bg-[var(--bg-input)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer flex items-center justify-between gap-2 select-none transition-all';
+    
+    const labelSpan = document.createElement('span');
+    labelSpan.textContent = select.options[select.selectedIndex]?.text || '';
+    trigger.appendChild(labelSpan);
+    
+    const arrow = document.createElement('span');
+    arrow.className = 'text-[9px] text-[var(--text-secondary)] transition-transform duration-200';
+    arrow.innerHTML = '▼';
+    trigger.appendChild(arrow);
+    
+    wrapper.appendChild(trigger);
+    
+    // Create menu (appended to document.body)
+    menu = document.createElement('div');
+    menu.id = menuId;
+    menu.className = 'custom-select-menu fixed bg-[var(--bg-sidebar)] backdrop-blur-md border border-[var(--border-color)] text-[var(--text-primary)] rounded-xl shadow-2xl overflow-hidden hidden z-[99999] transition-all duration-200 opacity-0 scale-95 max-h-56 overflow-y-auto custom-scrollbar select-none';
+    document.body.appendChild(menu);
+    
+    // Insert wrapper next to native select
+    select.parentNode.insertBefore(wrapper, select.nextSibling);
+    
+    // Populate options
+    const populateMenu = () => {
+      menu.innerHTML = Array.from(select.options).map((opt, idx) => `
+        <div class="px-3.5 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] cursor-pointer transition-colors font-semibold truncate ${idx === select.selectedIndex ? 'text-[var(--accent)] bg-[var(--bg-hover)]' : ''}">
+          ${opt.text}
+        </div>
+      `).join('');
+      
+      menu.querySelectorAll('div').forEach((item, idx) => {
+        item.onclick = () => {
+          select.selectedIndex = idx;
+          select.dispatchEvent(new Event('change'));
+          labelSpan.textContent = select.options[idx].text;
+          menu.classList.add('hidden', 'opacity-0', 'scale-95');
+          arrow.style.transform = 'rotate(0deg)';
+        };
+      });
+    };
+    
+    trigger.onclick = (e) => {
+      e.stopPropagation();
+      const isHidden = menu.classList.contains('hidden');
+      
+      // Close all other dropdowns
+      document.querySelectorAll('.custom-select-menu, .custom-suggest-box').forEach(m => {
+        if (m.id !== menuId) {
+          m.classList.add('hidden', 'opacity-0', 'scale-95');
+        }
+      });
+      document.querySelectorAll('.custom-select-trigger span:last-child').forEach(arrowEl => {
+        if (arrowEl !== arrow) arrowEl.style.transform = 'rotate(0deg)';
+      });
+      
+      if (isHidden) {
+        populateMenu();
+        menu.classList.remove('hidden');
+        arrow.style.transform = 'rotate(180deg)';
+        
+        // Position menu to prevent cut off (using client bounding rect)
+        const rect = trigger.getBoundingClientRect();
+        const menuHeight = Math.min(select.options.length * 36, 224);
+        const spaceBelow = window.innerHeight - rect.bottom;
+        
+        menu.style.left = `${rect.left}px`;
+        menu.style.width = `${rect.width}px`;
+        
+        if (spaceBelow < menuHeight + 10 && rect.top > menuHeight) {
+          menu.style.top = `${rect.top - menuHeight - 4}px`;
+          menu.style.bottom = 'auto';
+          menu.style.transformOrigin = 'bottom';
+        } else {
+          menu.style.top = `${rect.bottom + 4}px`;
+          menu.style.bottom = 'auto';
+          menu.style.transformOrigin = 'top';
+        }
+        
+        requestAnimationFrame(() => {
+          menu.classList.remove('opacity-0', 'scale-95');
+          menu.classList.add('opacity-100', 'scale-100');
+        });
+      } else {
+        menu.classList.add('opacity-0', 'scale-95');
+        arrow.style.transform = 'rotate(0deg)';
+        setTimeout(() => menu.classList.add('hidden'), 200);
+      }
+    };
+    
+    document.addEventListener('click', () => {
+      menu.classList.add('opacity-0', 'scale-95');
+      arrow.style.transform = 'rotate(0deg)';
+      setTimeout(() => menu.classList.add('hidden'), 200);
+    });
+  });
+}
+
+// Add a global scroll event listener to close any open suggest box or select menus on scroll
+window.addEventListener('scroll', () => {
+  document.querySelectorAll('.custom-select-menu, .custom-suggest-box').forEach(m => {
+    m.classList.add('hidden', 'opacity-0', 'scale-95');
+  });
+  document.querySelectorAll('.custom-select-trigger span:last-child').forEach(arrow => {
+    arrow.style.transform = 'rotate(0deg)';
+  });
+}, { passive: true });

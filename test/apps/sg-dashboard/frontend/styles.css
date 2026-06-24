@@ -291,5 +291,100 @@ body.sidebar-dragging {
   background-color: var(--border-color);
 }
 
+/* Responsive / Zoom scaling for leadership review */
+html.zoom-compensation {
+  font-size: 112% !important;
+}
 
+@media (min-width: 1600px) {
+  html {
+    font-size: 108% !important;
+  }
+}
 
+@media (min-width: 2000px) {
+  html {
+    font-size: 122% !important;
+  }
+}
+
+/* Custom Select Dropdowns */
+.custom-select-wrapper {
+  position: relative;
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  cursor: pointer;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.custom-select-trigger:focus, .custom-select-trigger:hover {
+  border-color: var(--accent);
+  outline: none;
+  background: var(--bg-hover);
+}
+
+.custom-select-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-top: 0.25rem;
+  background: var(--bg-sidebar);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  max-height: 14rem;
+  overflow-y: auto;
+  z-index: 50;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.95);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.custom-select-menu.opacity-100 {
+  pointer-events: auto;
+}
+
+.custom-select-menu div {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.custom-select-menu div:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Custom Autocomplete Suggestion Dropdowns */
+.custom-suggest-box {
+  animation: slideDownFade 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

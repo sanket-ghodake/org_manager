@@ -104,6 +104,10 @@ export function toggleTheme() {
   ui.toggleTheme();
 }
 
+export function setTheme(theme) {
+  ui.setTheme(theme);
+}
+
 export async function updateManagerSetting() {
   const select = document.getElementById('header-manager-select');
   const managerId = select.value;
@@ -121,9 +125,11 @@ export async function updateManagerSetting() {
     
     userData.managerId = managerId;
     sessionStorage.setItem('dashboard_user_data', JSON.stringify(userData));
-    console.log('Manager association updated successfully.');
-  } catch (e) {
-    console.error('Failed to update manager:', e);
+    
+    await ui.showCustomAlert('Reporting line updated successfully.', 'Success');
+  } catch (err) {
+    console.error(err);
+    await ui.showCustomAlert('Failed to update reporting line.', 'Error');
   }
 }
 
@@ -137,7 +143,9 @@ export async function saveDashboardSettings() {
 }
 
 export async function updateProgramSetting() {
-  const val = document.getElementById('header-program-input').value.trim();
+  const inputEl = document.getElementById('header-program-input');
+  if (!inputEl) return;
+  const val = inputEl.value.trim();
   const subProg = document.getElementById('sub-program-display');
   if (subProg) subProg.textContent = val || 'Default Program';
   if (val === currentDashboardData.program_line) return;
@@ -146,12 +154,7 @@ export async function updateProgramSetting() {
   await saveDashboardSettings();
 }
 
-export async function updateDashboardStatus(newStatus) {
-  if (newStatus === currentDashboardData.status) return;
-  currentDashboardData.status = newStatus;
-  ui.highlightStatusBtn(newStatus);
-  await saveDashboardSettings();
-}
+
 
 export async function updateDashboardNotes() {
   const notes = document.getElementById('dashboard-notes-textarea').value.trim();
@@ -188,11 +191,19 @@ export async function saveObjectiveEdit() {
 }
 
 export async function cycleGapSeverity(item) {
-  const flow = { 'Critical': 'High', 'High': 'Medium', 'Medium': 'Critical' };
-  const nextSeverity = flow[item.category] || 'Medium';
+  let prefix = '';
+  let priority = item.category || 'Low';
+  if (priority.includes(':')) {
+    const parts = priority.split(':');
+    prefix = parts[0] + ':';
+    priority = parts[1];
+  }
+  const flow = { 'Critical': 'Medium', 'Medium': 'Low', 'Low': 'Critical' };
+  const nextSeverity = flow[priority] || 'Low';
+  const newCategory = prefix + nextSeverity;
 
   try {
-    await api.updateDashboardItem(apiToken, item.id, { category: nextSeverity });
+    await api.updateDashboardItem(apiToken, item.id, { category: newCategory });
     await loadMyDashboard();
   } catch (err) {
     console.error(err);
@@ -257,21 +268,14 @@ export async function updateAllSuggestions() {
   for (const section of sections) {
     try {
       const data = await api.fetchSuggestions(apiToken, section);
-      const datalist = document.getElementById(`suggestions-${section}`);
-      if (datalist) {
-        datalist.innerHTML = '';
-        if (data.suggestions) {
-          data.suggestions.forEach(title => {
-            const option = document.createElement('option');
-            option.value = title;
-            datalist.appendChild(option);
-          });
-        }
+      if (data.suggestions) {
+        ui.setSuggestions(section, data.suggestions);
       }
     } catch (e) {
       console.warn('Failed to update suggestions for %s:', section, e);
     }
   }
+  ui.setupCustomAutocompletes();
 }
 
 export async function addQuickItem(section, defaultCategory, inputEl) {
@@ -295,7 +299,8 @@ export async function addQuickItem(section, defaultCategory, inputEl) {
 }
 
 export async function deleteItem(id) {
-  if (!confirm('Are you sure you want to delete this action item?')) return;
+  const confirmed = await ui.showCustomConfirm('Are you sure you want to delete this action item?', 'Delete Item');
+  if (!confirmed) return;
   try {
     await api.deleteDashboardItem(apiToken, id);
     await loadMyDashboard();
@@ -305,10 +310,11 @@ export async function deleteItem(id) {
 }
 
 export async function submitDashboard(id) {
-  if (!confirm('Are you sure you want to submit your current TRR dashboard to your manager for review?')) return;
+  const confirmed = await ui.showCustomConfirm('Are you sure you want to submit your current TRR dashboard to your manager for review?', 'Submit Dashboard');
+  if (!confirmed) return;
   try {
     await api.submitDashboardReq(apiToken, id);
-    alert('Dashboard submitted successfully!');
+    await ui.showCustomAlert('Dashboard submitted successfully!', 'Success');
     await loadSubmissions();
     if (userData.role === 'Manager' || userData.role === 'Admin') {
       await loadTeamView();
@@ -319,20 +325,22 @@ export async function submitDashboard(id) {
 }
 
 export async function triggerRequestSubmission(empId) {
-  const deadline = prompt(
+  const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const deadline = await ui.showCustomPrompt(
     'Enter a target review deadline date (YYYY-MM-DD):', 
-    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    defaultDate,
+    'Request Submission'
   );
   if (!deadline) return;
 
   try {
     const res = await api.createSubmissionRequest(apiToken, empId, deadline);
     if (res.ok) {
-      alert('Submission request generated successfully!');
+      await ui.showCustomAlert('Submission request generated successfully!', 'Success');
       await loadTeamView();
     } else {
       const errData = await res.json();
-      alert('Error: ' + errData.error);
+      await ui.showCustomAlert('Error: ' + errData.error, 'Request Failed');
     }
   } catch (err) {
     console.error(err);
@@ -367,7 +375,7 @@ function addToSearchHistory(emp) {
   }
 }
 
-export async function changeActiveEmployeeContext(userId) {
+export async function changeActiveEmployeeContext(userId, selectedDashboardId = '') {
   try {
     const isSelf = !userId || userId === userData.id;
     currentDashboardUserId = isSelf ? userData.id : userId;
@@ -383,20 +391,30 @@ export async function changeActiveEmployeeContext(userId) {
     }
 
     // Load all data in parallel to avoid waterfalls
-    const dashboardPromise = isSelf ? api.fetchMyDashboard(apiToken) : api.fetchUserDashboard(apiToken, currentDashboardUserId);
+    const dashboardPromise = isSelf
+      ? api.fetchMyDashboard(apiToken, selectedDashboardId)
+      : api.fetchUserDashboard(apiToken, currentDashboardUserId, selectedDashboardId);
+    
     const teamPromise = api.fetchTeam(apiToken, currentDashboardUserId).catch(e => {
       console.warn('Failed to load team data in context switch:', e);
       return { team: [] };
     });
+    
     const submissionsPromise = api.fetchSubmissions(apiToken, currentDashboardUserId).catch(e => {
       console.warn('Failed to load submissions in context switch:', e);
       return { submissions: [] };
     });
 
-    const [dashData, teamData, subData] = await Promise.all([
+    const dashboardsListPromise = api.fetchDashboards(apiToken, currentDashboardUserId).catch(e => {
+      console.warn('Failed to load programs list:', e);
+      return { dashboards: [] };
+    });
+
+    const [dashData, teamData, subData, dashboardsData] = await Promise.all([
       dashboardPromise,
       teamPromise,
-      submissionsPromise
+      submissionsPromise,
+      dashboardsListPromise
     ]);
 
     currentDashboardId = dashData.dashboard.id;
@@ -449,6 +467,142 @@ export async function changeActiveEmployeeContext(userId) {
     // Toggle edit controls on main workspace
     toggleWorkspaceEditState(isReadOnly);
 
+    // Populate Active Program Dropdown & buttons next to it
+    const programSelect = document.getElementById('program-select');
+    if (programSelect) {
+      programSelect.innerHTML = '';
+      const list = dashboardsData.dashboards || [];
+      list.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = d.program_line || 'Default Program';
+        if (d.id === currentDashboardId) {
+          opt.selected = true;
+        }
+        programSelect.appendChild(opt);
+      });
+
+      programSelect.onchange = async () => {
+        const selectedId = programSelect.value;
+        await changeActiveEmployeeContext(currentDashboardUserId, selectedId);
+      };
+      ui.convertNativeSelectsToCustom();
+    }
+
+    // Program controls binding
+    const addBtn = document.getElementById('program-add-btn');
+    const renameBtn = document.getElementById('program-rename-btn');
+    const duplicateBtn = document.getElementById('program-duplicate-btn');
+    const deleteBtn = document.getElementById('program-delete-btn');
+    const exportBtn = document.getElementById('program-export-btn');
+
+    if (addBtn) {
+      if (isReadOnly) addBtn.classList.add('hidden');
+      else {
+        addBtn.classList.remove('hidden');
+        addBtn.onclick = async () => {
+          const newName = await ui.showCustomPrompt('Enter a name for the new program:', 'New Program', 'Add Program');
+          if (newName === null) return;
+          const programName = newName.trim() || 'New Program';
+          try {
+            const res = await api.createDashboard(apiToken, programName);
+            await changeActiveEmployeeContext(currentDashboardUserId, res.newDashboardId);
+          } catch (e) {
+            await ui.showCustomAlert('Failed to add program: ' + e.message, 'Error');
+          }
+        };
+      }
+    }
+
+    if (renameBtn) {
+      if (isReadOnly) renameBtn.classList.add('hidden');
+      else {
+        renameBtn.classList.remove('hidden');
+        renameBtn.onclick = async () => {
+          const newName = await ui.showCustomPrompt('Enter a new name for this program:', currentDashboardData.program_line || '', 'Rename Program');
+          if (newName && newName.trim() && newName.trim() !== currentDashboardData.program_line) {
+            currentDashboardData.program_line = newName.trim();
+            try {
+              await api.saveDashboard(apiToken, currentDashboardId, currentDashboardData);
+              await changeActiveEmployeeContext(currentDashboardUserId, currentDashboardId);
+            } catch (e) {
+              await ui.showCustomAlert('Failed to rename program: ' + e.message, 'Error');
+            }
+          }
+        };
+      }
+    }
+
+    if (duplicateBtn) {
+      if (isReadOnly) duplicateBtn.classList.add('hidden');
+      else {
+        duplicateBtn.classList.remove('hidden');
+        duplicateBtn.onclick = async () => {
+          const confirmed = await ui.showCustomConfirm('Are you sure you want to duplicate the active program?', 'Duplicate Program');
+          if (!confirmed) return;
+          try {
+            const res = await api.duplicateDashboard(apiToken, currentDashboardId);
+            await ui.showCustomAlert(`Program duplicated as: ${res.newProgramName}`, 'Success');
+            await changeActiveEmployeeContext(currentDashboardUserId, res.newDashboardId);
+          } catch (e) {
+            await ui.showCustomAlert('Failed to duplicate program: ' + e.message, 'Error');
+          }
+        };
+      }
+    }
+
+    if (deleteBtn) {
+      if (isReadOnly) deleteBtn.classList.add('hidden');
+      else {
+        deleteBtn.classList.remove('hidden');
+        deleteBtn.onclick = async () => {
+          if (programSelect && programSelect.options.length <= 1) {
+            await ui.showCustomAlert('Cannot delete the only dashboard. You must have at least one program.', 'Action Restricted');
+            return;
+          }
+          const confirmed = await ui.showCustomConfirm('Are you sure you want to delete the active program? This action cannot be undone.', 'Delete Program');
+          if (!confirmed) return;
+          try {
+            await api.deleteDashboard(apiToken, currentDashboardId);
+            await ui.showCustomAlert('Program deleted.', 'Success');
+            await changeActiveEmployeeContext(currentDashboardUserId);
+          } catch (e) {
+            await ui.showCustomAlert('Failed to delete program: ' + e.message, 'Error');
+          }
+        };
+      }
+    }
+
+    if (exportBtn) {
+      exportBtn.onclick = async () => {
+        try {
+          const items = dashData.items || [];
+          const exportData = {
+            program: currentDashboardData.program_line || 'Default Program',
+            objective: currentDashboardData.objective || '',
+            notes: currentDashboardData.notes || '',
+            owner: {
+              name: ownerName,
+              role: ownerRole
+            },
+            skills: items.filter(i => i.section === 'key_skill').map(i => ({ title: i.title, priority: i.category })),
+            gaps: items.filter(i => i.section === 'gap').map(i => ({ title: i.title, priority: i.category })),
+            training_plans: items.filter(i => i.section === 'training_plan').map(i => ({ title: i.title, priority: i.category }))
+          };
+
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+          const downloadAnchor = document.createElement('a');
+          downloadAnchor.setAttribute("href", dataStr);
+          downloadAnchor.setAttribute("download", `${ownerName.replace(/\s+/g, '_')}_${exportData.program.replace(/\s+/g, '_')}.json`);
+          document.body.appendChild(downloadAnchor);
+          downloadAnchor.click();
+          downloadAnchor.remove();
+        } catch (e) {
+          await ui.showCustomAlert('Failed to export program: ' + e.message, 'Error');
+        }
+      };
+    }
+
     // Populate dashboard settings values
     const programInput = document.getElementById('header-program-input');
     if (programInput) {
@@ -475,7 +629,6 @@ export async function changeActiveEmployeeContext(userId) {
       notesTextarea.disabled = isReadOnly;
     }
 
-    ui.highlightStatusBtn(dashData.dashboard.status);
     ui.renderDashboardItems(dashData.items, isReadOnly);
 
     // Update autocomplete suggestions list
@@ -528,7 +681,7 @@ export async function changeActiveEmployeeContext(userId) {
     if (overlay) {
       overlay.classList.add('hidden');
     }
-    alert(`Failed to load workspace context: ${err.message}`);
+    await ui.showCustomAlert(`Failed to load workspace context: ${err.message}`, 'Error');
   }
 }
 
@@ -591,21 +744,7 @@ function toggleWorkspaceEditState(isReadOnly) {
     }
   });
 
-  // Status buttons
-  const statusBtns = ['ontrack', 'atrisk', 'offtrack'];
-  statusBtns.forEach(b => {
-    const el = document.getElementById(`status-btn-${b}`);
-    if (el) {
-      if (isReadOnly) {
-        el.removeAttribute('onclick');
-        el.classList.add('cursor-not-allowed', 'opacity-70');
-      } else {
-        const statuses = { ontrack: 'On Track', atrisk: 'At Risk', offtrack: 'Off Track' };
-        el.setAttribute('onclick', `updateDashboardStatus('${statuses[b]}')`);
-        el.classList.remove('cursor-not-allowed', 'opacity-70');
-      }
-    }
-  });
+
 }
 
 async function loadMyDashboard() {
@@ -701,7 +840,7 @@ export async function openReviewModal(requestId) {
     ui.populateReviewModal(review, data);
   } catch (err) {
     console.error(err);
-    alert('Failed to load dashboard data for review.');
+    await ui.showCustomAlert('Failed to load dashboard data for review.', 'Error');
   } finally {
     if (overlay) overlay.classList.add('hidden');
   }
@@ -716,16 +855,17 @@ export async function submitReviewAction(status) {
   if (!activeReviewId) return;
   const feedback = document.getElementById('review-comments-input')?.value.trim() || '';
 
-  if (!confirm(`Are you sure you want to set this submission status to "${status}"?`)) return;
+  const confirmed = await ui.showCustomConfirm(`Are you sure you want to set this submission status to "${status}"?`, 'Submit Review');
+  if (!confirmed) return;
 
   try {
     await api.reviewSubmission(apiToken, activeReviewId, status, feedback);
     closeReviewModal();
-    alert(`Submission successfully updated to: ${status}`);
+    await ui.showCustomAlert(`Submission successfully updated to: ${status}`, 'Success');
     await loadSubmissions();
   } catch (err) {
     console.error(err);
-    alert('Failed to submit review decision: ' + err.message);
+    await ui.showCustomAlert('Failed to submit review decision: ' + err.message, 'Error');
   }
 }
 
@@ -855,9 +995,31 @@ async function initializeApplication() {
   });
 
   await changeActiveEmployeeContext(userData.id);
+  ui.convertNativeSelectsToCustom();
 }
 
+function adjustFontScaling() {
+  let baselineDPR = parseFloat(sessionStorage.getItem('baseline_dpr'));
+  if (!baselineDPR) {
+    baselineDPR = window.devicePixelRatio || 1;
+    sessionStorage.setItem('baseline_dpr', baselineDPR.toString());
+  }
+
+  const currentDPR = window.devicePixelRatio || 1;
+  const zoomLevel = currentDPR / baselineDPR;
+
+  const htmlEl = document.documentElement;
+  if (zoomLevel <= 0.9) {
+    htmlEl.classList.add('zoom-compensation');
+  } else {
+    htmlEl.classList.remove('zoom-compensation');
+  }
+}
+
+window.addEventListener('resize', adjustFontScaling);
+
 async function initSession() {
+  adjustFontScaling();
   const today = new Date();
   const mm = String(today.getMonth() + 1).padStart(2, '0');
   const dd = String(today.getDate()).padStart(2, '0');
@@ -928,9 +1090,9 @@ window.addEventListener('message', async (e) => {
 // Expose public APIs on window object so HTML element attributes can resolve them
 window.switchTab = switchTab;
 window.toggleTheme = toggleTheme;
+window.setTheme = setTheme;
 window.updateManagerSetting = updateManagerSetting;
 window.updateProgramSetting = updateProgramSetting;
-window.updateDashboardStatus = updateDashboardStatus;
 window.updateDashboardNotes = updateDashboardNotes;
 window.startEditingObjective = startEditingObjective;
 window.saveObjectiveEdit = saveObjectiveEdit;
@@ -1203,7 +1365,7 @@ export async function toggleHierarchyNode(userId) {
   } catch (err) {
     console.error(err);
     toggleBtn.textContent = '▶';
-    alert('Failed to load reporting structure: ' + err.message);
+    await ui.showCustomAlert('Failed to load reporting structure: ' + err.message, 'Error');
   }
 }
 
@@ -1238,7 +1400,7 @@ export async function loadOrgExplorer(focusedUserId) {
     
     // Logged in user status
     if (currentDashboardData) {
-      statusMap[userData.id] = currentDashboardData.status;
+      statusMap[userData.id] = 'Active';
     }
     
     // Fetch reports dashboard statuses
@@ -1246,7 +1408,9 @@ export async function loadOrgExplorer(focusedUserId) {
       const teamData = await api.fetchTeam(apiToken);
       if (teamData && teamData.team) {
         teamData.team.forEach(emp => {
-          statusMap[emp.id] = emp.dashboardStatus;
+          if (emp.hasDashboard) {
+            statusMap[emp.id] = 'Active';
+          }
         });
       }
     } catch (e) {
@@ -1267,7 +1431,7 @@ export async function loadOrgExplorer(focusedUserId) {
           managerId: dashData.dashboard.manager_id || dashData.dashboard.managerId
         };
         cachedUsers.push(focusedUser);
-        statusMap[focusedUserId] = dashData.dashboard.status;
+        statusMap[focusedUserId] = 'Active';
       } catch (err) {
         console.error("Focused user not found and failed to fetch details:", err);
       }

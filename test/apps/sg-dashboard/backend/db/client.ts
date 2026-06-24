@@ -47,8 +47,21 @@ export async function initDb() {
       );
     }
 
-    if (hasManagerFk || (tableInfo.rows && tableInfo.rows.length > 0 && !hasDesignation) || (subTableCheck.rows && subTableCheck.rows.length > 0 && !hasFeedback)) {
-      console.log('Recreating tables to add designation column, remove manager_id foreign key constraint, or update submissions schema...');
+    // Check if dashboards table enforces unique user_id (old constraint)
+    let isDashboardUnique = false;
+    let hasStatus = false;
+    const dashTableCheck = await db.execute(`SELECT sql FROM sqlite_master WHERE type='table' AND name='dashboards'`);
+    if (dashTableCheck.rows && dashTableCheck.rows.length > 0) {
+      const sql = dashTableCheck.rows[0].sql as string;
+      if (sql.includes('user_id TEXT UNIQUE') || sql.includes('user_id TEXT NOT NULL UNIQUE') || sql.includes('UNIQUE')) {
+        isDashboardUnique = true;
+      }
+      const dashTableInfo = await db.execute(`PRAGMA table_info(dashboards)`);
+      hasStatus = dashTableInfo.rows?.some((row: any) => row.name === 'status') || false;
+    }
+
+    if (hasStatus || isDashboardUnique || hasManagerFk || (tableInfo.rows && tableInfo.rows.length > 0 && !hasDesignation) || (subTableCheck.rows && subTableCheck.rows.length > 0 && !hasFeedback)) {
+      console.log('Recreating tables to remove dashboard status, support multiple dashboards, or update schemas...');
       await db.execute(`DROP TABLE IF EXISTS submission_requests`);
       await db.execute(`DROP TABLE IF EXISTS dashboard_items`);
       await db.execute(`DROP TABLE IF EXISTS dashboards`);
@@ -69,10 +82,9 @@ export async function initDb() {
     await db.execute(`
       CREATE TABLE IF NOT EXISTS dashboards (
         id TEXT PRIMARY KEY,
-        user_id TEXT UNIQUE NOT NULL,
+        user_id TEXT NOT NULL,
         program_line TEXT DEFAULT 'Default Program',
         objective TEXT,
-        status TEXT CHECK(status IN ('On Track', 'At Risk', 'Off Track')) DEFAULT 'On Track',
         notes TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(user_id) REFERENCES users(id)
