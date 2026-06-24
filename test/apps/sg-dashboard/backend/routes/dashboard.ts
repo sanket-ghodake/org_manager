@@ -1,6 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { db } from '../db/client';
 import { checkUplineManager } from '../utils/hierarchy';
+import { CLIENT_ID, CLIENT_SECRET } from '../config';
+import { getWorkingPortalUrl } from '../utils/portal';
 
 export default async function dashboardRoutes(fastify: FastifyInstance) {
   // Get Current User's Dashboard
@@ -8,7 +10,12 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     const user = request.user;
     try {
       let res = await db.execute({
-        sql: 'SELECT * FROM dashboards WHERE user_id = ?',
+        sql: `
+          SELECT d.*, u.name, u.email, u.role
+          FROM dashboards d
+          LEFT JOIN users u ON d.user_id = u.id
+          WHERE d.user_id = ?
+        `,
         args: [user.id],
       });
 
@@ -27,7 +34,12 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
         });
 
         res = await db.execute({
-          sql: 'SELECT * FROM dashboards WHERE user_id = ?',
+          sql: `
+            SELECT d.*, u.name, u.email, u.role
+            FROM dashboards d
+            LEFT JOIN users u ON d.user_id = u.id
+            WHERE d.user_id = ?
+          `,
           args: [user.id],
         });
       }
@@ -44,26 +56,92 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Get Specified Dashboard (Hierarchy protected)
+  // Get Specified Dashboard (View mode open to all authenticated users)
   fastify.get('/api/dashboard/:userId', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
-    const currentUser = request.user;
     const targetUserId = request.params.userId;
-
-    const isOwner = currentUser.id === targetUserId;
-    const isManager = await checkUplineManager(currentUser.id, targetUserId);
-
-    if (!isOwner && !isManager && currentUser.role !== 'Admin') {
-      return reply.status(403).send({ error: 'Forbidden: Access to this dashboard is restricted' });
-    }
 
     try {
       const res = await db.execute({
-        sql: 'SELECT * FROM dashboards WHERE user_id = ?',
+        sql: `
+          SELECT d.*, u.name, u.email, u.role
+          FROM dashboards d
+          LEFT JOIN users u ON d.user_id = u.id
+          WHERE d.user_id = ?
+        `,
         args: [targetUserId],
       });
 
       if (res.rows.length === 0) {
-        return reply.status(404).send({ error: 'Dashboard not initialized yet by employee.' });
+        // Defensive check: ensure user exists to avoid FOREIGN KEY constraints
+        const userCheck = await db.execute({
+          sql: 'SELECT id FROM users WHERE id = ?',
+          args: [targetUserId],
+        });
+
+        if (userCheck.rows.length === 0) {
+          let dummyName = 'Employee';
+          let dummyRole = 'Employee';
+          try {
+            const workingUrl = await getWorkingPortalUrl();
+            const pRes = await fetch(`${workingUrl}/api/directory`, {
+              headers: {
+                'x-forge-client-id': CLIENT_ID,
+                'x-forge-client-secret': CLIENT_SECRET,
+              }
+            });
+            if (pRes.ok) {
+              const pData = (await pRes.json()) as any;
+              const found = pData.users?.find((u: any) => u.id === targetUserId);
+              if (found) {
+                dummyName = found.name;
+                dummyRole = found.role === 'admin' || found.role === 'super_admin' ? 'Admin' : (found.role === 'manager' ? 'Manager' : 'Employee');
+                await db.execute({
+                  sql: 'INSERT INTO users (id, name, email, role, manager_id) VALUES (?, ?, ?, ?, ?)',
+                  args: [found.id, found.name, found.email, dummyRole, found.managerId || null],
+                });
+              }
+            }
+          } catch (err) {
+            console.warn('Failed to auto-fetch missing user on dashboard query:', err);
+          }
+
+          // If still not inserted, insert stub user to avoid FK error
+          const userCheckAfter = await db.execute({
+            sql: 'SELECT id FROM users WHERE id = ?',
+            args: [targetUserId],
+          });
+          if (userCheckAfter.rows.length === 0) {
+            await db.execute({
+              sql: 'INSERT INTO users (id, name, email, role) VALUES (?, ?, ?, ?)',
+              args: [targetUserId, dummyName, `${targetUserId}@organization.local`, dummyRole],
+            });
+          }
+        }
+
+        const dashboardId = crypto.randomUUID();
+        await db.execute({
+          sql: 'INSERT INTO dashboards (id, user_id, program_line, objective, status, notes) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [
+            dashboardId,
+            targetUserId,
+            'Engineering Strategy',
+            'Optimize local resource utilization to achieve enterprise readiness within constraints.',
+            'On Track',
+            'Automatically initialized by manager review.',
+          ],
+        });
+
+        const freshRes = await db.execute({
+          sql: `
+            SELECT d.*, u.name, u.email, u.role
+            FROM dashboards d
+            LEFT JOIN users u ON d.user_id = u.id
+            WHERE d.user_id = ?
+          `,
+          args: [targetUserId],
+        });
+        const dashboard = freshRes.rows[0];
+        return { dashboard, items: [] };
       }
 
       const dashboard = res.rows[0];

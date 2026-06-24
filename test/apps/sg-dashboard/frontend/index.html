@@ -38,8 +38,43 @@
     </div>
 
     <!-- Right Header Section (aligned with Main Content) -->
-    <div class="flex-1 h-full"></div>
+    <div class="flex-1 h-full flex items-center justify-between px-6 gap-4">
+      <!-- Search Input Container -->
+      <div class="relative w-80 max-w-md">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-secondary)]">
+          🔍
+        </div>
+        <input type="text" id="header-search-input" oninput="handleHeaderSearch(this)" onfocus="handleHeaderSearch(this)" placeholder="Search employee dashboards..." class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl pl-9 pr-4 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-all">
+        <!-- Floating Dropdown Results -->
+        <div id="header-search-results" class="absolute left-0 right-0 mt-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto hidden z-50 backdrop-blur-md custom-scrollbar">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Active Dashboard Holder -->
+      <div id="header-active-user-container" class="flex items-center gap-2 select-none">
+        <span class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Viewing Workspace:</span>
+        <span id="header-active-user-name" class="text-xs font-bold text-[var(--text-primary)] bg-[var(--bg-input)] px-2.5 py-1 rounded-lg border border-[var(--border-color)]">--</span>
+      </div>
+
+      <!-- Header Right Actions (Theme, Date) -->
+      <div class="flex items-center gap-4">
+        <!-- Date display -->
+        <span id="header-date-display" class="text-[10px] font-mono font-bold text-[var(--text-secondary)] select-none">--/--/----</span>
+        
+        <!-- Theme Selector Toggle -->
+        <button onclick="toggleTheme()" id="theme-toggle-btn" class="w-8 h-8 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] flex items-center justify-center border border-[var(--border-color)] text-sm transition-all" title="Toggle Theme">
+          🌙
+        </button>
+      </div>
+    </div>
   </header>
+
+  <!-- Full-width Warning Banner (Below Header Bar) -->
+  <div id="read-only-warning-banner" class="bg-amber-500/10 border-b border-amber-500/20 text-amber-500 px-6 py-2 text-xs font-medium flex items-center gap-2 hidden select-none">
+    <span>⚠️</span>
+    <span><strong>Read-Only Mode:</strong> You are viewing another employee's dashboard workspace. Editing, status updates, and modifications are disabled.</span>
+  </div>
 
   <!-- Layout Body Wrapper -->
   <div class="flex-1 flex overflow-hidden w-full relative">
@@ -58,7 +93,7 @@
           </button>
           <button onclick="switchTab('team-view')" id="nav-team-view" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all hidden">
             <span>👥</span>
-            <span>Team View</span>
+            <span>My Team</span>
           </button>
         </nav>
       </div>
@@ -94,6 +129,29 @@
 
       <!-- PANEL 1: MY DASHBOARD -->
       <div id="tab-my-dashboard" class="space-y-6">
+        <!-- Dashboard Sub-Header / Settings -->
+        <div class="bg-[var(--bg-card)] p-5 rounded-xl border border-[var(--border-color)] shadow-lg space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--border-color)] pb-3">
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">Program Line</span>
+              <div id="sub-program-display" class="text-sm font-bold text-[var(--text-primary)] mt-0.5">--</div>
+              <input type="text" id="header-program-input" onblur="updateProgramSetting()" onkeydown="if(event.key==='Enter')this.blur()" class="hidden bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-purple-500 text-[var(--text-primary)] mt-1 w-full max-w-md">
+            </div>
+            <div id="program-edit-btn-container">
+              <button onclick="document.getElementById('sub-program-display').classList.add('hidden'); document.getElementById('header-program-input').classList.remove('hidden'); document.getElementById('header-program-input').focus();" class="text-[10px] font-bold text-[var(--accent)] hover:underline">
+                ✏️ Edit Program
+              </button>
+            </div>
+          </div>
+          <div>
+            <span class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)]">Strategic Objective</span>
+            <div onclick="startEditingObjective()" id="sub-objective-display" class="text-xs text-[var(--text-secondary)] mt-1 cursor-pointer hover:text-[var(--text-primary)] transition-all">
+              --
+            </div>
+            <textarea id="sub-objective-input" onblur="saveObjectiveEdit()" class="hidden w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg p-2.5 text-xs focus:outline-none focus:border-purple-500 text-[var(--text-primary)] mt-1" rows="2"></textarea>
+          </div>
+        </div>
+
         <!-- 3 Columns Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -246,31 +304,65 @@
         </div>
       </div>
 
-      <!-- PANEL 3: TEAM VIEW -->
+      <!-- PANEL 3: MY TEAM -->
       <div id="tab-team-view" class="hidden bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-6 shadow-lg space-y-6">
-        <div class="border-b border-[var(--border-color)] pb-4">
-          <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
-            👥 Team Organizational Hierarchy
-          </h3>
-          <p class="text-xs text-[var(--text-secondary)] mt-1">Monitor development plans, audit health states, and trigger submission request workflows for your reporting chain.</p>
+        <div class="border-b border-[var(--border-color)] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
+              👥 My Team Management
+            </h3>
+            <p class="text-xs text-[var(--text-secondary)] mt-1">Monitor development plans, audit health states, and trigger submission request workflows for your reporting chain.</p>
+          </div>
+          <!-- View Toggle Switcher -->
+          <div class="flex items-center bg-[var(--bg-input)] p-1 rounded-xl border border-[var(--border-color)] shadow-sm">
+            <button onclick="toggleTeamViewMode('list')" id="btn-team-list-mode" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-sm">
+              📋 Directory List
+            </button>
+            <button onclick="toggleTeamViewMode('tree')" id="btn-team-tree-mode" class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              🕸️ Hierarchy Tree
+            </button>
+          </div>
         </div>
 
-        <div class="overflow-x-auto custom-scrollbar">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
-                <th class="pb-3 pl-3">Employee Name</th>
-                <th class="pb-3">Role</th>
-                <th class="pb-3">Dashboard Active</th>
-                <th class="pb-3">Current Status</th>
-                <th class="pb-3">Last Submission</th>
-                <th class="pb-3 text-right pr-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="team-body" class="divide-y divide-white/5">
-              <!-- Rendered via JS -->
-            </tbody>
-          </table>
+        <!-- Mode A: Flat Directory List -->
+        <div id="team-list-mode-container" class="space-y-4">
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
+                  <th class="pb-3 pl-3">Employee Name</th>
+                  <th class="pb-3">Role</th>
+                  <th class="pb-3">Dashboard Active</th>
+                  <th class="pb-3">Current Status</th>
+                  <th class="pb-3">Last Submission</th>
+                  <th class="pb-3 text-right pr-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="team-body" class="divide-y divide-white/5">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Mode B: Org Explorer Chart (Microsoft Teams Style) -->
+        <div id="team-tree-mode-container" class="hidden space-y-6">
+          <!-- Control Bar with Breadcrumbs & Reset -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--bg-input)]/30 p-4 rounded-xl border border-[var(--border-color)]">
+            <div class="flex items-center gap-2 text-xs text-[var(--text-secondary)] font-medium overflow-x-auto py-1 custom-scrollbar min-w-0" id="org-breadcrumbs">
+              <span class="text-gray-500 font-bold shrink-0">Org Chart Explorer</span>
+            </div>
+            <button onclick="resetOrgChartFocus()" class="px-3.5 py-1.5 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-xs font-bold text-[var(--text-primary)] transition-all border border-[var(--border-color)] shadow-sm flex items-center gap-1.5 shrink-0">
+              👤 Reset to Me
+            </button>
+          </div>
+          
+          <!-- Modern Org Chart Rendering Box -->
+          <div class="p-6 bg-[var(--bg-input)]/10 rounded-2xl border border-[var(--border-color)] overflow-hidden flex flex-col items-center justify-center min-h-[500px]">
+            <div id="org-chart-display" class="w-full max-w-5xl flex flex-col items-center gap-6 select-none">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
         </div>
       </div>
 

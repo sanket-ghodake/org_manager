@@ -25,6 +25,11 @@ export async function middleware(request: any, event?: any) {
     return NextResponse.next();
   }
 
+  // Bypass session checks for portal directory S2S calls (verified in the route handler)
+  if (path === '/api/directory' && request.headers.get('x-forge-client-id') && request.headers.get('x-forge-client-secret')) {
+    return NextResponse.next();
+  }
+
   // 1. Check if the request is for the developer portal
   if (path.startsWith('/developer')) {
     const isFromProxy = request.headers.get('x-from-developer-proxy') === 'true';

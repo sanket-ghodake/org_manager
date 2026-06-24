@@ -1,5 +1,5 @@
-import { jwtVerify } from 'jose';
-import { getKeys } from '@backend/auth/keyManager';
+import { jwtVerify, decodeProtectedHeader } from 'jose';
+import { getKeys, getPublicKeyByKid } from '@backend/auth/keyManager';
 import { db } from '@database/connection';
 import { sql } from 'drizzle-orm';
 import { parseDbTimestamp } from '@backend/utils/date';
@@ -19,7 +19,8 @@ export async function verifyToken(authHeader: string | null): Promise<VerifiedTo
   // Check if token looks like a JWT
   if (tokenStr.startsWith('eyJ') && tokenStr.split('.').length === 3) {
     try {
-      const { publicKey } = getKeys();
+      const header = decodeProtectedHeader(tokenStr);
+      const publicKey = getPublicKeyByKid(header.kid);
       const { payload } = await jwtVerify(tokenStr, publicKey, {
         algorithms: ['RS256'],
       });

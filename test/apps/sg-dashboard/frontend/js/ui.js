@@ -8,6 +8,12 @@ import {
   triggerRequestSubmission
 } from './app.js';
 
+// Apply persisted theme on load
+const savedTheme = localStorage.getItem('selected-theme');
+if (savedTheme) {
+  document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
 // Automatically sync theme toggle button icon with html[data-theme]
 const themeObserver = new MutationObserver((mutations) => {
   mutations.forEach((mutation) => {
@@ -51,6 +57,7 @@ export function toggleTheme() {
   const nextIndex = (currentIndex + 1) % themes.length;
   const newTheme = themes[nextIndex];
   document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('selected-theme', newTheme);
 }
 
 // Auth error display
@@ -121,7 +128,7 @@ export function highlightStatusBtn(status) {
 }
 
 // Render Dashboard Items
-export function renderDashboardItems(items) {
+export function renderDashboardItems(items, isReadOnly = false) {
   // 1. Key Skills
   const coreList = document.getElementById('core-skills-list');
   const stratList = document.getElementById('strategic-skills-list');
@@ -138,7 +145,7 @@ export function renderDashboardItems(items) {
     coreList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No core skills listed.</li>';
   } else {
     coreSkills.forEach(item => {
-      coreList.appendChild(createItemElement(item));
+      coreList.appendChild(createItemElement(item, isReadOnly));
     });
   }
 
@@ -146,7 +153,7 @@ export function renderDashboardItems(items) {
     stratList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No strategic skills listed.</li>';
   } else {
     stratSkills.forEach(item => {
-      stratList.appendChild(createItemElement(item));
+      stratList.appendChild(createItemElement(item, isReadOnly));
     });
   }
 
@@ -164,7 +171,7 @@ export function renderDashboardItems(items) {
     gapsList.innerHTML = '<li class="text-gray-500 italic py-1">No skill gaps identified.</li>';
   } else {
     gaps.forEach(item => {
-      gapsList.appendChild(createGapElement(item));
+      gapsList.appendChild(createGapElement(item, isReadOnly));
     });
   }
 
@@ -184,7 +191,7 @@ export function renderDashboardItems(items) {
     stratPlansList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No strategic plans scheduled.</li>';
   } else {
     stratPlans.forEach(item => {
-      stratPlansList.appendChild(createPlanElement(item, 'Strategic'));
+      stratPlansList.appendChild(createPlanElement(item, 'Strategic', isReadOnly));
     });
   }
 
@@ -192,35 +199,40 @@ export function renderDashboardItems(items) {
     tactPlansList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No tactical plans scheduled.</li>';
   } else {
     tactPlans.forEach(item => {
-      tactPlansList.appendChild(createPlanElement(item, 'Tactical'));
+      tactPlansList.appendChild(createPlanElement(item, 'Tactical', isReadOnly));
     });
   }
 }
 
 // Helpers to build list elements
-function createItemElement(item) {
+function createItemElement(item, isReadOnly = false) {
   const li = document.createElement('li');
   li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)] font-medium";
   
   const contentSpan = document.createElement('span');
-  contentSpan.className = "cursor-pointer select-text truncate flex items-center gap-2";
+  contentSpan.className = "select-text truncate flex items-center gap-2" + (isReadOnly ? "" : " cursor-pointer");
   contentSpan.innerHTML = `<span class="text-blue-500 font-bold">•</span> <span class="item-title-text">${item.title}</span>`;
-  contentSpan.onclick = () => startEditingItem(item, contentSpan);
-
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px]";
-  deleteBtn.innerHTML = "✕";
-  deleteBtn.onclick = (e) => {
-    e.stopPropagation();
-    deleteItem(item.id);
-  };
+  if (!isReadOnly) {
+    contentSpan.onclick = () => startEditingItem(item, contentSpan);
+  }
 
   li.appendChild(contentSpan);
-  li.appendChild(deleteBtn);
+
+  if (!isReadOnly) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px]";
+    deleteBtn.innerHTML = "✕";
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteItem(item.id);
+    };
+    li.appendChild(deleteBtn);
+  }
+
   return li;
 }
 
-function createGapElement(item) {
+function createGapElement(item, isReadOnly = false) {
   const li = document.createElement('li');
   li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)]";
 
@@ -230,30 +242,36 @@ function createGapElement(item) {
   const badge = document.createElement('span');
   badge.className = getGapBadgeStyle(item.category);
   badge.textContent = item.category.toUpperCase();
-  badge.title = "Click to cycle severity";
-  badge.onclick = (e) => {
-    e.stopPropagation();
-    cycleGapSeverity(item);
-  };
+  if (!isReadOnly) {
+    badge.title = "Click to cycle severity";
+    badge.onclick = (e) => {
+      e.stopPropagation();
+      cycleGapSeverity(item);
+    };
+  }
 
   const titleSpan = document.createElement('span');
-  titleSpan.className = "cursor-pointer font-medium truncate item-title-text" + (item.title === 'Click to describe gap' ? ' italic text-gray-500' : '');
+  titleSpan.className = "font-medium truncate item-title-text" + (isReadOnly ? "" : " cursor-pointer") + (item.title === 'Click to describe gap' ? ' italic text-gray-500' : '');
   titleSpan.textContent = item.title;
-  titleSpan.onclick = () => startEditingItem(item, titleSpan);
+  if (!isReadOnly) {
+    titleSpan.onclick = () => startEditingItem(item, titleSpan);
+  }
 
   leftSide.appendChild(badge);
   leftSide.appendChild(titleSpan);
-
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px]";
-  deleteBtn.innerHTML = "✕";
-  deleteBtn.onclick = (e) => {
-    e.stopPropagation();
-    deleteItem(item.id);
-  };
-
   li.appendChild(leftSide);
-  li.appendChild(deleteBtn);
+
+  if (!isReadOnly) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px]";
+    deleteBtn.innerHTML = "✕";
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteItem(item.id);
+    };
+    li.appendChild(deleteBtn);
+  }
+
   return li;
 }
 
@@ -264,7 +282,7 @@ function getGapBadgeStyle(severity) {
   return base + "bg-blue-500 text-white";
 }
 
-function createPlanElement(item, planType) {
+function createPlanElement(item, planType, isReadOnly = false) {
   const li = document.createElement('li');
   li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)]";
 
@@ -277,30 +295,36 @@ function createPlanElement(item, planType) {
   const badge = document.createElement('span');
   badge.className = "px-2 py-0.5 rounded text-[9px] font-black tracking-wide uppercase select-none cursor-pointer bg-emerald-500 text-black";
   badge.textContent = badgeText;
-  badge.title = "Click to cycle type";
-  badge.onclick = (e) => {
-    e.stopPropagation();
-    cyclePlanBadgeType(item, planType, badgeText);
-  };
+  if (!isReadOnly) {
+    badge.title = "Click to cycle type";
+    badge.onclick = (e) => {
+      e.stopPropagation();
+      cyclePlanBadgeType(item, planType, badgeText);
+    };
+  }
 
   const titleSpan = document.createElement('span');
-  titleSpan.className = "cursor-pointer font-medium truncate item-title-text" + (item.title.startsWith('Click to add') ? ' italic text-gray-500' : '');
+  titleSpan.className = "font-medium truncate item-title-text" + (isReadOnly ? "" : " cursor-pointer") + (item.title.startsWith('Click to add') ? ' italic text-gray-500' : '');
   titleSpan.textContent = item.title;
-  titleSpan.onclick = () => startEditingItem(item, titleSpan);
+  if (!isReadOnly) {
+    titleSpan.onclick = () => startEditingItem(item, titleSpan);
+  }
 
   leftSide.appendChild(badge);
   leftSide.appendChild(titleSpan);
-
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px]";
-  deleteBtn.innerHTML = "✕";
-  deleteBtn.onclick = (e) => {
-    e.stopPropagation();
-    deleteItem(item.id);
-  };
-
   li.appendChild(leftSide);
-  li.appendChild(deleteBtn);
+
+  if (!isReadOnly) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px]";
+    deleteBtn.innerHTML = "✕";
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteItem(item.id);
+    };
+    li.appendChild(deleteBtn);
+  }
+
   return li;
 }
 
@@ -447,4 +471,290 @@ export function showViewerModal(data) {
 // Close Viewer Modal
 export function closeViewerModal() {
   document.getElementById('viewer-modal').classList.add('hidden');
+}
+
+// Render tree nodes in hierarchy page
+export function renderTreeNodes(container, list) {
+  container.innerHTML = '';
+  if (!list || list.length === 0) {
+    container.innerHTML = '<div class="text-[var(--text-secondary)] italic py-1 pl-4 text-xs">No direct reports found.</div>';
+    return;
+  }
+
+  list.forEach(emp => {
+    const nodeWrapper = document.createElement('div');
+    nodeWrapper.className = "hierarchy-node-wrapper space-y-2 mt-2";
+    nodeWrapper.id = `node-${emp.id}`;
+
+    // Determine status badge
+    let statusBadge = '<span class="text-[9px] text-[var(--text-secondary)] italic px-2 py-0.5 border border-[var(--border-color)] rounded bg-[var(--bg-input)]">No Dashboard</span>';
+    if (emp.hasDashboard) {
+      let color = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+      if (emp.dashboardStatus === 'At Risk') color = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+      if (emp.dashboardStatus === 'Off Track') color = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+      statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-bold border ${color}">${emp.dashboardStatus}</span>`;
+    }
+
+    // Actions
+    let actions = '';
+    if (emp.hasDashboard) {
+      actions += `<button onclick="viewEmployeeDashboard('${emp.id}')" class="text-indigo-400 hover:text-indigo-300 font-bold text-[9px] bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded hover:bg-indigo-500/25 transition-all">View Profile</button>`;
+    }
+    
+    const currentUserId = JSON.parse(sessionStorage.getItem('dashboard_user_data') || '{}').id;
+    const currentUserRole = JSON.parse(sessionStorage.getItem('dashboard_user_data') || '{}').role;
+    if (emp.managerId === currentUserId || currentUserRole === 'Admin') {
+      actions += `<button onclick="triggerRequestSubmission('${emp.id}')" class="text-amber-400 hover:text-amber-300 font-bold text-[9px] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded hover:bg-amber-500/25 transition-all">Request Sub</button>`;
+    }
+
+    // Expand button if role is Manager or Admin
+    const isManagerOrAdmin = emp.role === 'Manager' || emp.role === 'Admin';
+    const toggleBtnHtml = isManagerOrAdmin 
+      ? `<button onclick="toggleHierarchyNode('${emp.id}')" class="w-5 h-5 flex items-center justify-center text-[9px] rounded hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-transform duration-200" id="toggle-btn-${emp.id}">▶</button>`
+      : `<span class="w-5 h-5 flex items-center justify-center text-[12px] text-gray-600 select-none">•</span>`;
+
+    nodeWrapper.innerHTML = `
+      <div class="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-white/10 hover:bg-[var(--bg-hover)] transition-all gap-4">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+          ${toggleBtnHtml}
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-500/20 to-pink-500/20 text-[var(--text-primary)] flex items-center justify-center font-bold text-xs border border-[var(--border-color)] shrink-0 select-none">
+            ${emp.name.split(' ').map(n => n[0]).join('')}
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-[var(--text-primary)] truncate">${emp.name}</span>
+              <span class="text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-color)] shrink-0 select-none">${emp.role}</span>
+            </div>
+            <div class="text-[9px] text-[var(--text-secondary)] truncate font-mono">${emp.email}</div>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-3 shrink-0">
+          ${statusBadge}
+          <div class="flex gap-1">
+            ${actions}
+          </div>
+        </div>
+      </div>
+      <div id="children-container-${emp.id}" class="pl-6 border-l border-[var(--border-color)] ml-2.5 space-y-2 mt-2 hidden"></div>
+    `;
+
+    container.appendChild(nodeWrapper);
+  });
+}
+
+// Collapse all open nodes (legacy stub)
+export function collapseAllHierarchyNodes() {}
+
+// Render Microsoft Teams-style Org Explorer Chart
+export function renderOrgExplorer({
+  container,
+  breadcrumbsContainer,
+  focusedUser,
+  managerChain,
+  peers,
+  directReports,
+  currentUser,
+  statusMap,
+  isUplineManager
+}) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
+
+  const getPresence = (userId) => {
+    const status = statusMap[userId];
+    if (status === 'On Track') {
+      return { presenceClass: 'presence-dot-green', presenceStatus: 'Available (On Track)', statusText: 'On Track', colorClass: 'text-emerald-400' };
+    } else if (status === 'At Risk') {
+      return { presenceClass: 'presence-dot-amber', presenceStatus: 'Away (At Risk)', statusText: 'At Risk', colorClass: 'text-amber-400' };
+    } else if (status === 'Off Track') {
+      return { presenceClass: 'presence-dot-rose', presenceStatus: 'Do Not Disturb (Off Track)', statusText: 'Off Track', colorClass: 'text-rose-400' };
+    } else {
+      return { presenceClass: 'presence-dot-gray', presenceStatus: 'Status Restricted / Offline', statusText: status || 'Not Logged', colorClass: 'text-gray-400' };
+    }
+  };
+
+  // Render Breadcrumbs
+  if (breadcrumbsContainer) {
+    let breadcrumbHtml = `<span onclick="focusOnEmployee('${currentUser.id}')" class="cursor-pointer hover:text-[var(--text-primary)] transition-colors hover:underline text-[var(--accent)] font-bold shrink-0">My Org</span>`;
+    
+    managerChain.forEach(u => {
+      breadcrumbHtml += ` <span class="text-gray-600 font-bold shrink-0">/</span> <span onclick="focusOnEmployee('${u.id}')" class="cursor-pointer hover:text-[var(--text-primary)] transition-colors hover:underline shrink-0">${u.name}</span>`;
+    });
+    
+    breadcrumbHtml += ` <span class="text-gray-600 font-bold shrink-0">/</span> <span class="text-[var(--text-primary)] font-bold select-text shrink-0">${focusedUser.name}</span>`;
+    breadcrumbsContainer.innerHTML = breadcrumbHtml;
+  }
+
+  // 1. SUPERIORS CHAIN (Manager Chain)
+  let superiorsHtml = '';
+  if (managerChain && managerChain.length > 0) {
+    superiorsHtml += '<div class="flex flex-col items-center w-full space-y-1">';
+    managerChain.forEach((mgr, idx) => {
+      const presence = getPresence(mgr.id);
+      superiorsHtml += `
+        <div class="flex flex-col items-center w-full">
+          ${idx === 0 ? `<span class="text-[9px] uppercase tracking-wider text-[var(--text-secondary)] font-black mb-1.5 select-none">Leadership Chain</span>` : ''}
+          <div onclick="focusOnEmployee('${mgr.id}')" class="org-card bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--accent)]/30 rounded-xl p-3 flex items-center gap-3 cursor-pointer max-w-sm w-full select-none">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 text-[var(--text-primary)] flex items-center justify-center font-bold text-xs border border-[var(--border-color)] shrink-0 relative">
+              ${getInitials(mgr.name)}
+              <span class="absolute bottom-0 right-0 w-2 h-2 rounded-full ${presence.presenceClass}" title="${presence.presenceStatus}"></span>
+            </div>
+            <div class="min-w-0 flex-1 text-left">
+              <div class="text-xs font-bold text-[var(--text-primary)] truncate">${mgr.name}</div>
+              <div class="text-[9px] text-[var(--text-secondary)] truncate font-semibold uppercase tracking-wider">${mgr.role}</div>
+            </div>
+            <span class="text-[9px] text-[var(--text-secondary)] font-mono font-bold pr-1">▲ Up</span>
+          </div>
+          <!-- Connecting Line to next card -->
+          <div class="org-connector-line h-6 w-px my-1"></div>
+        </div>
+      `;
+    });
+    superiorsHtml += '</div>';
+  } else {
+    // Show label for CEO / top-level user
+    superiorsHtml += `
+      <div class="flex flex-col items-center w-full">
+        <span class="text-[9px] uppercase tracking-wider text-[var(--text-secondary)] font-black mb-1.5 select-none">Top-Level Executive</span>
+      </div>
+    `;
+  }
+
+  // 2. PEERS ROW SECTION (Compact horizontal display under manager)
+  let peersHtml = '';
+  if (peers && peers.length > 0) {
+    let peerItems = '';
+    peers.forEach(peer => {
+      const presence = getPresence(peer.id);
+      peerItems += `
+        <button onclick="focusOnEmployee('${peer.id}')" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-primary)] transition-all border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm shrink-0">
+          <div class="w-4 h-4 rounded-full bg-gradient-to-tr from-slate-600/30 to-purple-500/20 flex items-center justify-center text-[8px] font-bold relative text-[var(--text-primary)] border border-[var(--border-color)]">
+            ${getInitials(peer.name)}
+            <span class="absolute bottom-0 right-0 w-1.5 h-1.5 rounded-full ${presence.presenceClass}" title="${presence.presenceStatus}"></span>
+          </div>
+          <span class="text-[10px] font-medium">${peer.name.split(' ')[0]}</span>
+        </button>
+      `;
+    });
+
+    peersHtml = `
+      <div class="flex flex-col items-center w-full mb-3">
+        <div class="flex items-center justify-center gap-2 max-w-lg w-full overflow-x-auto py-1 custom-scrollbar">
+          <span class="text-[9px] uppercase tracking-wider text-[var(--text-secondary)] font-black shrink-0 select-none mr-1">Peers:</span>
+          ${peerItems}
+        </div>
+        <!-- Connecting Line down -->
+        <div class="org-connector-line h-4 w-px my-1"></div>
+      </div>
+    `;
+  }
+
+  // 3. FOCUSED USER CARD
+  const isSelf = currentUser.id === focusedUser.id;
+  const isAdmin = currentUser.role === 'Admin';
+  const hasDashboard = statusMap[focusedUser.id] !== undefined;
+
+  let actionsHtml = '';
+  if (hasDashboard) {
+    actionsHtml += `<button onclick="viewEmployeeDashboard('${focusedUser.id}')" class="text-indigo-400 hover:text-indigo-300 font-bold text-[9px] bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg hover:bg-indigo-500/25 transition-all text-center">View Profile</button>`;
+  }
+  if ((focusedUser.managerId === currentUser.id || isAdmin) && !isSelf) {
+    actionsHtml += `<button onclick="triggerRequestSubmission('${focusedUser.id}')" class="text-amber-400 hover:text-amber-300 font-bold text-[9px] bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-lg hover:bg-amber-500/25 transition-all text-center">Request Sub</button>`;
+  }
+
+  const focusedPresence = getPresence(focusedUser.id);
+
+  let focusedCardHtml = `
+    <div class="flex flex-col items-center w-full">
+      <div class="org-card org-card-focused p-4 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-card)] flex flex-col sm:flex-row items-center gap-4 relative shadow-lg max-w-lg w-full">
+        <!-- Target indicator badge -->
+        <span class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[8px] uppercase tracking-widest font-black bg-[var(--accent)] text-white select-none shadow-sm">Focused Workspace</span>
+        
+        <!-- Avatar with presence indicator -->
+        <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center font-bold text-lg border border-[var(--border-color)] shrink-0 select-none relative">
+          ${getInitials(focusedUser.name)}
+          <span class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#090d16] ${focusedPresence.presenceClass}" title="${focusedPresence.presenceStatus}"></span>
+        </div>
+        
+        <!-- Info details -->
+        <div class="min-w-0 flex-1 text-center sm:text-left">
+          <div class="flex flex-wrap items-center gap-1.5 justify-center sm:justify-start">
+            <span class="text-sm font-black text-[var(--text-primary)] truncate">${focusedUser.name}</span>
+            <span class="px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-color)] select-none shrink-0">${focusedUser.role}</span>
+          </div>
+          <div class="text-[10px] text-[var(--text-secondary)] truncate font-mono mt-0.5 select-text">${focusedUser.email}</div>
+          
+          <!-- Health Dashboard Status -->
+          <div class="mt-2 text-[10px] flex items-center justify-center sm:justify-start gap-1 text-[var(--text-secondary)]">
+            <span>Status:</span>
+            <span class="font-bold ${focusedPresence.colorClass}">${focusedPresence.statusText}</span>
+          </div>
+        </div>
+        
+        <!-- Actions Panel inside Card -->
+        <div class="flex sm:flex-col gap-1.5 justify-center shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
+          ${actionsHtml}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // 4. DIRECT REPORTS SECTION (Vertical Linear Stack)
+  let reportsHtml = '';
+  if (directReports && directReports.length > 0) {
+    let reportCards = '';
+    directReports.forEach(report => {
+      const presence = getPresence(report.id);
+      reportCards += `
+        <div onclick="focusOnEmployee('${report.id}')" class="org-card bg-[var(--bg-card)] border border-[var(--border-color)] hover:border-[var(--accent)]/30 rounded-xl p-3 flex items-center gap-3 cursor-pointer select-none text-left max-w-sm w-full">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500/20 to-pink-500/20 text-[var(--text-primary)] flex items-center justify-center font-bold text-xs border border-[var(--border-color)] shrink-0 relative">
+            ${getInitials(report.name)}
+            <span class="absolute bottom-0 right-0 w-2 h-2 rounded-full ${presence.presenceClass}" title="${presence.presenceStatus}"></span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="text-xs font-bold text-[var(--text-primary)] truncate">${report.name}</div>
+            <div class="text-[9px] text-[var(--text-secondary)] truncate font-semibold uppercase tracking-wider">${report.role}</div>
+          </div>
+          <span class="text-[9px] text-[var(--text-secondary)] font-mono font-bold pr-1">▼ Down</span>
+        </div>
+      `;
+    });
+
+    reportsHtml = `
+      <div class="flex flex-col items-center w-full">
+        <!-- Connecting Line down from focused card -->
+        <div class="org-connector-line h-6 w-px my-1"></div>
+        
+        <span class="text-[9px] uppercase tracking-wider text-[var(--text-secondary)] font-black mb-3 select-none">Direct Reports (${directReports.length})</span>
+        
+        <div class="flex flex-col items-center gap-3 w-full max-w-md">
+          ${reportCards}
+        </div>
+      </div>
+    `;
+  } else {
+    reportsHtml = `
+      <div class="flex flex-col items-center w-full">
+        <!-- Connecting Line down from focused card -->
+        <div class="org-connector-line h-6 w-px my-1"></div>
+        <span class="text-[9px] italic text-[var(--text-secondary)] select-none">No direct reports.</span>
+      </div>
+    `;
+  }
+
+  // Combine All and Append to Container in a linear Microsoft Teams style vertical chart
+  container.innerHTML = `
+    <div class="flex flex-col items-center w-full max-w-xl">
+      ${superiorsHtml}
+      ${peersHtml}
+      ${focusedCardHtml}
+      ${reportsHtml}
+    </div>
+  `;
 }

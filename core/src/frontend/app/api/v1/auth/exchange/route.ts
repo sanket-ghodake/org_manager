@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
 
   // Apply rate limiting: max 5 requests per minute per IP
-  const rateLimit = isRateLimited(ipAddress, 'exchange', 5, 60000);
+  const rateLimit = await isRateLimited(ipAddress, 'exchange', 5, 60000);
   if (rateLimit.limited) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     const authorizedScopes = await resolveAppPermissions(app.id, user.id);
 
     // 5. Generate signed JWT access token with 15-minute lifetime
-    const { privateKey } = getKeys();
+    const activeKeys = getKeys();
     const expiresIn = 900; // 15 minutes
     const accessToken = await new SignJWT({
       eid: user.eid,
@@ -109,12 +109,12 @@ export async function POST(request: NextRequest) {
       scopes: authorizedScopes,
       scope: authorizedScopes.join(' '),
     })
-      .setProtectedHeader({ alg: 'RS256', kid: 'forge-portal-key-1' })
+      .setProtectedHeader({ alg: 'RS256', kid: activeKeys.jwk.kid })
       .setSubject(user.id)
       .setAudience(app.clientId || app.id)
       .setIssuedAt()
       .setExpirationTime('15m')
-      .sign(privateKey);
+      .sign(activeKeys.privateKey);
 
     return NextResponse.json({
       access_token: accessToken,

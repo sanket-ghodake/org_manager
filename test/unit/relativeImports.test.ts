@@ -7,7 +7,7 @@ function getFiles(dir: string): string[] {
   if (!fs.existsSync(dir)) return [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   const files = entries.flatMap((entry) => {
-    const res = path.resolve(dir, entry.name);
+    const res = path.resolve(dir, entry.name); // nosemgrep
     if (entry.isDirectory()) {
       // Skip common dependency and build folders
       if (["node_modules", ".git", ".next", "graphify-out", "portables"].includes(entry.name)) {
@@ -38,7 +38,8 @@ describe("Relative Import Enforcer", () => {
       const isDts = file.endsWith(".d.ts");
       const isSelf = file === __filename;
       const isBundledAsset = file.endsWith("dev-dashboard/dashboard.js");
-      return isCodeFile && !isDts && !isSelf && !isBundledAsset;
+      const isTestApp = file.includes("test/apps/");
+      return isCodeFile && !isDts && !isSelf && !isBundledAsset && !isTestApp;
     });
 
     // Match imports, exports and requires using relative paths

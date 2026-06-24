@@ -1,10 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import { db } from '../db/client';
+import { checkUplineManager } from '../utils/hierarchy';
 
 export default async function submissionsRoutes(fastify: FastifyInstance) {
   // Get Submissions Requests (Employee)
   fastify.get('/api/submissions', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
+    const { employeeId } = (request.query as any) || {};
+    const targetUserId = employeeId || user.id;
     try {
       const res = await db.execute({
         sql: `
@@ -14,7 +17,7 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
           WHERE s.employee_id = ?
           ORDER BY s.deadline DESC
         `,
-        args: [user.id],
+        args: [targetUserId],
       });
       return { submissions: res.rows };
     } catch (err: any) {
@@ -43,8 +46,9 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
       }
 
       const immediateManagerId = empRes.rows[0].manager_id;
-      if (immediateManagerId !== user.id && user.role !== 'Admin') {
-        return reply.status(403).send({ error: 'Forbidden: You can only request submissions from your direct reports.' });
+      const isUpline = await checkUplineManager(user.id, employee_id);
+      if (immediateManagerId !== user.id && !isUpline && user.role !== 'Admin') {
+        return reply.status(403).send({ error: 'Forbidden: You can only request submissions from your reporting line.' });
       }
 
       const submissionId = crypto.randomUUID();

@@ -115,6 +115,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, count: manifests.length });
     }
 
+    // 4. Rotate Client Secret
+    if (action === 'rotate_secret') {
+      if (!appId) return NextResponse.json({ error: 'Missing appId' }, { status: 400 });
+
+      const crypto = await import('crypto');
+      const { encryptText } = await import('@backend/utils/crypto');
+      const newSecret = 'secret_' + crypto.randomUUID().replace(/-/g, '');
+      const encryptedSecret = encryptText(newSecret);
+
+      await db.execute(sql`
+        UPDATE forge_apps
+        SET client_secret = ${encryptedSecret}, updated_at = NOW()
+        WHERE id = ${appId}
+      `);
+
+      await logEvent(session.id, 'App Secret Rotated', 'INFO', { appId }, ipAddress);
+      return NextResponse.json({ success: true, clientSecret: newSecret });
+    }
+
     return NextResponse.json({ error: 'Invalid action parameter' }, { status: 400 });
   } catch (err: any) {
     console.error('App management API error:', err);

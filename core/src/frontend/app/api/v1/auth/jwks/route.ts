@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getKeys } from '@backend/auth/keyManager';
+import { getAllJwks } from '@backend/auth/keyManager';
 
 export async function GET() {
   try {
-    const { jwk } = getKeys();
+    const keys = getAllJwks();
     return NextResponse.json({
-      keys: [jwk]
+      keys
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
+

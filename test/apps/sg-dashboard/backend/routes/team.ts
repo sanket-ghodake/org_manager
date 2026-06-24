@@ -4,32 +4,60 @@ import { db } from '../db/client';
 export default async function teamRoutes(fastify: FastifyInstance) {
   fastify.get('/api/team', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
+    const { managerId, rootsOnly } = (request.query as any) || {};
 
     try {
       let reportsRes;
-      if (user.role === 'Admin') {
-        // Admin sees everyone
+      if (managerId) {
+        // View mode open to all authenticated users
         reportsRes = await db.execute({
-          sql: 'SELECT id, name, email, role, manager_id FROM users WHERE id != ? ORDER BY name ASC',
-          args: [user.id],
+          sql: 'SELECT id, name, email, role, manager_id FROM users WHERE manager_id = ? ORDER BY name ASC',
+          args: [managerId],
         });
       } else {
-        // Managers see direct and indirect reports (recursive manager chain)
-        reportsRes = await db.execute({
-          sql: `
-            WITH RECURSIVE reports AS (
-              SELECT id, name, email, role, manager_id
-              FROM users
-              WHERE manager_id = ?
-              UNION ALL
-              SELECT u.id, u.name, u.email, u.role, u.manager_id
-              FROM users u
-              JOIN reports r ON u.manager_id = r.id
-            )
-            SELECT DISTINCT id, name, email, role, manager_id FROM reports ORDER BY name ASC
-          `,
-          args: [user.id],
-        });
+        if (user.role === 'Admin') {
+          if (rootsOnly === 'true') {
+            reportsRes = await db.execute({
+              sql: `
+                SELECT id, name, email, role, manager_id 
+                FROM users 
+                WHERE manager_id IS NULL OR manager_id = ''
+                ORDER BY name ASC
+              `,
+              args: [],
+            });
+          } else {
+            // Admin sees everyone
+            reportsRes = await db.execute({
+              sql: 'SELECT id, name, email, role, manager_id FROM users WHERE id != ? ORDER BY name ASC',
+              args: [user.id],
+            });
+          }
+        } else {
+          if (rootsOnly === 'true') {
+            reportsRes = await db.execute({
+              sql: 'SELECT id, name, email, role, manager_id FROM users WHERE manager_id = ? ORDER BY name ASC',
+              args: [user.id],
+            });
+          } else {
+            // Managers see direct and indirect reports (recursive manager chain)
+            reportsRes = await db.execute({
+              sql: `
+                WITH RECURSIVE reports AS (
+                  SELECT id, name, email, role, manager_id
+                  FROM users
+                  WHERE manager_id = ?
+                  UNION ALL
+                  SELECT u.id, u.name, u.email, u.role, u.manager_id
+                  FROM users u
+                  JOIN reports r ON u.manager_id = r.id
+                )
+                SELECT DISTINCT id, name, email, role, manager_id FROM reports ORDER BY name ASC
+              `,
+              args: [user.id],
+            });
+          }
+        }
       }
 
       const reports = reportsRes.rows;

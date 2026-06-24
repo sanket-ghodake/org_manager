@@ -49,7 +49,11 @@ export async function fetchUserDashboard(apiToken, userId) {
   const res = await fetch(`${apiPrefix}/dashboard/${userId}`, {
     headers: { 'Authorization': `Bearer ${apiToken}` }
   });
-  if (!res.ok) throw new Error('Failed to retrieve employee dashboard data.');
+  if (!res.ok) {
+    const err = new Error('Failed to retrieve employee dashboard data.');
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
 }
 
@@ -106,16 +110,18 @@ export async function deleteDashboardItem(apiToken, itemId) {
   return res.json();
 }
 
-export async function fetchTeam(apiToken) {
-  const res = await fetch(`${apiPrefix}/team`, {
+export async function fetchTeam(apiToken, managerId = '') {
+  const url = managerId ? `${apiPrefix}/team?managerId=${encodeURIComponent(managerId)}` : `${apiPrefix}/team`;
+  const res = await fetch(url, {
     headers: { 'Authorization': `Bearer ${apiToken}` }
   });
   if (!res.ok) throw new Error('Failed to fetch team');
   return res.json();
 }
 
-export async function fetchSubmissions(apiToken) {
-  const res = await fetch(`${apiPrefix}/submissions`, {
+export async function fetchSubmissions(apiToken, employeeId = '') {
+  const url = employeeId ? `${apiPrefix}/submissions?employeeId=${encodeURIComponent(employeeId)}` : `${apiPrefix}/submissions`;
+  const res = await fetch(url, {
     headers: { 'Authorization': `Bearer ${apiToken}` }
   });
   if (!res.ok) throw new Error('Failed to fetch submissions');
@@ -143,6 +149,13 @@ export async function createSubmissionRequest(apiToken, employeeId, deadline) {
   return res;
 }
 
-export async function fetchDirectory() {
-  return fetch(`${baseUrl}/api/directory`);
+export async function fetchDirectory(apiToken, q = '', managerId = '') {
+  const queryParams = new URLSearchParams();
+  if (q) queryParams.append('q', q);
+  if (managerId) queryParams.append('managerId', managerId);
+  return fetch(`${apiPrefix}/directory?${queryParams.toString()}`, {
+    headers: {
+      'Authorization': `Bearer ${apiToken}`
+    }
+  });
 }
