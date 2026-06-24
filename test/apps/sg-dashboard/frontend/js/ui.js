@@ -329,22 +329,29 @@ function createPlanElement(item, planType, isReadOnly = false) {
 }
 
 // Render Submissions
-export function renderSubmissions(submissions) {
-  const body = document.getElementById('submissions-body');
+// Render My Submissions (Employee View)
+export function renderMySubmissions(submissions) {
+  const body = document.getElementById('my-submissions-body');
+  if (!body) return;
   body.innerHTML = '';
 
   if (submissions.length === 0) {
-    body.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-500 font-medium">No submission requests assigned to you.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-500 font-medium">No submission requests assigned to you.</td></tr>';
     return;
   }
 
   submissions.forEach(sub => {
-    const isPending = sub.status === 'Pending';
+    const isPending = sub.status === 'Pending' || sub.status === 'Needs Revision';
     const actionCell = isPending 
-      ? `<button onclick="submitDashboard('${sub.id}')" class="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded hover:bg-emerald-500/25 transition-all">Submit Dashboard</button>` 
-      : `<span class="text-gray-500 font-semibold text-[10px]">Verified ✓</span>`;
+      ? `<button onclick="submitDashboard('${sub.id}')" class="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded hover:bg-emerald-500/25 transition-all shadow-sm">Submit Dashboard</button>` 
+      : `<span class="text-gray-500 font-semibold text-[10px] flex items-center justify-end gap-1">Verified ✓</span>`;
 
-    const statusColor = isPending ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold';
+    let statusColor = 'text-amber-400 font-bold';
+    if (sub.status === 'Approved') statusColor = 'text-emerald-400 font-bold';
+    if (sub.status === 'Needs Revision') statusColor = 'text-rose-400 font-bold';
+    if (sub.status === 'Submitted') statusColor = 'text-blue-400 font-bold';
+
+    const feedbackText = sub.feedback ? `<div class="bg-[var(--bg-input)] text-xs text-[var(--text-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] max-w-xs truncate" title="${sub.feedback}">${sub.feedback}</div>` : `<span class="text-gray-500 italic text-[10px]">No feedback yet</span>`;
 
     body.innerHTML += `
       <tr class="hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-color)] font-medium">
@@ -352,10 +359,154 @@ export function renderSubmissions(submissions) {
         <td class="py-3.5 font-bold text-[var(--text-primary)]">${sub.manager_name}</td>
         <td class="py-3.5 font-mono text-[10px] text-[var(--text-secondary)]">${sub.deadline}</td>
         <td class="py-3.5 ${statusColor}">${sub.status}</td>
+        <td class="py-3.5">${feedbackText}</td>
         <td class="py-3.5 text-right pr-3">${actionCell}</td>
       </tr>
     `;
   });
+}
+
+// Render Team Reviews Queue (Manager View)
+export function renderReviewsQueue(reviews) {
+  const body = document.getElementById('reviews-queue-body');
+  if (!body) return;
+  body.innerHTML = '';
+
+  if (reviews.length === 0) {
+    body.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-500 font-medium">No reviews in your queue. Request a submission from your team members.</td></tr>';
+    return;
+  }
+
+  reviews.forEach(rev => {
+    let actionCell = '';
+    if (rev.status === 'Submitted') {
+      actionCell = `<button onclick="openReviewModal('${rev.id}')" class="text-indigo-400 hover:text-indigo-300 font-bold text-[10px] bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded hover:bg-indigo-500/25 transition-all shadow-sm">Review & Action</button>`;
+    } else if (rev.status === 'Approved' || rev.status === 'Needs Revision') {
+      actionCell = `<button onclick="openReviewModal('${rev.id}')" class="text-gray-400 hover:text-[var(--text-primary)] font-bold text-[10px] bg-[var(--bg-input)] border border-[var(--border-color)] px-2.5 py-1 rounded transition-all shadow-sm">View Review</button>`;
+    } else {
+      actionCell = `<span class="text-gray-500 italic text-[10px]">Awaiting Employee</span>`;
+    }
+
+    let statusColor = 'text-amber-400 font-bold';
+    if (rev.status === 'Approved') statusColor = 'text-emerald-400 font-bold';
+    if (rev.status === 'Needs Revision') statusColor = 'text-rose-400 font-bold';
+    if (rev.status === 'Submitted') statusColor = 'text-blue-400 font-bold';
+
+    const feedbackText = rev.feedback ? `<div class="bg-[var(--bg-input)] text-xs text-[var(--text-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] max-w-xs truncate" title="${rev.feedback}">${rev.feedback}</div>` : `<span class="text-gray-500 italic text-[10px]">-</span>`;
+    const submittedOn = rev.submitted_at ? rev.submitted_at : `<span class="text-gray-500 italic text-[10px]">-</span>`;
+
+    body.innerHTML += `
+      <tr class="hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-color)] font-medium">
+        <td class="py-3.5 pl-3">
+          <div class="font-bold text-[var(--text-primary)]">${rev.employee_name}</div>
+          <div class="text-[9px] font-mono text-[var(--text-secondary)]">${rev.employee_designation || rev.employee_role}</div>
+        </td>
+        <td class="py-3.5 font-mono text-[10px] text-[var(--text-secondary)]">${rev.deadline}</td>
+        <td class="py-3.5 ${statusColor}">${rev.status}</td>
+        <td class="py-3.5 font-mono text-[10px] text-[var(--text-secondary)]">${submittedOn}</td>
+        <td class="py-3.5">${feedbackText}</td>
+        <td class="py-3.5 text-right pr-3">${actionCell}</td>
+      </tr>
+    `;
+  });
+}
+
+// Populate Manager Review Modal
+export function populateReviewModal(review, data) {
+  document.getElementById('review-modal-employee-role').textContent = `${review.employee_name} — ${review.employee_designation || review.employee_role}`;
+  document.getElementById('review-modal-program-line').textContent = data.dashboard.program_line || 'Not set';
+  document.getElementById('review-modal-objective').textContent = data.dashboard.objective || 'No objective logged.';
+  document.getElementById('review-modal-status').textContent = data.dashboard.status || 'On Track';
+  document.getElementById('review-modal-notes').textContent = data.dashboard.notes || 'No operational notes logged.';
+
+  // Highlight health status
+  const statusEl = document.getElementById('review-modal-status');
+  if (data.dashboard.status === 'On Track') {
+    statusEl.className = 'text-xs font-bold text-emerald-400';
+  } else if (data.dashboard.status === 'At Risk') {
+    statusEl.className = 'text-xs font-bold text-amber-400';
+  } else {
+    statusEl.className = 'text-xs font-bold text-rose-400';
+  }
+
+  // Populate feedback text if any
+  document.getElementById('review-comments-input').value = review.feedback || '';
+
+  const skills = data.items.filter(i => i.section === 'key_skill');
+  const gaps = data.items.filter(i => i.section === 'gap');
+  const training = data.items.filter(i => i.section === 'training_plan');
+
+  const rSkills = document.getElementById('review-modal-skills');
+  const rGaps = document.getElementById('review-modal-gaps');
+  const rTraining = document.getElementById('review-modal-training');
+
+  rSkills.innerHTML = '';
+  rGaps.innerHTML = '';
+  rTraining.innerHTML = '';
+
+  if (skills.length === 0) {
+    rSkills.innerHTML = '<div class="text-gray-500 italic py-1 pl-1">None logged.</div>';
+  } else {
+    skills.forEach(item => {
+      rSkills.innerHTML += `
+        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1">
+          <div class="font-bold text-[var(--text-primary)] text-[10px]">${item.title}</div>
+          <div class="text-[8px] text-[var(--col-skills-text)] font-mono mt-0.5">${item.category}</div>
+        </div>
+      `;
+    });
+  }
+
+  if (gaps.length === 0) {
+    rGaps.innerHTML = '<div class="text-gray-500 italic py-1 pl-1">None logged.</div>';
+  } else {
+    gaps.forEach(item => {
+      rGaps.innerHTML += `
+        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1">
+          <div class="font-bold text-[var(--text-primary)] text-[10px]">${item.title}</div>
+          <div class="text-[8px] text-[var(--col-gaps-text)] font-mono mt-0.5">${item.category}</div>
+        </div>
+      `;
+    });
+  }
+
+  if (training.length === 0) {
+    rTraining.innerHTML = '<div class="text-gray-500 italic py-1 pl-1">None logged.</div>';
+  } else {
+    training.forEach(item => {
+      const badgeText = item.category.split(':')[1] || 'PLAN';
+      rTraining.innerHTML += `
+        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1">
+          <div class="font-bold text-[var(--text-primary)] text-[10px]">${item.title}</div>
+          <div class="text-[8px] text-[var(--col-plans-text)] font-mono mt-0.5">${badgeText}</div>
+        </div>
+      `;
+    });
+  }
+
+  // Toggle feedback input read-only depending on whether it's reviewable or resolved
+  const isActionable = review.status === 'Submitted';
+  const textarea = document.getElementById('review-comments-input');
+  textarea.disabled = !isActionable;
+
+  const btnContainer = textarea.parentElement.parentElement.nextElementSibling;
+  const buttons = btnContainer.querySelectorAll('button');
+  buttons.forEach(btn => {
+    if (isActionable) {
+      btn.classList.remove('opacity-50', 'cursor-not-allowed');
+      btn.removeAttribute('disabled');
+    } else {
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+      btn.setAttribute('disabled', 'true');
+    }
+  });
+
+  document.getElementById('review-modal').classList.remove('hidden');
+}
+
+// Close Manager Review Modal
+export function closeReviewModal() {
+  document.getElementById('review-modal').classList.add('hidden');
 }
 
 // Render Team View

@@ -173,7 +173,7 @@
                     <!-- Dynamic -->
                   </ul>
                   <div class="mt-2">
-                    <input type="text" id="add-core-skill-input" onkeydown="if(event.key==='Enter')addQuickItem('key_skill', 'Core', this)" placeholder="+ Add skill" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]">
+                    <input type="text" id="add-core-skill-input" list="suggestions-key_skill" onkeydown="if(event.key==='Enter')addQuickItem('key_skill', 'Core', this)" placeholder="+ Add skill" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]">
                   </div>
                 </div>
 
@@ -184,7 +184,7 @@
                     <!-- Dynamic -->
                   </ul>
                   <div class="mt-2">
-                    <input type="text" id="add-strategic-skill-input" onkeydown="if(event.key==='Enter')addQuickItem('key_skill', 'Strategic', this)" placeholder="+ Add skill" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]">
+                    <input type="text" id="add-strategic-skill-input" list="suggestions-key_skill" onkeydown="if(event.key==='Enter')addQuickItem('key_skill', 'Strategic', this)" placeholder="+ Add skill" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500 text-[var(--text-primary)]">
                   </div>
                 </div>
               </div>
@@ -208,7 +208,7 @@
                 </ul>
               </div>
               <div class="pt-2">
-                <input type="text" id="add-gap-input" onkeydown="if(event.key==='Enter')addQuickItem('gap', 'Medium', this)" placeholder="+ Add gap" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-500 text-[var(--text-primary)]">
+                <input type="text" id="add-gap-input" list="suggestions-gap" onkeydown="if(event.key==='Enter')addQuickItem('gap', 'Medium', this)" placeholder="+ Add gap" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-red-500 text-[var(--text-primary)]">
               </div>
             </div>
           </div>
@@ -231,7 +231,7 @@
                     <!-- Dynamic -->
                   </ul>
                   <div class="mt-2">
-                    <input type="text" id="add-strategic-plan-input" onkeydown="if(event.key==='Enter')addQuickItem('training_plan', 'Strategic:TRAIN', this)" placeholder="+ Add item" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 text-[var(--text-primary)]">
+                    <input type="text" id="add-strategic-plan-input" list="suggestions-training_plan" onkeydown="if(event.key==='Enter')addQuickItem('training_plan', 'Strategic:TRAIN', this)" placeholder="+ Add item" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 text-[var(--text-primary)]">
                   </div>
                 </div>
 
@@ -242,7 +242,7 @@
                     <!-- Dynamic -->
                   </ul>
                   <div class="mt-2">
-                    <input type="text" id="add-tactical-plan-input" onkeydown="if(event.key==='Enter')addQuickItem('training_plan', 'Tactical:ACTION', this)" placeholder="+ Add item" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 text-[var(--text-primary)]">
+                    <input type="text" id="add-tactical-plan-input" list="suggestions-training_plan" onkeydown="if(event.key==='Enter')addQuickItem('training_plan', 'Tactical:ACTION', this)" placeholder="+ Add item" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-emerald-500 text-[var(--text-primary)]">
                   </div>
                 </div>
               </div>
@@ -277,30 +277,96 @@
         </div>
       </div>
 
-      <!-- PANEL 2: SUBMISSIONS -->
-      <div id="tab-submissions" class="hidden bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-6 shadow-lg space-y-6">
-        <div class="border-b border-[var(--border-color)] pb-4">
-          <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
-            📥 Manager Review Submissions
-          </h3>
-          <p class="text-xs text-[var(--text-secondary)] mt-1">Review outstanding dashboard submission tasks requested by your reporting managers.</p>
+      <!-- PANEL 2: SUBMISSIONS HUB -->
+      <div id="tab-submissions" class="hidden space-y-6">
+        <!-- Submissions Hub Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
+              Submissions Hub
+            </h2>
+            <p class="text-sm text-[var(--text-secondary)] mt-1">Manage dashboard verification tasks, deadlines, and technical resource reviews.</p>
+          </div>
+          
+          <!-- Submissions View Switcher Toggle -->
+          <div id="submissions-switcher-container" class="flex items-center bg-[var(--bg-card)] p-1 rounded-xl border border-[var(--border-color)] shadow-sm hidden">
+            <button onclick="switchSubmissionsTab('my-submissions')" id="btn-sub-my-submissions" class="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-sm">
+              📥 My Submissions
+            </button>
+            <button onclick="switchSubmissionsTab('reviews-queue')" id="btn-sub-reviews-queue" class="px-4 py-2 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              📋 Team Review Queue
+            </button>
+          </div>
         </div>
 
-        <div class="overflow-x-auto custom-scrollbar">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
-                <th class="pb-3 pl-3">Request ID</th>
-                <th class="pb-3">Requestor Manager</th>
-                <th class="pb-3">Target Deadline</th>
-                <th class="pb-3">Submission Status</th>
-                <th class="pb-3 text-right pr-3">Action</th>
-              </tr>
-            </thead>
-            <tbody id="submissions-body" class="divide-y divide-white/5">
-              <!-- Rendered via JS -->
-            </tbody>
-          </table>
+        <!-- SUB PANEL A: MY SUBMISSIONS -->
+        <div id="panel-my-submissions" class="bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-6 shadow-lg space-y-6">
+          <div class="border-b border-[var(--border-color)] pb-4">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
+              📥 My Submissions Requests
+            </h3>
+            <p class="text-xs text-[var(--text-secondary)] mt-1">Review dashboard update requests assigned to you by your managers. Submit your latest plans for review.</p>
+          </div>
+
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
+                  <th class="pb-3 pl-3">Request ID</th>
+                  <th class="pb-3">Requestor Manager</th>
+                  <th class="pb-3">Target Deadline</th>
+                  <th class="pb-3">Submission Status</th>
+                  <th class="pb-3">Manager Feedback</th>
+                  <th class="pb-3 text-right pr-3">Action</th>
+                </tr>
+              </thead>
+              <tbody id="my-submissions-body" class="divide-y divide-white/5">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SUB PANEL B: TEAM REVIEWS QUEUE -->
+        <div id="panel-reviews-queue" class="hidden bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] p-6 shadow-lg space-y-6">
+          <div class="border-b border-[var(--border-color)] pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                📋 Team Review Requests
+              </h3>
+              <p class="text-xs text-[var(--text-secondary)] mt-1">Approve or request updates on TRR dashboards submitted by your reporting chain.</p>
+            </div>
+            
+            <!-- Filters & Search -->
+            <div class="flex items-center gap-2">
+              <input type="text" id="review-search-input" oninput="filterReviewsQueue()" placeholder="Search employee..." class="bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-all">
+              <select id="review-status-filter" onchange="filterReviewsQueue()" class="bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] transition-all">
+                <option value="All">All Statuses</option>
+                <option value="Submitted">Submitted (Needs Action)</option>
+                <option value="Pending">Pending Employee</option>
+                <option value="Approved">Approved</option>
+                <option value="Needs Revision">Needs Revision</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
+                  <th class="pb-3 pl-3">Employee</th>
+                  <th class="pb-3">Target Deadline</th>
+                  <th class="pb-3">Status</th>
+                  <th class="pb-3">Submitted On</th>
+                  <th class="pb-3">My Feedback</th>
+                  <th class="pb-3 text-right pr-3">Action</th>
+                </tr>
+              </thead>
+              <tbody id="reviews-queue-body" class="divide-y divide-white/5">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -421,7 +487,104 @@
         </div>
       </div>
     </div>
+  <!-- Manager Review Action Modal -->
+  <div id="review-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 hidden">
+    <div class="bg-[var(--bg-card)] w-full max-w-5xl p-6 rounded-2xl space-y-6 m-4 max-h-[92vh] overflow-y-auto border border-[var(--border-color)] shadow-2xl custom-scrollbar text-xs">
+      <div class="flex items-center justify-between border-b border-[var(--border-color)] pb-4">
+        <div>
+          <h3 class="text-base font-bold text-[var(--text-primary)]">Verify & Review Development Dashboard</h3>
+          <p class="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider" id="review-modal-employee-role">Diana Prince — L5 SOFTWARE ENGINEER</p>
+        </div>
+        <button onclick="closeReviewModal()" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] transition-all border border-[var(--border-color)]">
+          Close Review
+        </button>
+      </div>
+
+      <!-- Split Screen Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Side: Read-Only Dashboard Contents (7 Columns) -->
+        <div class="lg:col-span-7 space-y-4">
+          <h4 class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-color)] pb-1.5">Submitted Development Plan</h4>
+          
+          <div class="grid grid-cols-2 gap-4 bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)]">
+            <div>
+              <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Program Line</div>
+              <div class="text-xs font-bold text-[var(--text-primary)] mt-1" id="review-modal-program-line">-</div>
+            </div>
+            <div>
+              <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Current Health Status</div>
+              <div class="text-xs font-bold mt-1" id="review-modal-status">-</div>
+            </div>
+            <div class="col-span-2">
+              <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Objective Statement</div>
+              <div class="text-xs text-[var(--text-secondary)] mt-1" id="review-modal-objective">-</div>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <!-- 3 Columns for skills, gaps, training -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div class="bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)] space-y-2">
+                <h5 class="text-[10px] font-bold text-[var(--col-skills-text)] border-b border-[var(--border-color)] pb-1">Skills</h5>
+                <div id="review-modal-skills" class="space-y-1.5 text-[10px] max-h-[200px] overflow-y-auto custom-scrollbar">
+                  <!-- Dynamic -->
+                </div>
+              </div>
+              <div class="bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)] space-y-2">
+                <h5 class="text-[10px] font-bold text-[var(--col-gaps-text)] border-b border-[var(--border-color)] pb-1">Gaps</h5>
+                <div id="review-modal-gaps" class="space-y-1.5 text-[10px] max-h-[200px] overflow-y-auto custom-scrollbar">
+                  <!-- Dynamic -->
+                </div>
+              </div>
+              <div class="bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)] space-y-2">
+                <h5 class="text-[10px] font-bold text-[var(--col-plans-text)] border-b border-[var(--border-color)] pb-1">Plans</h5>
+                <div id="review-modal-training" class="space-y-1.5 text-[10px] max-h-[200px] overflow-y-auto custom-scrollbar">
+                  <!-- Dynamic -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-color)]">
+            <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Employee Operational Notes</div>
+            <div class="text-xs text-[var(--text-secondary)] mt-1" id="review-modal-notes">-</div>
+          </div>
+        </div>
+
+        <!-- Right Side: Manager Review and Action Panel (5 Columns) -->
+        <div class="lg:col-span-5 bg-[var(--bg-input)] p-4 rounded-xl border border-[var(--border-color)] flex flex-col justify-between space-y-4">
+          <div class="space-y-4">
+            <h4 class="text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] border-b border-[var(--border-color)] pb-1.5">Verification & Decision</h4>
+            
+            <div class="space-y-2">
+              <label class="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Review Comments & Feedback</label>
+              <textarea id="review-comments-input" placeholder="Type comments here to guide the employee's development or state approval remarks..." class="w-full h-44 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl p-3 text-xs focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)] resize-none" rows="6"></textarea>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex gap-3">
+              <button onclick="submitReviewAction('Needs Revision')" class="flex-1 py-2.5 rounded-xl text-xs font-bold border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all text-center">
+                ⚠️ Request Revision
+              </button>
+              <button onclick="submitReviewAction('Approved')" class="flex-1 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all text-center shadow-md">
+                ✓ Approve TRR Plan
+              </button>
+            </div>
+            <p class="text-[9px] text-gray-500 text-center">Approving signs off the Technical Resource Review for this performance cycle. Requesting revision reopens editing permissions for the employee.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
   </div>
+  </div>
+
+  <!-- Autocomplete Suggestions Datalists -->
+  <datalist id="suggestions-key_skill"></datalist>
+  <datalist id="suggestions-gap"></datalist>
+  <datalist id="suggestions-training_plan"></datalist>
 
   <script type="module" src="./js/sidebar.js"></script>
   <script type="module" src="./js/app.js"></script>

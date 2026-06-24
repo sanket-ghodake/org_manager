@@ -46,7 +46,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       // Check if user already exists in local DB to preserve role (e.g. 'Manager')
       const localUserRes = await db.execute({
         sql: `SELECT role FROM users WHERE id = ?`,
-        args: [user.id]
+        args: [user.eid]
       });
       const localUser = localUserRes.rows?.[0] as any;
       if (localUser && localUser.role) {
@@ -77,7 +77,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
       const userManagerId = user.manager_id || user.managerId || null;
 
-      // Insert or update logged in user
+      // Insert or update logged in user using EID as the primary key id
       await db.execute({
         sql: `
           INSERT INTO users (id, name, email, role, manager_id, designation)
@@ -92,19 +92,30 @@ export default async function authRoutes(fastify: FastifyInstance) {
               ELSE excluded.role 
             END
         `,
-        args: [user.id, user.name, user.email, mappedRole, userManagerId, user.designation || null],
+        args: [user.eid, user.name, user.email, mappedRole, userManagerId, user.designation || null],
       });
 
       // Generate local JWT token
       const token = fastify.jwt.sign({
-        id: user.id,
+        id: user.eid, // Set local id to the EID for database matches
         eid: user.eid,
+        portal_id: user.id, // Store portal's UUID separately
         name: user.name,
         email: user.email,
         role: mappedRole,
       });
 
-      return { success: true, token, user: { ...user, role: mappedRole } };
+      return {
+        success: true,
+        token,
+        user: {
+          id: user.eid, // Map id to EID so the frontend uses EID for all workspace contexts
+          eid: user.eid,
+          name: user.name,
+          email: user.email,
+          role: mappedRole,
+        }
+      };
     } catch (err: any) {
       console.error('Portal authorization handshake failed:', err.message);
       return reply.status(401).send({ error: `Authorization failed: ${err.message}` });
@@ -125,6 +136,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       // 1. Fetch verified directory from portal to cross-reference roles and emails
       const verifiedUsersMap = new Map<string, any>();
       const managerIdsSet = new Set<string>();
+      const uuidToEidMap = new Map<string, string>();
       try {
         const workingUrl = await getWorkingPortalUrl();
         const targetUrl = `${workingUrl}/api/directory`;
@@ -138,9 +150,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
         if (res.ok) {
           const data = await res.json();
           for (const u of data.users || []) {
-            verifiedUsersMap.set(u.id, u);
-            if (u.manager_id || u.managerId) {
-              managerIdsSet.add(u.manager_id || u.managerId);
+            uuidToEidMap.set(u.id, u.eid);
+          }
+          for (const u of data.users || []) {
+            verifiedUsersMap.set(u.email.toLowerCase(), u);
+            const mId = u.manager_id || u.managerId;
+            if (mId) {
+              const managerEid = uuidToEidMap.get(mId);
+              if (managerEid) {
+                managerIdsSet.add(managerEid);
+              }
             }
           }
         }
@@ -149,13 +168,17 @@ export default async function authRoutes(fastify: FastifyInstance) {
       }
 
       for (const u of users) {
-        const id = u.id;
-        const managerId = u.manager_id || u.managerId || null;
+        const id = u.eid || u.id; // Map to local SQLite primary key EID
+        let managerId = u.manager_id || u.managerId || null;
+        if (managerId && uuidToEidMap.has(managerId)) {
+          managerId = uuidToEidMap.get(managerId) || null;
+        }
+
+        const email = (u.email || '').toLowerCase();
 
         // Verify user against portal data to prevent role forgery
-        const verifiedUser = verifiedUsersMap.get(id);
+        const verifiedUser = verifiedUsersMap.get(email);
         const name = verifiedUser ? verifiedUser.name : u.name;
-        const email = verifiedUser ? verifiedUser.email : u.email;
         
         let role: 'Employee' | 'Manager' | 'Admin' = 'Employee';
         const portalRole = verifiedUser ? (verifiedUser.role || '').toLowerCase() : '';
@@ -247,18 +270,29 @@ export default async function authRoutes(fastify: FastifyInstance) {
         const users = data.users || [];
         if (users.length > 0) {
           const managerIdsSet = new Set<string>();
+          const uuidToEidMap = new Map<string, string>();
           for (const u of users) {
-            if (u.manager_id || u.managerId) {
-              managerIdsSet.add(u.manager_id || u.managerId);
+            uuidToEidMap.set(u.id, u.eid);
+          }
+          for (const u of users) {
+            const mId = u.manager_id || u.managerId;
+            if (mId) {
+              const managerEid = uuidToEidMap.get(mId);
+              if (managerEid) {
+                managerIdsSet.add(managerEid);
+              }
             }
           }
           // Perform database insertions asynchronously in the background
           Promise.resolve().then(async () => {
             for (const u of users) {
               const email = u.email;
-              const id = u.id;
+              const id = u.eid || u.id;
               const name = u.name;
-              const managerId = u.manager_id || u.managerId || null;
+              let managerId = u.manager_id || u.managerId || null;
+              if (managerId && uuidToEidMap.has(managerId)) {
+                managerId = uuidToEidMap.get(managerId) || null;
+              }
 
               let role: 'Employee' | 'Manager' | 'Admin' = 'Employee';
               if (u.role === 'super_admin' || u.role === 'admin') {

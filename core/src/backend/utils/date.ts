@@ -9,7 +9,16 @@
  */
 export function parseDbTimestamp(val: any): Date {
   if (val instanceof Date) {
-    return val;
+    // Correct local-timezone offset shifts introduced by the database driver
+    return new Date(Date.UTC(
+      val.getFullYear(),
+      val.getMonth(),
+      val.getDate(),
+      val.getHours(),
+      val.getMinutes(),
+      val.getSeconds(),
+      val.getMilliseconds()
+    ));
   }
   if (typeof val === 'string') {
     // If it doesn't contain a timezone suffix/offset at the end, force parse it as UTC

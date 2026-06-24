@@ -2,10 +2,18 @@ import { expect, test, describe } from "bun:test";
 import { parseDbTimestamp } from "@backend/utils/date";
 
 describe("Database Timestamp Parser Utility", () => {
-  test("Should return Date object unchanged if input is a Date object", () => {
+  test("Should return Date object with equivalent UTC value if input is a Date object", () => {
     const originalDate = new Date();
     const parsed = parseDbTimestamp(originalDate);
-    expect(parsed).toBe(originalDate);
+    expect(parsed.toISOString()).toBe(new Date(Date.UTC(
+      originalDate.getFullYear(),
+      originalDate.getMonth(),
+      originalDate.getDate(),
+      originalDate.getHours(),
+      originalDate.getMinutes(),
+      originalDate.getSeconds(),
+      originalDate.getMilliseconds()
+    )).toISOString());
   });
 
   test("Should parse timezone-less SQL timestamp strings as UTC", () => {

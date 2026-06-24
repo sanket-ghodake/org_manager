@@ -12,8 +12,8 @@ import { isRateLimited } from '@backend/utils/rateLimiter';
 export async function POST(request: NextRequest) {
   const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
 
-  // Apply rate limiting: max 5 requests per minute per IP
-  const rateLimit = await isRateLimited(ipAddress, 'exchange', 5, 60000);
+  // Apply rate limiting: max 100 requests per minute per IP in development
+  const rateLimit = await isRateLimited(ipAddress, 'exchange', 100, 60000);
   if (rateLimit.limited) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
   }

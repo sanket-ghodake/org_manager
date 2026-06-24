@@ -191,6 +191,23 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Get Suggestions for autocomplete (based on organizational data)
+  fastify.get('/api/suggestions', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const section = (request.query as any).section;
+    if (!section || !['key_skill', 'gap', 'training_plan'].includes(section)) {
+      return reply.status(400).send({ error: 'Valid section ("key_skill", "gap", "training_plan") is required.' });
+    }
+    try {
+      const res = await db.execute({
+        sql: 'SELECT DISTINCT title FROM dashboard_items WHERE section = ? ORDER BY title ASC',
+        args: [section],
+      });
+      return { suggestions: res.rows.map((row: any) => row.title) };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   // Add Dashboard Item (Owner only)
   fastify.post('/api/dashboard/:id/items', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;

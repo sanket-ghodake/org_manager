@@ -2,6 +2,7 @@ import { createClient } from '@libsql/client';
 import { DATABASE_URL } from '../config';
 import fs from 'fs';
 import path from 'path';
+import { seedDummyData } from '../../test/seed-dummy-data';
 
 // Ensure parent directory of the database file exists before instantiating the client
 if (DATABASE_URL.startsWith('file:')) {
@@ -33,8 +34,18 @@ export async function initDb() {
       (row: any) => row.name === 'designation'
     );
 
-    if (hasManagerFk || (tableInfo.rows && tableInfo.rows.length > 0 && !hasDesignation)) {
-      console.log('Recreating tables to add designation column or remove manager_id foreign key constraint...');
+    // Check if feedback column is missing in submission_requests table
+    let hasFeedback = false;
+    const subTableCheck = await db.execute(`SELECT name FROM sqlite_master WHERE type='table' AND name='submission_requests'`);
+    if (subTableCheck.rows && subTableCheck.rows.length > 0) {
+      const subTableInfo = await db.execute(`PRAGMA table_info(submission_requests)`);
+      hasFeedback = subTableInfo.rows?.some(
+        (row: any) => row.name === 'feedback'
+      );
+    }
+
+    if (hasManagerFk || (tableInfo.rows && tableInfo.rows.length > 0 && !hasDesignation) || (subTableCheck.rows && subTableCheck.rows.length > 0 && !hasFeedback)) {
+      console.log('Recreating tables to add designation column, remove manager_id foreign key constraint, or update submissions schema...');
       await db.execute(`DROP TABLE IF EXISTS submission_requests`);
       await db.execute(`DROP TABLE IF EXISTS dashboard_items`);
       await db.execute(`DROP TABLE IF EXISTS dashboards`);
@@ -84,7 +95,10 @@ export async function initDb() {
         manager_id TEXT NOT NULL,
         employee_id TEXT NOT NULL,
         deadline TEXT NOT NULL,
-        status TEXT CHECK(status IN ('Pending', 'Submitted')) DEFAULT 'Pending',
+        status TEXT CHECK(status IN ('Pending', 'Submitted', 'Approved', 'Needs Revision')) DEFAULT 'Pending',
+        feedback TEXT,
+        submitted_at TEXT,
+        reviewed_at TEXT,
         FOREIGN KEY(manager_id) REFERENCES users(id),
         FOREIGN KEY(employee_id) REFERENCES users(id)
       )
@@ -97,6 +111,7 @@ export async function initDb() {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboard_items_dashboard_id ON dashboard_items(dashboard_id);`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_submission_requests_employee_id ON submission_requests(employee_id);`);
 
+    await seedDummyData(db);
     console.log('SQLite database initialized successfully!');
   } catch (err: any) {
     console.error('SQLite initialization failed:', err.message);

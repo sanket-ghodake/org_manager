@@ -226,6 +226,29 @@ export function startEditingItem(item, containerSpan) {
   };
 }
 
+export async function updateAllSuggestions() {
+  if (!apiToken) return;
+  const sections = ['key_skill', 'gap', 'training_plan'];
+  for (const section of sections) {
+    try {
+      const data = await api.fetchSuggestions(apiToken, section);
+      const datalist = document.getElementById(`suggestions-${section}`);
+      if (datalist) {
+        datalist.innerHTML = '';
+        if (data.suggestions) {
+          data.suggestions.forEach(title => {
+            const option = document.createElement('option');
+            option.value = title;
+            datalist.appendChild(option);
+          });
+        }
+      }
+    } catch (e) {
+      console.warn(`Failed to update suggestions for ${section}:`, e);
+    }
+  }
+}
+
 export async function addQuickItem(section, defaultCategory, inputEl) {
   const val = inputEl.value.trim();
   if (!val) return;
@@ -240,6 +263,7 @@ export async function addQuickItem(section, defaultCategory, inputEl) {
     });
     inputEl.value = '';
     await loadMyDashboard();
+    await updateAllSuggestions();
   } catch (err) {
     console.error(err);
   }
@@ -425,8 +449,11 @@ export async function changeActiveEmployeeContext(userId) {
     ui.highlightStatusBtn(dashData.dashboard.status);
     ui.renderDashboardItems(dashData.items, isReadOnly);
 
+    // Update autocomplete suggestions list
+    updateAllSuggestions().catch(err => console.warn('Failed to update suggestions:', err));
+
     // Populate submissions
-    ui.renderSubmissions(subData.submissions);
+    await loadSubmissions(currentDashboardUserId);
 
     // Populate Team View list headers & list
     const teamViewTitle = document.getElementById('team-view-title');
@@ -559,10 +586,117 @@ async function loadMyDashboard() {
 async function loadSubmissions(userId) {
   try {
     const targetUserId = userId || currentDashboardUserId || userData.id;
-    const data = await api.fetchSubmissions(apiToken, targetUserId);
-    ui.renderSubmissions(data.submissions);
+    const isSelf = targetUserId === userData.id;
+    
+    // Fetch submissions requests for the target employee
+    const subData = await api.fetchSubmissions(apiToken, targetUserId);
+    ui.renderMySubmissions(subData.submissions);
+
+    // Show or hide submissions hub sub-tabs switcher based on roles
+    const isManagerOrAdmin = userData.role === 'Manager' || userData.role === 'Admin';
+    const switcher = document.getElementById('submissions-switcher-container');
+    if (switcher) {
+      if (isManagerOrAdmin) {
+        switcher.classList.remove('hidden');
+      } else {
+        switcher.classList.add('hidden');
+        switchSubmissionsTab('my-submissions');
+      }
+    }
+
+    if (isManagerOrAdmin) {
+      // Fetch reviews queue for the manager
+      const reviewsData = await api.fetchSubmissionsReviews(apiToken);
+      window.cachedReviews = reviewsData.reviews || [];
+      ui.renderReviewsQueue(window.cachedReviews);
+    }
   } catch (err) {
     console.error(err);
+  }
+}
+
+export function switchSubmissionsTab(subTab) {
+  const panelMy = document.getElementById('panel-my-submissions');
+  const panelReviews = document.getElementById('panel-reviews-queue');
+  const btnMy = document.getElementById('btn-sub-my-submissions');
+  const btnReviews = document.getElementById('btn-sub-reviews-queue');
+
+  if (!panelMy || !panelReviews || !btnMy || !btnReviews) return;
+
+  if (subTab === 'my-submissions') {
+    panelMy.classList.remove('hidden');
+    panelReviews.classList.add('hidden');
+    btnMy.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-sm";
+    btnReviews.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]";
+  } else if (subTab === 'reviews-queue') {
+    panelReviews.classList.remove('hidden');
+    panelMy.classList.add('hidden');
+    btnReviews.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-sm";
+    btnMy.className = "px-4 py-2 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]";
+  }
+}
+
+export function filterReviewsQueue() {
+  const q = document.getElementById('review-search-input')?.value.toLowerCase() || '';
+  const status = document.getElementById('review-status-filter')?.value || 'All';
+  if (!window.cachedReviews) return;
+
+  const filtered = window.cachedReviews.filter(rev => {
+    const matchName = rev.employee_name.toLowerCase().includes(q) || rev.employee_email.toLowerCase().includes(q);
+    const matchStatus = status === 'All' || rev.status === status;
+    return matchName && matchStatus;
+  });
+
+  ui.renderReviewsQueue(filtered);
+}
+
+let activeReviewId = null;
+
+export async function openReviewModal(requestId) {
+  if (!window.cachedReviews) return;
+  const review = window.cachedReviews.find(r => r.id === requestId);
+  if (!review) return;
+
+  activeReviewId = requestId;
+
+  // Show premium loading state
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+    const title = overlay.querySelector('h3');
+    if (title) title.textContent = 'Loading Submission Assets...';
+  }
+
+  try {
+    const data = await api.fetchUserDashboard(apiToken, review.employee_id);
+    ui.populateReviewModal(review, data);
+  } catch (err) {
+    console.error(err);
+    alert('Failed to load dashboard data for review.');
+  } finally {
+    if (overlay) overlay.classList.add('hidden');
+  }
+}
+
+export function closeReviewModal() {
+  ui.closeReviewModal();
+  activeReviewId = null;
+}
+
+export async function submitReviewAction(status) {
+  if (!activeReviewId) return;
+  const feedback = document.getElementById('review-comments-input')?.value.trim() || '';
+
+  if (!confirm(`Are you sure you want to set this submission status to "${status}"?`)) return;
+
+  try {
+    await api.reviewSubmission(apiToken, activeReviewId, status, feedback);
+    closeReviewModal();
+    alert(`Submission successfully updated to: ${status}`);
+    await loadSubmissions();
+  } catch (err) {
+    console.error(err);
+    alert('Failed to submit review decision: ' + err.message);
   }
 }
 
@@ -621,7 +755,21 @@ async function exchangeCodeForToken(code) {
     await initializeApplication();
   } catch (err) {
     console.error('Handshake failed:', err);
-    ui.showAuthError(err.message);
+
+    // Clear code parameter from URL to prevent infinite loops on reload
+    try {
+      const cleanUrl = window.location.origin + window.location.pathname.replace('/callback', '');
+      window.history.replaceState({}, document.title, cleanUrl);
+    } catch (e) {}
+
+    // Clear any invalid session credentials
+    sessionStorage.removeItem('dashboard_api_token');
+    sessionStorage.removeItem('dashboard_user_data');
+
+    ui.showAuthError('Federated session expired or invalid. Redirecting to Single Sign-On...');
+    setTimeout(() => {
+      redirectToSSO();
+    }, 2000);
   }
 }
 
@@ -764,6 +912,11 @@ window.viewEmployeeDashboard = viewEmployeeDashboard;
 window.changeActiveEmployeeContext = changeActiveEmployeeContext;
 window.triggerRequestSubmission = triggerRequestSubmission;
 window.closeViewerModal = closeViewerModal;
+window.switchSubmissionsTab = switchSubmissionsTab;
+window.filterReviewsQueue = filterReviewsQueue;
+window.openReviewModal = openReviewModal;
+window.closeReviewModal = closeReviewModal;
+window.submitReviewAction = submitReviewAction;
 
 // Hierarchy and Search Window Exports
 window.handleHeaderSearch = handleHeaderSearch;

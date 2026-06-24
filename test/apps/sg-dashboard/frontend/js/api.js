@@ -128,12 +128,43 @@ export async function fetchSubmissions(apiToken, employeeId = '') {
   return res.json();
 }
 
+export async function fetchSubmissionsReviews(apiToken) {
+  const url = `${apiPrefix}/submissions/reviews`;
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) throw new Error('Failed to fetch submissions reviews queue');
+  return res.json();
+}
+
+export async function fetchSuggestions(apiToken, section) {
+  const url = `${apiPrefix}/suggestions?section=${encodeURIComponent(section)}`;
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) throw new Error('Failed to fetch autocomplete suggestions');
+  return res.json();
+}
+
 export async function submitDashboardReq(apiToken, requestId) {
   const res = await fetch(`${apiPrefix}/submissions/${requestId}/submit`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiToken}` }
   });
   if (!res.ok) throw new Error('Failed to submit dashboard');
+  return res.json();
+}
+
+export async function reviewSubmission(apiToken, requestId, status, feedback) {
+  const res = await fetch(`${apiPrefix}/submissions/${requestId}/review`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiToken}`
+    },
+    body: JSON.stringify({ status, feedback })
+  });
+  if (!res.ok) throw new Error('Failed to submit review');
   return res.json();
 }
 
