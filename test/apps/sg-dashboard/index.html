@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="default">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SG_Dashboard - TRR Strategy Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #090d16;
+      --bg-card: rgba(15, 23, 42, 0.45);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --border: rgba(255, 255, 255, 0.08);
+      --accent: #a855f7;
+      --accent-gradient: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+    }
+
+    html[data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-card: rgba(255, 255, 255, 0.7);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --border: rgba(0, 0, 0, 0.08);
+      --accent: #7c3aed;
+      --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+    }
+
+    html[data-theme="solarized-dark"] {
+      --bg-primary: #002b36;
+      --bg-card: rgba(7, 54, 66, 0.65);
+      --text-primary: #839496;
+      --text-secondary: #586e75;
+      --border: rgba(255, 255, 255, 0.05);
+      --accent: #b58900;
+      --accent-gradient: linear-gradient(135deg, #b58900 0%, #cb4b16 100%);
+    }
+
+    html[data-theme="solarized-light"] {
+      --bg-primary: #fdf6e3;
+      --bg-card: rgba(238, 232, 213, 0.75);
+      --text-primary: #586e75;
+      --text-secondary: #93a1a1;
+      --border: rgba(0, 0, 0, 0.06);
+      --accent: #b58900;
+      --accent-gradient: linear-gradient(135deg, #b58900 0%, #cb4b16 100%);
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .accent-btn {
+      background: var(--accent-gradient);
+      box-shadow: 0 4px 14px 0 rgba(168, 85, 247, 0.25);
+    }
+    
+    .accent-text {
+      color: var(--accent);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.1);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
+  </style>
+</head>
+<body class="p-6 custom-scrollbar">
+  <!-- Loading & Authenticating overlay -->
+  <div id="auth-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#090d16]">
+    <div class="glass-card p-8 rounded-2xl flex flex-col items-center gap-4 max-w-sm text-center">
+      <div class="w-12 h-12 rounded-full border-4 border-t-[var(--accent)] border-white/10 animate-spin"></div>
+      <h3 class="font-bold text-sm">Authenticating Application Session</h3>
+      <p class="text-[11px] text-[var(--text-secondary)]">Exchanging secure token handshake with parent portal...</p>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div id="app-container" class="max-w-6xl mx-auto space-y-6 opacity-0 transition-opacity duration-300">
+
+    <!-- Top Navigation & Header -->
+    <div class="glass-card p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-black" style="background: var(--accent-gradient)">
+          📊
+        </div>
+        <div>
+          <h1 class="text-xl font-bold flex items-center gap-2">
+            <span>SG_Dashboard</span>
+          </h1>
+          <p class="text-xs text-[var(--text-secondary)]">Technical Resource Review Strategy Portal</p>
+        </div>
+      </div>
+
+      <!-- Tab Selectors -->
+      <div class="flex items-center gap-2 bg-black/20 p-1.5 rounded-xl border border-white/5">
+        <button onclick="switchTab('my-dashboard')" id="tab-btn-my-dashboard" class="px-4 py-2 text-xs font-semibold rounded-lg bg-[var(--accent)] text-white transition-all">
+          My Dashboard
+        </button>
+        <button onclick="switchTab('submissions')" id="tab-btn-submissions" class="px-4 py-2 text-xs font-semibold rounded-lg text-[var(--text-secondary)] hover:text-white transition-all">
+          Submissions
+        </button>
+        <button onclick="switchTab('team-view')" id="tab-btn-team-view" class="px-4 py-2 text-xs font-semibold rounded-lg text-[var(--text-secondary)] hover:text-white transition-all hidden">
+          Team View
+        </button>
+      </div>
+
+      <!-- User Badge -->
+      <div id="user-badge" class="flex items-center gap-3 bg-black/20 p-2.5 px-4 rounded-xl border border-white/5">
+        <div class="text-right">
+          <p id="user-name" class="text-xs font-bold">Arthur Pendragon</p>
+          <p id="user-role" class="text-[9px] uppercase tracking-wider text-[var(--text-secondary)]">CEO</p>
+        </div>
+        <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs" id="user-avatar">
+          AP
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Status Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="glass-card p-5 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold">Dashboard Health</div>
+          <div class="text-xl font-bold mt-2 flex items-center gap-2" id="health-status-value">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-emerald-400">On Track</span>
+          </div>
+        </div>
+        <div class="text-3xl">🛡️</div>
+      </div>
+      <div class="glass-card p-5 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold">Program Line</div>
+          <div class="text-xl font-bold mt-1 text-indigo-400 font-mono truncate max-w-[200px]" id="program-line-value">Default Program</div>
+        </div>
+        <div class="text-3xl">🚀</div>
+      </div>
+      <div class="glass-card p-5 rounded-2xl flex items-center justify-between">
+        <div>
+          <div class="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-semibold">Pending Requests</div>
+          <div class="text-xl font-bold mt-1 text-amber-400" id="pending-requests-count">0 Active</div>
+        </div>
+        <div class="text-3xl">📥</div>
+      </div>
+    </div>
+
+    <!-- Tab 1: My Dashboard -->
+    <div id="tab-my-dashboard" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Left Panel: Settings Form -->
+      <div class="glass-card p-6 rounded-2xl space-y-6 h-fit">
+        <div class="border-b border-white/5 pb-4">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+            📋 Dashboard Metadata
+          </h3>
+          <p class="text-[10px] text-[var(--text-secondary)] mt-1">Configure your review goals and program alignment.</p>
+        </div>
+
+        <form id="dashboard-meta-form" class="space-y-4">
+          <div>
+            <label class="block text-[10px] font-bold uppercase mb-1.5 text-[var(--text-secondary)]">Program Line</label>
+            <input type="text" id="meta-program-line" required class="w-full text-xs p-3 rounded-xl bg-black/35 border border-white/10 focus:outline-none focus:border-[var(--accent)] text-white">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase mb-1.5 text-[var(--text-secondary)]">Objective</label>
+            <textarea id="meta-objective" rows="3" required class="w-full text-xs p-3 rounded-xl bg-black/35 border border-white/10 focus:outline-none focus:border-[var(--accent)] text-white"></textarea>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase mb-1.5 text-[var(--text-secondary)]">Review Status</label>
+            <select id="meta-status" class="w-full text-xs p-3 rounded-xl bg-black/35 border border-white/10 focus:outline-none focus:border-[var(--accent)] text-white">
+              <option value="On Track">On Track</option>
+              <option value="At Risk">At Risk</option>
+              <option value="Off Track">Off Track</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold uppercase mb-1.5 text-[var(--text-secondary)]">Operational Notes</label>
+            <textarea id="meta-notes" rows="2" class="w-full text-xs p-3 rounded-xl bg-black/35 border border-white/10 focus:outline-none focus:border-[var(--accent)] text-white"></textarea>
+          </div>
+          <button type="submit" class="accent-btn w-full py-3 text-white font-bold rounded-xl text-xs hover:opacity-90 transition-opacity">
+            Save Dashboard Metadata
+          </button>
+        </form>
+      </div>
+
+      <!-- Right Panel: Tasks Ledger & Management -->
+      <div class="lg:col-span-2 space-y-6">
+        
+        <!-- Task Form -->
+        <div class="glass-card p-6 rounded-2xl">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)] mb-4">
+            ✍️ Add Strategy Item
+          </h3>
+          <form id="item-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-[10px] font-bold uppercase mb-1 text-[var(--text-secondary)]">Section Classification</label>
+              <select id="item-section" class="w-full text-xs p-3 rounded-xl bg-black/35 border border-white/10 focus:outline-none focus:border-[var(--accent)] text-white">
+                <option value="key_skill">Key Skill (Current Competency)</option>
+                <option value="gap">Skill Gap (Identified Deficit)</option>
+                <option value="training_plan">Training Plan (Mitigation Task)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase mb-1 text-[var(--text-secondary)]">Category Tag</label>
+              <input type="text" id="item-category" placeholder="e.g. Core/Architecture" class="w-full text-xs p-3 rounded-xl bg-black/35 border border-white/10 focus:outline-none focus:border-[var(--accent)] text-white">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-[10px] font-bold uppercase mb-1 text-[var(--text-secondary)]">Title</label>
+              <input type="text" id="item-title" required placeholder="e.g. System Resilience Refactor" class="w-full text-xs p-3 rounded-xl bg-black/35 border border-white/10 focus:outline-none focus:border-[var(--accent)] text-white">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-[10px] font-bold uppercase mb-1 text-[var(--text-secondary)]">Description / Plan</label>
+              <textarea id="item-description" rows="2" placeholder="Describe goals, tools, or resources needed..." class="w-full text-xs p-3 rounded-xl bg-black/35 border border-white/10 focus:outline-none focus:border-[var(--accent)] text-white"></textarea>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-[10px] font-bold uppercase mb-1 text-[var(--text-secondary)]">Target Deadline</label>
+              <input type="date" id="item-deadline" class="w-full text-xs p-3 rounded-xl bg-black/35 border border-white/10 focus:outline-none focus:border-[var(--accent)] text-white">
+            </div>
+            <div class="md:col-span-2">
+              <button type="submit" class="accent-btn w-full py-3 text-white font-bold rounded-xl text-xs hover:opacity-90 transition-opacity">
+                Add Item to Development Plan
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Strategy Sections -->
+        <div class="space-y-4">
+          <!-- Key Skills Section -->
+          <div class="glass-card p-5 rounded-2xl">
+            <h4 class="text-xs font-bold text-emerald-400 mb-3 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Key Skills
+            </h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
+                    <th class="pb-2">Category</th>
+                    <th class="pb-2">Title</th>
+                    <th class="pb-2">Description</th>
+                    <th class="pb-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="skills-body" class="divide-y divide-white/5">
+                  <tr><td colspan="4" class="text-center py-4 text-[var(--text-secondary)]">No key skills registered.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Gaps Section -->
+          <div class="glass-card p-5 rounded-2xl">
+            <h4 class="text-xs font-bold text-rose-400 mb-3 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span> Critical Gaps
+            </h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
+                    <th class="pb-2">Category</th>
+                    <th class="pb-2">Title</th>
+                    <th class="pb-2">Description</th>
+                    <th class="pb-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="gaps-body" class="divide-y divide-white/5">
+                  <tr><td colspan="4" class="text-center py-4 text-[var(--text-secondary)]">No critical gaps identified.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Training Plans -->
+          <div class="glass-card p-5 rounded-2xl">
+            <h4 class="text-xs font-bold text-indigo-400 mb-3 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-indigo-400"></span> Training & Mitigations
+            </h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
+                    <th class="pb-2">Category</th>
+                    <th class="pb-2">Title & Action</th>
+                    <th class="pb-2">Target Date</th>
+                    <th class="pb-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="training-body" class="divide-y divide-white/5">
+                  <tr><td colspan="4" class="text-center py-4 text-[var(--text-secondary)]">No training plans scheduled.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tab 2: Submissions Panel -->
+    <div id="tab-submissions" class="glass-card p-6 rounded-2xl hidden space-y-6">
+      <div class="border-b border-white/5 pb-4">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+          📥 Manager Review Submissions
+        </h3>
+        <p class="text-xs text-[var(--text-secondary)] mt-1">Review outstanding dashboard submission tasks requested by your reporting managers.</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
+              <th class="pb-3">Request ID</th>
+              <th class="pb-3">Requestor Manager</th>
+              <th class="pb-3">Target Deadline</th>
+              <th class="pb-3">Submission Status</th>
+              <th class="pb-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="submissions-body" class="divide-y divide-white/5">
+            <!-- Rendered via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 3: Team View (Manager/Admin Only) -->
+    <div id="tab-team-view" class="glass-card p-6 rounded-2xl hidden space-y-6">
+      <div class="border-b border-white/5 pb-4">
+        <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+          👥 Team Organizational Hierarchy
+        </h3>
+        <p class="text-xs text-[var(--text-secondary)] mt-1">Monitor development plans, audit health states, and trigger submission request workflows for your reporting chain.</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-white/10 text-[9px] uppercase font-bold text-[var(--text-secondary)]">
+              <th class="pb-3">Employee Name</th>
+              <th class="pb-3">Role</th>
+              <th class="pb-3">Dashboard Active</th>
+              <th class="pb-3">Current Status</th>
+              <th class="pb-3">Last Submission</th>
+              <th class="pb-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="team-body" class="divide-y divide-white/5">
+            <!-- Rendered via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Employee Dashboard Viewer Modal (Read-Only) -->
+  <div id="viewer-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 hidden">
+    <div class="glass-card w-full max-w-4xl p-6 rounded-2xl space-y-6 m-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="flex items-center justify-between border-b border-white/5 pb-4">
+        <div>
+          <h3 class="text-base font-bold" id="viewer-employee-name">Diana Prince</h3>
+          <p class="text-[10px] text-[var(--text-secondary)]" id="viewer-employee-role">L5 SOFTWARE ENGINEER</p>
+        </div>
+        <button onclick="closeViewerModal()" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all">
+          Close Viewer
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/10 p-4 rounded-xl border border-white/5">
+        <div>
+          <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Program Line</div>
+          <div class="text-xs font-bold text-white mt-1" id="viewer-program-line">-</div>
+        </div>
+        <div>
+          <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Health Status</div>
+          <div class="text-xs font-bold mt-1" id="viewer-status">-</div>
+        </div>
+        <div class="md:col-span-2">
+          <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Objective Statement</div>
+          <div class="text-xs text-[var(--text-secondary)] mt-1" id="viewer-objective">-</div>
+        </div>
+        <div class="md:col-span-2">
+          <div class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Managerial & Operational Notes</div>
+          <div class="text-xs text-[var(--text-secondary)] mt-1" id="viewer-notes">-</div>
+        </div>
+      </div>
+
+      <!-- Strategy items list inside viewer -->
+      <div class="space-y-4">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">Strategy Implementation Plan</h4>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-black/10 p-4 rounded-xl border border-white/5 space-y-2">
+            <h5 class="text-[11px] font-bold text-emerald-400 border-b border-white/5 pb-1">Key Competencies</h5>
+            <div id="viewer-skills" class="space-y-2 text-[11px]">
+              <div class="text-gray-500 italic">None logged.</div>
+            </div>
+          </div>
+          <div class="bg-black/10 p-4 rounded-xl border border-white/5 space-y-2">
+            <h5 class="text-[11px] font-bold text-rose-400 border-b border-white/5 pb-1">Identified Gaps</h5>
+            <div id="viewer-gaps" class="space-y-2 text-[11px]">
+              <div class="text-gray-500 italic">None logged.</div>
+            </div>
+          </div>
+          <div class="bg-black/10 p-4 rounded-xl border border-white/5 space-y-2">
+            <h5 class="text-[11px] font-bold text-indigo-400 border-b border-white/5 pb-1">Mitigations & Plans</h5>
+            <div id="viewer-training" class="space-y-2 text-[11px]">
+              <div class="text-gray-500 italic">None logged.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    let apiToken = '';
+    let userData = null;
+    let currentDashboardId = null;
+
+    // Dynamically resolve API route prefixes based on routing path context
+    const baseUrl = `${window.location.protocol}//${window.location.host}`;
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const slug = pathParts[0] === 'forge-apps' ? pathParts[1] : '';
+    const apiPrefix = slug ? `${baseUrl}/forge-apps/${slug}/api` : `${baseUrl}/api`;
+
+    // Resolve parent origin securely
+    let parentOrigin = '';
+    if (document.referrer) {
+      try {
+        parentOrigin = new URL(document.referrer).origin;
+      } catch (e) {}
+    }
+    if ((parentOrigin === 'null' || !parentOrigin) && window.location.ancestorOrigins && window.location.ancestorOrigins.length > 0) {
+      parentOrigin = window.location.ancestorOrigins[0];
+    }
+
+    // Tab Switcher
+    function switchTab(tab) {
+      const tabs = ['my-dashboard', 'submissions', 'team-view'];
+      tabs.forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (el) el.classList.add('hidden');
+        if (btn) {
+          btn.classList.remove('bg-[var(--accent)]', 'text-white');
+          btn.classList.add('text-[var(--text-secondary)]', 'hover:text-white');
+        }
+      });
+
+      const activeEl = document.getElementById(`tab-${tab}`);
+      const activeBtn = document.getElementById(`tab-btn-${tab}`);
+      if (activeEl) activeEl.classList.remove('hidden');
+      if (activeBtn) {
+        activeBtn.classList.remove('text-[var(--text-secondary)]', 'hover:text-white');
+        activeBtn.classList.add('bg-[var(--accent)]', 'text-white');
+      }
+    }
+
+    // postMessage Listeners
+    window.addEventListener('message', async (e) => {
+      if (!e.data) return;
+
+      // Security validate sender origin
+      if (parentOrigin && parentOrigin !== 'null' && e.origin !== parentOrigin) {
+        console.warn('Blocked message event from unauthorized origin:', e.origin);
+        return;
+      }
+
+      if (e.data.type === 'THEME_CHANGE') {
+        document.documentElement.setAttribute('data-theme', e.data.theme);
+      }
+
+      if (e.data.type === 'FORGE_AUTH_TOKEN') {
+        const { code, token } = e.data;
+        const targetCode = code || token;
+        if (targetCode) {
+          await exchangeCodeForToken(targetCode);
+        } else {
+          showAuthError('Invalid authentication credentials.');
+        }
+      }
+    });
+
+    // Exchange portal auth code for sub-app session JWT token
+    async function exchangeCodeForToken(code) {
+      try {
+        const res = await fetch(`${apiPrefix}/auth`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+
+        if (!res.ok) {
+          throw new Error(`Auth exchange failed: ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        apiToken = data.token;
+        userData = data.user;
+
+        // Clean URL path
+        try {
+          const cleanUrl = window.location.origin + window.location.pathname.replace('/callback', '');
+          window.history.replaceState({}, document.title, cleanUrl);
+        } catch (e) {}
+
+        // Cache session
+        sessionStorage.setItem('dashboard_api_token', apiToken);
+        sessionStorage.setItem('dashboard_user_data', JSON.stringify(userData));
+
+        // Render user badge and initialize app
+        initializeApplication();
+      } catch (err) {
+        console.error('Handshake failed:', err);
+        showAuthError(err.message);
+      }
+    }
+
+    async function redirectToSSO() {
+      try {
+        const res = await fetch(`${apiPrefix}/config`);
+        if (!res.ok) throw new Error('Failed to retrieve application SSO configurations.');
+        const config = await res.json();
+
+        const state = 'sso_state_' + Math.random().toString(36).substring(2, 15);
+        const redirectUri = window.location.origin + '/callback';
+
+        const authorizeUrl = new URL(config.portalSsoUrl);
+        authorizeUrl.searchParams.set('client_id', config.clientId);
+        authorizeUrl.searchParams.set('redirect_uri', redirectUri);
+        authorizeUrl.searchParams.set('state', state);
+        authorizeUrl.searchParams.set('response_type', 'code');
+
+        window.location.href = authorizeUrl.toString();
+      } catch (err) {
+        console.error('SSO Redirect failed:', err);
+        showAuthError('Federated Sign-On failed to initialize: ' + err.message);
+      }
+    }
+
+    async function initSession() {
+      // If running inside iframe, wait for message handshake
+      if (window.self !== window.top) {
+        console.log('App running inside iframe, waiting for postMessage auth handshake from parent...');
+        setTimeout(() => {
+          if (!apiToken) {
+            showAuthError('Handshake timeout: Did not receive secure credentials from parent portal.');
+          }
+        }, 5000);
+        return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const codeFromUrl = urlParams.get('code');
+      if (codeFromUrl) {
+        await exchangeCodeForToken(codeFromUrl);
+        return;
+      }
+
+      const storedToken = sessionStorage.getItem('dashboard_api_token');
+      const storedUser = sessionStorage.getItem('dashboard_user_data');
+      if (storedToken && storedUser) {
+        apiToken = storedToken;
+        userData = JSON.parse(storedUser);
+        initializeApplication();
+        return;
+      }
+
+      console.log('No active session. Redirecting to Portal SSO...');
+      await redirectToSSO();
+    }
+
+    // Execute session initialization
+    initSession();
+
+    function showAuthError(message) {
+      document.getElementById('auth-overlay').innerHTML = `
+        <div class="glass-card p-8 rounded-2xl text-center max-w-sm">
+          <span class="text-3xl block mb-2">⚠️</span>
+          <h3 class="font-bold text-red-400 text-sm">Authentication Failed</h3>
+          <p class="text-[11px] text-[var(--text-secondary)] mt-2">${message}</p>
+          <p class="text-[10px] text-gray-500 mt-4">Please launch this app inside the SG Forge Portal canvas or authenticate via Portal SSO.</p>
+        </div>
+      `;
+    }
+
+    // Sync Directory from Portal Backend and initialize app content
+    async function initializeApplication() {
+      // 1. Update UI Elements
+      document.getElementById('user-name').textContent = userData.name;
+      document.getElementById('user-role').textContent = userData.role.replace('_', ' ');
+      document.getElementById('user-avatar').textContent = userData.name.split(' ').map(n => n[0]).join('');
+
+      // Show Team View tab if User is a Manager or Admin
+      if (userData.role === 'Manager' || userData.role === 'Admin') {
+        document.getElementById('tab-btn-team-view').classList.remove('hidden');
+      }
+
+      // Hide load overlay
+      document.getElementById('auth-overlay').classList.add('hidden');
+      document.getElementById('app-container').classList.remove('opacity-0');
+
+      // 2. Fetch Directory from Portal and Sync
+      try {
+        console.log('Syncing directory with main portal database context...');
+        const dirRes = await fetch(`${baseUrl}/api/directory`);
+        if (dirRes.ok) {
+          const dirData = await dirRes.json();
+          await fetch(`${apiPrefix}/sync`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiToken}`
+            },
+            body: JSON.stringify({ users: dirData.users })
+          });
+          console.log('User directory cached inside local SQLite DB successfully.');
+        }
+      } catch (err) {
+        console.warn('Failed to sync directory:', err);
+      }
+
+      // 3. Load user dashboard
+      await loadMyDashboard();
+      await loadSubmissions();
+      
+      if (userData.role === 'Manager' || userData.role === 'Admin') {
+        await loadTeamView();
+      }
+    }
+
+    // Load My Dashboard
+    async function loadMyDashboard() {
+      try {
+        const res = await fetch(`${apiPrefix}/dashboard`, {
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        if (!res.ok) throw new Error('Failed to retrieve dashboard.');
+        const data = await res.json();
+        
+        currentDashboardId = data.dashboard.id;
+
+        // Render Overview Values
+        document.getElementById('program-line-value').textContent = data.dashboard.program_line;
+        const statusEl = document.getElementById('health-status-value');
+        statusEl.innerHTML = '';
+        let dotColor = 'bg-emerald-400';
+        let textColor = 'text-emerald-400';
+        if (data.dashboard.status === 'At Risk') {
+          dotColor = 'bg-amber-400';
+          textColor = 'text-amber-400';
+        } else if (data.dashboard.status === 'Off Track') {
+          dotColor = 'bg-rose-400 animate-pulse';
+          textColor = 'text-rose-400';
+        }
+        statusEl.innerHTML = `<span class="w-2.5 h-2.5 rounded-full ${dotColor}"></span><span class="${textColor}">${data.dashboard.status}</span>`;
+
+        // Render form inputs
+        document.getElementById('meta-program-line').value = data.dashboard.program_line || '';
+        document.getElementById('meta-objective').value = data.dashboard.objective || '';
+        document.getElementById('meta-status').value = data.dashboard.status || 'On Track';
+        document.getElementById('meta-notes').value = data.dashboard.notes || '';
+
+        // Render lists
+        renderDashboardItems(data.items);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderDashboardItems(items) {
+      const skillsBody = document.getElementById('skills-body');
+      const gapsBody = document.getElementById('gaps-body');
+      const trainingBody = document.getElementById('training-body');
+
+      skillsBody.innerHTML = '';
+      gapsBody.innerHTML = '';
+      trainingBody.innerHTML = '';
+
+      const skills = items.filter(i => i.section === 'key_skill');
+      const gaps = items.filter(i => i.section === 'gap');
+      const training = items.filter(i => i.section === 'training_plan');
+
+      if (skills.length === 0) {
+        skillsBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-[var(--text-secondary)]">No key skills registered.</td></tr>';
+      } else {
+        skills.forEach(item => {
+          skillsBody.innerHTML += `
+            <tr class="hover:bg-white/5 transition-colors">
+              <td class="py-2.5 font-bold"><span class="px-2 py-0.5 rounded text-[9px] bg-emerald-500/10 text-emerald-400 font-mono border border-emerald-500/20">${item.category || 'General'}</span></td>
+              <td class="py-2.5 font-bold text-white">${item.title}</td>
+              <td class="py-2.5 text-[var(--text-secondary)]">${item.description || ''}</td>
+              <td class="py-2.5 text-right"><button onclick="deleteItem('${item.id}')" class="text-red-400 hover:text-red-300 font-semibold text-[10px] bg-red-500/5 hover:bg-red-500/10 px-2 py-1 rounded">Delete</button></td>
+            </tr>
+          `;
+        });
+      }
+
+      if (gaps.length === 0) {
+        gapsBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-[var(--text-secondary)]">No critical gaps identified.</td></tr>';
+      } else {
+        gaps.forEach(item => {
+          gapsBody.innerHTML += `
+            <tr class="hover:bg-white/5 transition-colors">
+              <td class="py-2.5 font-bold"><span class="px-2 py-0.5 rounded text-[9px] bg-rose-500/10 text-rose-400 font-mono border border-rose-500/20">${item.category || 'Gap'}</span></td>
+              <td class="py-2.5 font-bold text-white">${item.title}</td>
+              <td class="py-2.5 text-[var(--text-secondary)]">${item.description || ''}</td>
+              <td class="py-2.5 text-right"><button onclick="deleteItem('${item.id}')" class="text-red-400 hover:text-red-300 font-semibold text-[10px] bg-red-500/5 hover:bg-red-500/10 px-2 py-1 rounded">Delete</button></td>
+            </tr>
+          `;
+        });
+      }
+
+      if (training.length === 0) {
+        trainingBody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-[var(--text-secondary)]">No training plans scheduled.</td></tr>';
+      } else {
+        training.forEach(item => {
+          trainingBody.innerHTML += `
+            <tr class="hover:bg-white/5 transition-colors">
+              <td class="py-2.5 font-bold"><span class="px-2 py-0.5 rounded text-[9px] bg-indigo-500/10 text-indigo-400 font-mono border border-indigo-500/20">${item.category || 'Training'}</span></td>
+              <td class="py-2.5 font-bold text-white">${item.title}</td>
+              <td class="py-2.5 text-[var(--text-secondary)] font-mono text-indigo-300">${item.deadline || 'No date'}</td>
+              <td class="py-2.5 text-right"><button onclick="deleteItem('${item.id}')" class="text-red-400 hover:text-red-300 font-semibold text-[10px] bg-red-500/5 hover:bg-red-500/10 px-2 py-1 rounded">Delete</button></td>
+            </tr>
+          `;
+        });
+      }
+    }
+
+    // Save dashboard metadata
+    document.getElementById('dashboard-meta-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentDashboardId) return;
+
+      const program_line = document.getElementById('meta-program-line').value;
+      const objective = document.getElementById('meta-objective').value;
+      const status = document.getElementById('meta-status').value;
+      const notes = document.getElementById('meta-notes').value;
+
+      try {
+        const res = await fetch(`${apiPrefix}/dashboard/${currentDashboardId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiToken}`
+          },
+          body: JSON.stringify({ program_line, objective, status, notes })
+        });
+        if (res.ok) {
+          alert('Dashboard overview updated successfully!');
+          await loadMyDashboard();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Add dashboard item
+    document.getElementById('item-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentDashboardId) return;
+
+      const section = document.getElementById('item-section').value;
+      const category = document.getElementById('item-category').value;
+      const title = document.getElementById('item-title').value;
+      const description = document.getElementById('item-description').value;
+      const deadline = document.getElementById('item-deadline').value;
+
+      try {
+        const res = await fetch(`${apiPrefix}/dashboard/${currentDashboardId}/items`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiToken}`
+          },
+          body: JSON.stringify({ section, category, title, description, deadline })
+        });
+        if (res.ok) {
+          document.getElementById('item-form').reset();
+          await loadMyDashboard();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Delete dashboard item
+    async function deleteItem(id) {
+      if (!confirm('Are you sure you want to delete this action item?')) return;
+      try {
+        const res = await fetch(`${apiPrefix}/dashboard/items/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        if (res.ok) {
+          await loadMyDashboard();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Load Submission Requests
+    async function loadSubmissions() {
+      try {
+        const res = await fetch(`${apiPrefix}/submissions`, {
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        const data = await res.json();
+        const body = document.getElementById('submissions-body');
+        body.innerHTML = '';
+
+        const pending = data.submissions.filter(s => s.status === 'Pending');
+        document.getElementById('pending-requests-count').textContent = `${pending.length} Active`;
+
+        if (data.submissions.length === 0) {
+          body.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-gray-500">No submission requests assigned to you.</td></tr>';
+          return;
+        }
+
+        data.submissions.forEach(sub => {
+          const actionBtn = sub.status === 'Pending' 
+            ? `<button onclick="submitDashboard('${sub.id}')" class="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] bg-emerald-500/10 px-2 py-1 rounded">Submit Dashboard</button>` 
+            : `<span class="text-gray-500 font-semibold text-[10px]">Verified ✓</span>`;
+
+          const statusColor = sub.status === 'Pending' ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold';
+
+          body.innerHTML += `
+            <tr class="hover:bg-white/5 transition-colors">
+              <td class="py-3.5 font-mono text-[9px] text-[var(--accent)]">#${sub.id.substring(0,8)}</td>
+              <td class="py-3.5 font-bold">${sub.manager_name}</td>
+              <td class="py-3.5 font-mono text-[10px] text-[var(--text-secondary)]">${sub.deadline}</td>
+              <td class="py-3.5 ${statusColor}">${sub.status}</td>
+              <td class="py-3.5 text-right">${actionBtn}</td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Submit Dashboard action
+    async function submitDashboard(id) {
+      if (!confirm('Are you sure you want to submit your current TRR dashboard to your manager for review?')) return;
+      try {
+        const res = await fetch(`${apiPrefix}/submissions/${id}/submit`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        if (res.ok) {
+          alert('Dashboard submitted successfully!');
+          await loadSubmissions();
+          if (userData.role === 'Manager' || userData.role === 'Admin') {
+            await loadTeamView();
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Load Team View (Manager / Admin)
+    async function loadTeamView() {
+      try {
+        const res = await fetch(`${apiPrefix}/team`, {
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        const data = await res.json();
+        const body = document.getElementById('team-body');
+        body.innerHTML = '';
+
+        if (data.team.length === 0) {
+          body.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-500">No reporting employees found in your hierarchy chain.</td></tr>';
+          return;
+        }
+
+        data.team.forEach(emp => {
+          let statusBadge = '<span class="text-gray-500 italic text-[10px]">No Dashboard</span>';
+          if (emp.hasDashboard) {
+            let color = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+            if (emp.dashboardStatus === 'At Risk') color = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            if (emp.dashboardStatus === 'Off Track') color = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+            statusBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-bold border ${color}">${emp.dashboardStatus}</span>`;
+          }
+
+          let subBadge = '<span class="text-gray-500 italic text-[10px]">None requested</span>';
+          if (emp.lastSubmissionStatus) {
+            let color = emp.lastSubmissionStatus === 'Pending' ? 'bg-amber-500/15 text-amber-400' : 'bg-emerald-500/15 text-emerald-400';
+            subBadge = `<span class="px-2 py-0.5 rounded text-[9px] font-bold ${color}">${emp.lastSubmissionStatus} (By ${emp.lastSubmissionDeadline})</span>`;
+          }
+
+          let actions = '';
+          if (emp.hasDashboard) {
+            actions += `<button onclick="viewEmployeeDashboard('${emp.id}')" class="text-indigo-400 hover:text-indigo-300 font-bold text-[10px] bg-indigo-500/10 px-2.5 py-1.5 rounded mr-2">View Profile</button>`;
+          }
+          // Only immediate manager or Admin can request submission
+          if (emp.managerId === userData.id || userData.role === 'Admin') {
+            actions += `<button onclick="triggerRequestSubmission('${emp.id}')" class="text-amber-400 hover:text-amber-300 font-bold text-[10px] bg-amber-500/10 px-2.5 py-1.5 rounded">Request Submission</button>`;
+          }
+
+          body.innerHTML += `
+            <tr class="hover:bg-white/5 transition-colors">
+              <td class="py-3.5 font-bold text-white">${emp.name} <br> <span class="text-[9px] text-gray-500 font-normal font-mono">${emp.email}</span></td>
+              <td class="py-3.5 text-[var(--text-secondary)] font-medium text-[11px]">${emp.role}</td>
+              <td class="py-3.5 font-mono text-[10px] text-indigo-300">${emp.hasDashboard ? 'Yes ✓' : 'No'}</td>
+              <td class="py-3.5">${statusBadge}</td>
+              <td class="py-3.5">${subBadge}</td>
+              <td class="py-3.5 text-right">${actions}</td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Trigger submission request modal prompt
+    async function triggerRequestSubmission(empId) {
+      const deadline = prompt('Enter a target review deadline date (YYYY-MM-DD):', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+      if (!deadline) return;
+
+      try {
+        const res = await fetch(`${apiPrefix}/submissions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiToken}`
+          },
+          body: JSON.stringify({ employee_id: empId, deadline })
+        });
+        if (res.ok) {
+          alert('Submission request generated successfully!');
+          await loadTeamView();
+        } else {
+          const errData = await res.json();
+          alert('Error: ' + errData.error);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // View specific employee dashboard (Read-Only Modal)
+    async function viewEmployeeDashboard(empId) {
+      try {
+        const res = await fetch(`${apiPrefix}/dashboard/${empId}`, {
+          headers: { 'Authorization': `Bearer ${apiToken}` }
+        });
+        if (!res.ok) {
+          throw new Error('Failed to retrieve employee dashboard data.');
+        }
+        const data = await res.json();
+
+        // Populate Viewer Modal
+        document.getElementById('viewer-employee-name').textContent = data.dashboard.name || 'Employee Profile';
+        document.getElementById('viewer-employee-role').textContent = `DASHBOARD #${data.dashboard.id.substring(0,8)}`;
+        document.getElementById('viewer-program-line').textContent = data.dashboard.program_line || 'Not set';
+        document.getElementById('viewer-objective').textContent = data.dashboard.objective || 'No objective logged.';
+        document.getElementById('viewer-status').textContent = data.dashboard.status || 'On Track';
+        document.getElementById('viewer-notes').textContent = data.dashboard.notes || 'No operational notes logged.';
+
+        const skills = data.items.filter(i => i.section === 'key_skill');
+        const gaps = data.items.filter(i => i.section === 'gap');
+        const training = data.items.filter(i => i.section === 'training_plan');
+
+        const vSkills = document.getElementById('viewer-skills');
+        const vGaps = document.getElementById('viewer-gaps');
+        const vTraining = document.getElementById('viewer-training');
+
+        vSkills.innerHTML = '';
+        vGaps.innerHTML = '';
+        vTraining.innerHTML = '';
+
+        if (skills.length === 0) {
+          vSkills.innerHTML = '<div class="text-gray-500 italic">None logged.</div>';
+        } else {
+          skills.forEach(item => {
+            vSkills.innerHTML += `
+              <div class="p-2 bg-white/5 rounded border border-white/5">
+                <div class="font-bold text-white text-[10px]">${item.title}</div>
+                <div class="text-[9px] text-emerald-400 font-mono mt-0.5">${item.category}</div>
+                <div class="text-gray-400 text-[10px] mt-1">${item.description}</div>
+              </div>
+            `;
+          });
+        }
+
+        if (gaps.length === 0) {
+          vGaps.innerHTML = '<div class="text-gray-500 italic">None logged.</div>';
+        } else {
+          gaps.forEach(item => {
+            vGaps.innerHTML += `
+              <div class="p-2 bg-white/5 rounded border border-white/5">
+                <div class="font-bold text-white text-[10px]">${item.title}</div>
+                <div class="text-[9px] text-rose-400 font-mono mt-0.5">${item.category}</div>
+                <div class="text-gray-400 text-[10px] mt-1">${item.description}</div>
+              </div>
+            `;
+          });
+        }
+
+        if (training.length === 0) {
+          vTraining.innerHTML = '<div class="text-gray-500 italic">None logged.</div>';
+        } else {
+          training.forEach(item => {
+            vTraining.innerHTML += `
+              <div class="p-2 bg-white/5 rounded border border-white/5">
+                <div class="font-bold text-white text-[10px]">${item.title}</div>
+                <div class="text-[9px] text-indigo-400 font-mono mt-0.5">${item.category} • Target: ${item.deadline}</div>
+                <div class="text-gray-400 text-[10px] mt-1">${item.description}</div>
+              </div>
+            `;
+          });
+        }
+
+        // Display Modal
+        document.getElementById('viewer-modal').classList.remove('hidden');
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function closeViewerModal() {
+      document.getElementById('viewer-modal').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>

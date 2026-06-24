@@ -2,6 +2,7 @@
 # Documentation: https://bun.sh/docs/runtime/bunfig
 
 [test]
+concurrency = 1
 # Exclude third-party cache, binary dependencies, node_modules, and build outputs from test scanning
 pathIgnorePatterns = [
   "**/node_modules/**",

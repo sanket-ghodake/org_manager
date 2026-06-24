@@ -941,7 +941,7 @@ function App() {
                     'sandbox/apps/employees', 'sandbox/apps/example-forge-app',
                     'sandbox/apps/manager-operations', 'sandbox/apps/nexus-provisioning',
                     'sandbox/apps/reference-expenses', 'sandbox/apps/reference-go',
-                    'sandbox/apps/reference-python'
+                    'sandbox/apps/reference-python', 'sandbox/apps/sg-dashboard'
                   ].map((node) => {
                     const label = node.split('/').pop() || '';
                     return (

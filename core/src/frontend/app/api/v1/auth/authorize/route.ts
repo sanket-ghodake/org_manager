@@ -87,7 +87,10 @@ export async function GET(request: NextRequest) {
           'localhost:8000',
           'reference-python:8000',
           'localhost:8081',
-          'reference-go:8081'
+          'reference-go:8081',
+          'localhost:8095',
+          '127.0.0.1:8095',
+          'sg-dashboard:8095'
         ];
         return allowedHosts.includes(req.host);
       } catch {

@@ -1,0 +1,25 @@
+{
+  "id": "sg-dashboard",
+  "slug": "sg-dashboard",
+  "version": "1.0.0",
+  "name": "SG_Dashboard",
+  "description": "TRR Strategy Dashboard with zero-idle SQLite database, supporting 1,000 concurrent users.",
+  "developer": "SG Forge Architecture Team",
+  "entryPoint": "http://sg-dashboard:8095/",
+  "sandboxEntryPoint": "http://localhost:8095/",
+  "icon": "layout",
+  "routingMode": "standalone",
+  "clientId": "client_sg_dashboard",
+  "clientSecret": "secret_sg_dashboard",
+  "database": {
+    "requiresIsolatedSchema": false
+  },
+  "requiredBasePermissions": [
+    "user.profile.read"
+  ],
+  "targetRules": {
+    "verticals": ["all"],
+    "designations": [],
+    "minJobLevel": 1
+  }
+}
