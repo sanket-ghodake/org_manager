@@ -96,6 +96,10 @@
             <span>👥</span>
             <span>My Team</span>
           </button>
+          <button onclick="switchTab('history-versions')" id="nav-history-versions" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+            <span>⏱️</span>
+            <span>History & Versions</span>
+          </button>
         </nav>
       </div>
 
@@ -165,10 +169,34 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
             </button>
+            <button onclick="switchTab('history-versions')" id="program-versions-btn" class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--bg-input)] text-indigo-400 hover:bg-[var(--bg-hover)] border border-[var(--border-color)] transition-all cursor-pointer" title="Version History / Snapshots">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4.5 h-4.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
             <button id="program-delete-btn" class="flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all cursor-pointer" title="Delete active program">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
               </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Deleted Program Alert Banner -->
+        <div id="deleted-program-banner" class="hidden flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl">
+          <div class="flex items-center gap-2.5">
+            <span class="text-lg">🗑️</span>
+            <div>
+              <div class="text-xs font-bold">This program dashboard is in the Trash.</div>
+              <div class="text-[10px] text-gray-400 mt-0.5">Editing is disabled. You can restore it to active status or destroy it permanently.</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button id="banner-restore-btn" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] transition-all cursor-pointer select-none">
+              Restore Program
+            </button>
+            <button id="banner-destroy-btn" class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] transition-all cursor-pointer select-none">
+              Destroy Permanently
             </button>
           </div>
         </div>
@@ -430,6 +458,49 @@
         </div>
       </div>
 
+      <!-- History & Versions Tab -->
+      <div id="tab-history-versions" class="hidden space-y-6">
+        <div>
+          <h2 class="text-lg font-black text-[var(--text-primary)]">⏱️ History & Versions</h2>
+          <p class="text-xs text-[var(--text-secondary)] mt-1">Manage version snapshots of your active dashboard or restore deleted programs.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Active Program Versions -->
+          <div class="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] p-6 space-y-4 shadow-lg flex flex-col min-h-[400px]">
+            <div class="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">📖</span>
+                <div>
+                  <h3 class="text-xs font-black uppercase tracking-wider text-[var(--text-primary)]">Program Versions</h3>
+                  <p class="text-[10px] text-[var(--text-secondary)] mt-0.5">Jump back to snapshots of your active program.</p>
+                </div>
+              </div>
+              <button onclick="saveCurrentVersion()" id="page-save-ver-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition-all font-bold text-[10px] shadow-sm cursor-pointer select-none">
+                <span>🔖</span> Save Snapshot
+              </button>
+            </div>
+            <div id="versions-list" class="space-y-3 max-h-[450px] overflow-y-auto custom-scrollbar pr-1 flex-1">
+              <!-- Dynamic Active Versions -->
+            </div>
+          </div>
+
+          <!-- Trash / Deleted Programs -->
+          <div class="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-color)] p-6 space-y-4 shadow-lg flex flex-col min-h-[400px]">
+            <div class="flex items-center gap-2 border-b border-[var(--border-color)] pb-3">
+              <span class="text-lg">🗑️</span>
+              <div>
+                <h3 class="text-xs font-black uppercase tracking-wider text-[var(--text-primary)]">Trash History</h3>
+                <p class="text-[10px] text-[var(--text-secondary)] mt-0.5">Restore deleted program dashboards.</p>
+              </div>
+            </div>
+            <div id="history-list" class="space-y-3 max-h-[450px] overflow-y-auto custom-scrollbar pr-1 flex-1">
+              <!-- Dynamic Trash History -->
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
   </div> <!-- Close Layout Body Wrapper -->
@@ -492,6 +563,7 @@
         </div>
       </div>
     </div>
+
   <!-- Manager Review Action Modal -->
   <div id="review-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 hidden">
     <div class="bg-[var(--bg-card)] w-full max-w-5xl p-6 rounded-2xl space-y-6 m-4 max-h-[92vh] overflow-y-auto border border-[var(--border-color)] shadow-2xl custom-scrollbar text-xs">
@@ -581,6 +653,8 @@
     </div>
   </div>
   </div>
+
+
 
   <!-- Autocomplete Suggestions Datalists -->
   <datalist id="suggestions-key_skill"></datalist>

@@ -37,8 +37,13 @@ export async function syncUserDirectory(apiToken, users) {
   return res.json();
 }
 
-export async function fetchDashboards(apiToken, userId = '') {
-  const url = userId ? `${apiPrefix}/dashboards?userId=${encodeURIComponent(userId)}` : `${apiPrefix}/dashboards`;
+export async function fetchDashboards(apiToken, userId = '', includeDeleted = false) {
+  let url = `${apiPrefix}/dashboards`;
+  const params = [];
+  if (userId) params.push(`userId=${encodeURIComponent(userId)}`);
+  if (includeDeleted) params.push(`includeDeleted=true`);
+  if (params.length > 0) url += `?${params.join('&')}`;
+
   const res = await fetch(url, {
     headers: { 'Authorization': `Bearer ${apiToken}` }
   });
@@ -246,5 +251,70 @@ export async function syncDashboardItemLinks(apiToken, dashboardId, sourceId, ta
     body: JSON.stringify({ source_id: sourceId, target_ids: targetIds })
   });
   if (!res.ok) throw new Error('Failed to update linked skill gaps');
+  return res.json();
+}
+
+export async function fetchDashboardHistory(apiToken) {
+  const res = await fetch(`${apiPrefix}/dashboards/history`, {
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) throw new Error('Failed to retrieve deleted dashboards history.');
+  return res.json();
+}
+
+export async function restoreDashboard(apiToken, dashboardId) {
+  const res = await fetch(`${apiPrefix}/dashboard/${dashboardId}/restore`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) throw new Error('Failed to restore dashboard.');
+  return res.json();
+}
+
+export async function deleteDashboardPermanent(apiToken, dashboardId) {
+  const res = await fetch(`${apiPrefix}/dashboard/${dashboardId}/permanent`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) throw new Error('Failed to permanently delete dashboard.');
+  return res.json();
+}
+
+export async function fetchVersions(apiToken, dashboardId) {
+  const res = await fetch(`${apiPrefix}/dashboard/${dashboardId}/versions`, {
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) throw new Error('Failed to retrieve versions.');
+  return res.json();
+}
+
+export async function saveVersion(apiToken, dashboardId, versionName) {
+  const res = await fetch(`${apiPrefix}/dashboard/${dashboardId}/versions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiToken}`
+    },
+    body: JSON.stringify({ version_name: versionName })
+  });
+  if (!res.ok) throw new Error('Failed to save dashboard version.');
+  return res.json();
+}
+
+export async function restoreVersion(apiToken, dashboardId, versionId) {
+  const res = await fetch(`${apiPrefix}/dashboard/${dashboardId}/versions/${versionId}/restore`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) throw new Error('Failed to restore dashboard version.');
+  return res.json();
+}
+
+export async function deleteVersion(apiToken, dashboardId, versionId) {
+  const res = await fetch(`${apiPrefix}/dashboard/${dashboardId}/versions/${versionId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${apiToken}` }
+  });
+  if (!res.ok) throw new Error('Failed to delete version.');
   return res.json();
 }

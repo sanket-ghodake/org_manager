@@ -51,7 +51,7 @@ if (document.readyState === 'loading') {
 
 // Tab Switcher
 export function switchTab(tab) {
-  const tabs = ['my-dashboard', 'submissions', 'team-view'];
+  const tabs = ['my-dashboard', 'submissions', 'team-view', 'history-versions'];
   tabs.forEach(t => {
     const el = document.getElementById(`tab-${t}`);
     const navBtn = document.getElementById(`nav-${t}`);
@@ -1848,3 +1848,182 @@ window.addEventListener('scroll', () => {
     arrow.style.transform = 'rotate(0deg)';
   });
 }, { passive: true });
+
+export function renderHistory(deletedDashboards) {
+  const container = document.getElementById('history-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!deletedDashboards || deletedDashboards.length === 0) {
+    container.innerHTML = `
+      <div class="flex flex-col items-center justify-center p-8 bg-[var(--bg-input)] rounded-xl border border-[var(--border-color)] text-center text-[var(--text-secondary)]">
+        <span class="text-2xl mb-2">🗑️</span>
+        <p class="text-xs font-semibold">Your trash history is empty.</p>
+        <p class="text-[10px] text-gray-500 mt-1">Deleted dashboards will appear here so you can restore them.</p>
+      </div>
+    `;
+    return;
+  }
+
+  deletedDashboards.forEach(d => {
+    const deletedDate = d.deleted_at ? new Date(d.deleted_at).toLocaleString() : new Date(d.updated_at).toLocaleString();
+    const item = document.createElement('div');
+    item.className = "p-4 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] space-y-3 hover:border-red-500/20 hover:shadow-md transition-all";
+    
+    // Header row
+    const header = document.createElement('div');
+    header.className = "flex items-center justify-between gap-4";
+    header.innerHTML = `
+      <div class="flex flex-col min-w-0">
+        <span class="text-xs font-bold text-[var(--text-primary)] truncate">${d.program_line || 'Untitled Program'}</span>
+        <span class="text-[10px] text-gray-500 mt-1">Deleted: ${deletedDate}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="restore-dash-btn-${d.id}" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition-all cursor-pointer">
+          Restore Program
+        </button>
+        <button id="delete-perm-dash-btn-${d.id}" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer">
+          Destroy Forever
+        </button>
+      </div>
+    `;
+    item.appendChild(header);
+
+    // Collapsible Snapshots section
+    const versions = d.versions || [];
+    if (versions.length > 0) {
+      const toggleWrapper = document.createElement('div');
+      toggleWrapper.className = "pt-2 border-t border-[var(--border-color)]/50";
+      
+      const versionsToggleBtn = document.createElement('button');
+      versionsToggleBtn.className = "text-[10px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 focus:outline-none transition-all cursor-pointer";
+      versionsToggleBtn.innerHTML = `<span>📁</span> View Saved Snapshots (${versions.length})`;
+      
+      const versionsContainer = document.createElement('div');
+      versionsContainer.className = "hidden pl-4 border-l-2 border-indigo-500/20 mt-2 space-y-2 transition-all";
+      
+      versionsToggleBtn.onclick = () => {
+        const isHidden = versionsContainer.classList.contains('hidden');
+        if (isHidden) {
+          versionsContainer.classList.remove('hidden');
+          versionsToggleBtn.innerHTML = `<span>📂</span> Hide Saved Snapshots (${versions.length})`;
+        } else {
+          versionsContainer.classList.add('hidden');
+          versionsToggleBtn.innerHTML = `<span>📁</span> View Saved Snapshots (${versions.length})`;
+        }
+      };
+
+      versions.forEach(v => {
+        const verRow = document.createElement('div');
+        verRow.className = "flex items-center justify-between p-2 rounded bg-[var(--bg-input)] border border-[var(--border-color)] text-[10px]";
+        verRow.innerHTML = `
+          <div class="flex flex-col min-w-0 pr-2">
+            <span class="font-semibold text-[var(--text-primary)] truncate">${v.version_name || 'Snapshot'}</span>
+            <span class="text-[9px] text-gray-500 mt-0.5">${new Date(v.created_at).toLocaleString()}</span>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="restore-ver-btn-${v.id}" class="px-2 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 font-bold transition-all cursor-pointer text-[9px]">
+              Restore State
+            </button>
+            <button id="delete-ver-btn-${v.id}" class="px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold transition-all cursor-pointer text-[9px]">
+              Delete
+            </button>
+          </div>
+        `;
+        versionsContainer.appendChild(verRow);
+
+        const restoreVerBtn = verRow.querySelector(`#restore-ver-btn-${v.id}`);
+        if (restoreVerBtn) {
+          restoreVerBtn.onclick = () => {
+            if (typeof window.restoreDeletedDashboardToVersion === 'function') {
+              window.restoreDeletedDashboardToVersion(d.id, v.id, v.version_name);
+            }
+          };
+        }
+
+        const deleteVerBtn = verRow.querySelector(`#delete-ver-btn-${v.id}`);
+        if (deleteVerBtn) {
+          deleteVerBtn.onclick = () => {
+            if (typeof window.deleteDeletedDashboardVersion === 'function') {
+              window.deleteDeletedDashboardVersion(d.id, v.id);
+            }
+          };
+        }
+      });
+
+      toggleWrapper.appendChild(versionsToggleBtn);
+      toggleWrapper.appendChild(versionsContainer);
+      item.appendChild(toggleWrapper);
+    } else {
+      const noVer = document.createElement('div');
+      noVer.className = "text-[9px] text-gray-500 italic pl-1";
+      noVer.textContent = "No saved version snapshots.";
+      item.appendChild(noVer);
+    }
+
+    container.appendChild(item);
+
+    // Bind parent actions
+    item.querySelector(`#restore-dash-btn-${d.id}`).onclick = () => {
+      if (typeof window.restoreDashboardAction === 'function') {
+        window.restoreDashboardAction(d.id);
+      }
+    };
+    item.querySelector(`#delete-perm-dash-btn-${d.id}`).onclick = () => {
+      if (typeof window.deleteDashboardPermanentAction === 'function') {
+        window.deleteDashboardPermanentAction(d.id);
+      }
+    };
+  });
+}
+
+export function renderVersions(versions) {
+  const container = document.getElementById('versions-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!versions || versions.length === 0) {
+    container.innerHTML = `
+      <div class="flex flex-col items-center justify-center p-8 bg-[var(--bg-input)] rounded-xl border border-[var(--border-color)] text-center text-[var(--text-secondary)]">
+        <span class="text-2xl mb-2">🔖</span>
+        <p class="text-xs font-semibold">No version snapshots saved.</p>
+        <p class="text-[10px] text-gray-500 mt-1">Save a snapshot of the current dashboard using the bookmark icon or the button above.</p>
+      </div>
+    `;
+    return;
+  }
+
+  versions.forEach(v => {
+    const createdDate = new Date(v.created_at).toLocaleString();
+    const item = document.createElement('div');
+    item.className = "flex items-center justify-between p-4 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] hover:border-indigo-500/30 hover:bg-[var(--bg-hover)] transition-all";
+    item.innerHTML = `
+      <div class="flex flex-col min-w-0">
+        <span class="text-xs font-bold text-[var(--text-primary)] truncate">${v.version_name || 'Saved Snapshot'}</span>
+        <span class="text-[10px] text-gray-500 mt-1">Saved: ${createdDate}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="restore-ver-btn-${v.id}" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer">
+          Jump Back
+        </button>
+        <button id="delete-ver-btn-${v.id}" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer">
+          Delete
+        </button>
+      </div>
+    `;
+
+    container.appendChild(item);
+
+    // Wire up events dynamically
+    item.querySelector(`#restore-ver-btn-${v.id}`).onclick = () => {
+      if (typeof window.restoreVersionAction === 'function') {
+        window.restoreVersionAction(v.id, v.version_name);
+      }
+    };
+    item.querySelector(`#delete-ver-btn-${v.id}`).onclick = () => {
+      if (typeof window.deleteVersionAction === 'function') {
+        window.deleteVersionAction(v.id);
+      }
+    };
+  });
+}

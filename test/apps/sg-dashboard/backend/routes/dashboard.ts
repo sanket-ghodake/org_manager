@@ -10,15 +10,24 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.get('/api/dashboards', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
     const targetUserId = (request.query as any).userId || user.id;
+    const includeDeleted = (request.query as any).includeDeleted === 'true';
 
     try {
-      const res = await db.execute({
-        sql: `
-          SELECT id, program_line, updated_at
+      const sql = includeDeleted
+        ? `
+          SELECT id, program_line, is_deleted, updated_at
           FROM dashboards
           WHERE user_id = ?
+          ORDER BY is_deleted ASC, updated_at DESC
+        `
+        : `
+          SELECT id, program_line, is_deleted, updated_at
+          FROM dashboards
+          WHERE user_id = ? AND is_deleted = 0
           ORDER BY updated_at DESC
-        `,
+        `;
+      const res = await db.execute({
+        sql,
         args: [targetUserId],
       });
       return { dashboards: res.rows };
@@ -52,7 +61,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
             SELECT d.*, u.name, u.email, u.role, u.designation
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
-            WHERE d.user_id = ?
+            WHERE d.user_id = ? AND d.is_deleted = 0
             ORDER BY d.updated_at DESC
           `,
           args: [user.id],
@@ -124,7 +133,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
             SELECT d.*, u.name, u.email, u.role, u.designation
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
-            WHERE d.user_id = ?
+            WHERE d.user_id = ? AND d.is_deleted = 0
             ORDER BY d.updated_at DESC
           `,
           args: [targetUserId],
@@ -544,7 +553,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Delete Dashboard
+  // Delete Dashboard (Soft Delete)
   fastify.delete('/api/dashboard/:id', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
     const dashboardId = request.params.id;
@@ -564,7 +573,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       }
 
       const countRes = await db.execute({
-        sql: 'SELECT COUNT(*) as count FROM dashboards WHERE user_id = ?',
+        sql: 'SELECT COUNT(*) as count FROM dashboards WHERE user_id = ? AND is_deleted = 0',
         args: [user.id]
       });
 
@@ -574,8 +583,245 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       }
 
       await db.execute({
+        sql: 'UPDATE dashboards SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+        args: [dashboardId]
+      });
+
+      return { success: true };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Get List of Soft-Deleted Dashboards for a User
+  fastify.get('/api/dashboards/history', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    try {
+      const res = await db.execute({
+        sql: `
+          SELECT id, program_line, updated_at, deleted_at
+          FROM dashboards
+          WHERE user_id = ? AND is_deleted = 1
+          ORDER BY updated_at DESC
+        `,
+        args: [user.id],
+      });
+      return { dashboards: res.rows };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Restore Soft-Deleted Dashboard
+  fastify.post('/api/dashboard/:id/restore', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const dashboardId = request.params.id;
+
+    try {
+      const ownerRes = await db.execute({
+        sql: 'SELECT user_id FROM dashboards WHERE id = ?',
+        args: [dashboardId],
+      });
+      if (ownerRes.rows.length === 0) return reply.status(404).send({ error: 'Dashboard not found' });
+      if (ownerRes.rows[0].user_id !== user.id) return reply.status(403).send({ error: 'Forbidden' });
+
+      await db.execute({
+        sql: 'UPDATE dashboards SET is_deleted = 0, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        args: [dashboardId]
+      });
+
+      return { success: true };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Delete Dashboard Permanently
+  fastify.delete('/api/dashboard/:id/permanent', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const dashboardId = request.params.id;
+
+    try {
+      const ownerRes = await db.execute({
+        sql: 'SELECT user_id FROM dashboards WHERE id = ?',
+        args: [dashboardId],
+      });
+      if (ownerRes.rows.length === 0) return reply.status(404).send({ error: 'Dashboard not found' });
+      if (ownerRes.rows[0].user_id !== user.id) return reply.status(403).send({ error: 'Forbidden' });
+
+      await db.execute({
         sql: 'DELETE FROM dashboards WHERE id = ?',
         args: [dashboardId]
+      });
+
+      return { success: true };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Create Saved Version of Dashboard
+  fastify.post('/api/dashboard/:id/versions', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const dashboardId = request.params.id;
+    const { version_name } = request.body || {};
+
+    try {
+      // Check ownership
+      const ownerRes = await db.execute({
+        sql: 'SELECT user_id, program_line, objective, notes FROM dashboards WHERE id = ?',
+        args: [dashboardId],
+      });
+      if (ownerRes.rows.length === 0) return reply.status(404).send({ error: 'Dashboard not found' });
+      if (ownerRes.rows[0].user_id !== user.id) return reply.status(403).send({ error: 'Forbidden' });
+
+      const dash = ownerRes.rows[0];
+
+      // Fetch items and links
+      const itemsRes = await db.execute({
+        sql: 'SELECT * FROM dashboard_items WHERE dashboard_id = ?',
+        args: [dashboardId],
+      });
+      const linksRes = await db.execute({
+        sql: 'SELECT * FROM dashboard_item_links WHERE dashboard_id = ?',
+        args: [dashboardId],
+      });
+
+      const snapshot = {
+        program_line: dash.program_line,
+        objective: dash.objective,
+        notes: dash.notes,
+        items: itemsRes.rows,
+        links: linksRes.rows
+      };
+
+      const versionId = crypto.randomUUID();
+      const name = version_name && version_name.trim() ? version_name.trim() : `Snapshot - ${new Date().toLocaleString()}`;
+
+      await db.execute({
+        sql: 'INSERT INTO dashboard_versions (id, dashboard_id, version_name, snapshot) VALUES (?, ?, ?, ?)',
+        args: [versionId, dashboardId, name, JSON.stringify(snapshot)]
+      });
+
+      return { success: true, versionId, version_name: name };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // List Versions for Dashboard
+  fastify.get('/api/dashboard/:id/versions', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const dashboardId = request.params.id;
+
+    try {
+      // Check ownership
+      const ownerRes = await db.execute({
+        sql: 'SELECT user_id FROM dashboards WHERE id = ?',
+        args: [dashboardId],
+      });
+      if (ownerRes.rows.length === 0) return reply.status(404).send({ error: 'Dashboard not found' });
+      if (ownerRes.rows[0].user_id !== user.id) return reply.status(403).send({ error: 'Forbidden' });
+
+      const res = await db.execute({
+        sql: 'SELECT id, version_name, created_at FROM dashboard_versions WHERE dashboard_id = ? ORDER BY created_at DESC',
+        args: [dashboardId]
+      });
+
+      return { versions: res.rows };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Restore Dashboard Version
+  fastify.post('/api/dashboard/:id/versions/:versionId/restore', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const dashboardId = request.params.id;
+    const versionId = request.params.versionId;
+
+    try {
+      // Check ownership
+      const ownerRes = await db.execute({
+        sql: 'SELECT user_id FROM dashboards WHERE id = ?',
+        args: [dashboardId],
+      });
+      if (ownerRes.rows.length === 0) return reply.status(404).send({ error: 'Dashboard not found' });
+      if (ownerRes.rows[0].user_id !== user.id) return reply.status(403).send({ error: 'Forbidden' });
+
+      // Fetch version
+      const verRes = await db.execute({
+        sql: 'SELECT snapshot FROM dashboard_versions WHERE id = ? AND dashboard_id = ?',
+        args: [versionId, dashboardId]
+      });
+      if (verRes.rows.length === 0) return reply.status(404).send({ error: 'Version not found' });
+
+      const snapshot = JSON.parse(verRes.rows[0].snapshot as string);
+
+      await db.execute('BEGIN TRANSACTION');
+
+      // Delete current items and links
+      await db.execute({
+        sql: 'DELETE FROM dashboard_item_links WHERE dashboard_id = ?',
+        args: [dashboardId]
+      });
+      await db.execute({
+        sql: 'DELETE FROM dashboard_items WHERE dashboard_id = ?',
+        args: [dashboardId]
+      });
+
+      // Update metadata
+      await db.execute({
+        sql: 'UPDATE dashboards SET program_line = ?, objective = ?, notes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        args: [snapshot.program_line || 'Default Program', snapshot.objective || '', snapshot.notes || '', dashboardId]
+      });
+
+      // Insert items
+      if (Array.isArray(snapshot.items)) {
+        for (const item of snapshot.items) {
+          await db.execute({
+            sql: 'INSERT INTO dashboard_items (id, dashboard_id, section, category, title, description, deadline, status, target_quarter, completed_quarter) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            args: [item.id, dashboardId, item.section, item.category, item.title, item.description, item.deadline, item.status, item.target_quarter, item.completed_quarter]
+          });
+        }
+      }
+
+      // Insert links
+      if (Array.isArray(snapshot.links)) {
+        for (const link of snapshot.links) {
+          await db.execute({
+            sql: 'INSERT INTO dashboard_item_links (id, dashboard_id, source_id, target_id) VALUES (?, ?, ?, ?)',
+            args: [link.id || crypto.randomUUID(), dashboardId, link.source_id, link.target_id]
+          });
+        }
+      }
+
+      await db.execute('COMMIT');
+      return { success: true };
+    } catch (err: any) {
+      try { await db.execute('ROLLBACK'); } catch (e) {}
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Delete Dashboard Version
+  fastify.delete('/api/dashboard/:id/versions/:versionId', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const dashboardId = request.params.id;
+    const versionId = request.params.versionId;
+
+    try {
+      // Check ownership
+      const ownerRes = await db.execute({
+        sql: 'SELECT user_id FROM dashboards WHERE id = ?',
+        args: [dashboardId],
+      });
+      if (ownerRes.rows.length === 0) return reply.status(404).send({ error: 'Dashboard not found' });
+      if (ownerRes.rows[0].user_id !== user.id) return reply.status(403).send({ error: 'Forbidden' });
+
+      await db.execute({
+        sql: 'DELETE FROM dashboard_versions WHERE id = ? AND dashboard_id = ?',
+        args: [versionId, dashboardId]
       });
 
       return { success: true };

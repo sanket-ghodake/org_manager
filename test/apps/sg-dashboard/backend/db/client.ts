@@ -50,6 +50,7 @@ export async function initDb() {
     // Check if dashboards table enforces unique user_id (old constraint)
     let isDashboardUnique = false;
     let hasStatus = false;
+    let hasIsDeleted = false;
     const dashTableCheck = await db.execute(`SELECT sql FROM sqlite_master WHERE type='table' AND name='dashboards'`);
     if (dashTableCheck.rows && dashTableCheck.rows.length > 0) {
       const sql = dashTableCheck.rows[0].sql as string;
@@ -58,7 +59,12 @@ export async function initDb() {
       }
       const dashTableInfo = await db.execute(`PRAGMA table_info(dashboards)`);
       hasStatus = dashTableInfo.rows?.some((row: any) => row.name === 'status') || false;
+      hasIsDeleted = dashTableInfo.rows?.some((row: any) => row.name === 'is_deleted') || false;
     }
+
+    // Check if dashboard_versions table exists
+    const versionsTableCheck = await db.execute(`SELECT name FROM sqlite_master WHERE type='table' AND name='dashboard_versions'`);
+    const hasVersionsTable = versionsTableCheck.rows && versionsTableCheck.rows.length > 0;
 
     // Check if new training plan tracking columns are missing in dashboard_items
     let hasNewPlanColumns = false;
@@ -72,6 +78,8 @@ export async function initDb() {
       hasStatus || 
       isDashboardUnique || 
       hasManagerFk || 
+      !hasIsDeleted ||
+      !hasVersionsTable ||
       (tableInfo.rows && tableInfo.rows.length > 0 && !hasDesignation) || 
       (subTableCheck.rows && subTableCheck.rows.length > 0 && !hasFeedback) ||
       (itemsTableCheck.rows && itemsTableCheck.rows.length > 0 && !hasNewPlanColumns)
@@ -80,6 +88,7 @@ export async function initDb() {
       await db.execute(`DROP TABLE IF EXISTS submission_requests`);
       await db.execute(`DROP TABLE IF EXISTS dashboard_item_links`);
       await db.execute(`DROP TABLE IF EXISTS dashboard_items`);
+      await db.execute(`DROP TABLE IF EXISTS dashboard_versions`);
       await db.execute(`DROP TABLE IF EXISTS dashboards`);
       await db.execute(`DROP TABLE IF EXISTS users`);
     }
@@ -102,8 +111,21 @@ export async function initDb() {
         program_line TEXT DEFAULT 'Default Program',
         objective TEXT,
         notes TEXT,
+        is_deleted INTEGER DEFAULT 0,
+        deleted_at TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(user_id) REFERENCES users(id)
+      )
+    `);
+
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS dashboard_versions (
+        id TEXT PRIMARY KEY,
+        dashboard_id TEXT NOT NULL,
+        version_name TEXT NOT NULL,
+        snapshot TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
       )
     `);
 
@@ -160,6 +182,7 @@ export async function initDb() {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboard_item_links_source_id ON dashboard_item_links(source_id);`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboard_item_links_target_id ON dashboard_item_links(target_id);`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_submission_requests_employee_id ON submission_requests(employee_id);`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboard_versions_dashboard_id ON dashboard_versions(dashboard_id);`);
 
     await seedDummyData(db);
     console.log('SQLite database initialized successfully!');

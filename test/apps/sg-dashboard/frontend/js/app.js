@@ -111,6 +111,9 @@ export function switchTab(tab) {
     loadSubmissions(currentDashboardUserId);
   } else if (tab === 'team-view') {
     loadTeamView(currentDashboardUserId);
+  } else if (tab === 'history-versions') {
+    loadHistoryAndVersions();
+    loadTrashHistory();
   }
 }
 
@@ -478,6 +481,8 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
     }
 
     // Load all data in parallel to avoid waterfalls
+    const includeDeleted = false;
+
     const dashboardPromise = isSelf
       ? api.fetchMyDashboard(apiToken, selectedDashboardId)
       : api.fetchUserDashboard(apiToken, currentDashboardUserId, selectedDashboardId);
@@ -492,7 +497,7 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
       return { submissions: [] };
     });
 
-    const dashboardsListPromise = api.fetchDashboards(apiToken, currentDashboardUserId).catch(e => {
+    const dashboardsListPromise = api.fetchDashboards(apiToken, currentDashboardUserId, includeDeleted).catch(e => {
       console.warn('Failed to load programs list:', e);
       return { dashboards: [] };
     });
@@ -506,6 +511,7 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
 
     currentDashboardId = dashData.dashboard.id;
     currentDashboardData = dashData.dashboard;
+    const isDeleted = !!currentDashboardData.is_deleted;
 
     // Resolve details of owner
     let ownerName = dashData.dashboard.name || userData.name;
@@ -532,12 +538,37 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
       headerActiveName.textContent = ownerName;
     }
 
+    // Toggle nav link visibility (only visible to workspace author)
+    const navHistoryVersions = document.getElementById('nav-history-versions');
+    if (navHistoryVersions) {
+      if (isSelf) {
+        navHistoryVersions.classList.remove('hidden');
+      } else {
+        navHistoryVersions.classList.add('hidden');
+        // If they are currently on the history-versions tab and they are not self, force switch back to my-dashboard
+        const activeTab = document.getElementById('tab-history-versions');
+        if (activeTab && !activeTab.classList.contains('hidden')) {
+          ui.switchTab('my-dashboard');
+        }
+      }
+    }
+
+    // Toggle versions toggle button visibility (only visible to workspace author)
+    const versionsBtn = document.getElementById('program-versions-btn');
+    if (versionsBtn) {
+      if (isSelf) {
+        versionsBtn.classList.remove('hidden');
+      } else {
+        versionsBtn.classList.add('hidden');
+      }
+    }
+
     // Toggle Warning Banner & Edit Controls
     const warningBanner = document.getElementById('read-only-warning-banner');
-    const isReadOnly = !isSelf;
+    const isReadOnly = !isSelf || isDeleted;
 
     if (warningBanner) {
-      if (isReadOnly) {
+      if (isReadOnly && !isDeleted) {
         warningBanner.classList.remove('hidden');
         warningBanner.className = "bg-amber-500/10 border-b border-amber-500/20 text-amber-500 px-6 py-2 text-xs font-medium flex items-center justify-between gap-2 select-none";
         warningBanner.innerHTML = `
@@ -552,6 +583,28 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
       }
     }
 
+    // Handle deleted alert banner
+    const deletedBanner = document.getElementById('deleted-program-banner');
+    if (deletedBanner) {
+      if (isDeleted) {
+        deletedBanner.classList.remove('hidden');
+        const restoreBtn = document.getElementById('banner-restore-btn');
+        const destroyBtn = document.getElementById('banner-destroy-btn');
+        if (restoreBtn) {
+          restoreBtn.onclick = async () => {
+            await restoreDashboardAction(currentDashboardId);
+          };
+        }
+        if (destroyBtn) {
+          destroyBtn.onclick = async () => {
+            await deleteDashboardPermanentAction(currentDashboardId);
+          };
+        }
+      } else {
+        deletedBanner.classList.add('hidden');
+      }
+    }
+
     // Toggle edit controls on main workspace
     toggleWorkspaceEditState(isReadOnly);
 
@@ -560,15 +613,38 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
     if (programSelect) {
       programSelect.innerHTML = '';
       const list = dashboardsData.dashboards || [];
-      list.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d.id;
-        opt.textContent = d.program_line || 'Default Program';
-        if (d.id === currentDashboardId) {
-          opt.selected = true;
-        }
-        programSelect.appendChild(opt);
-      });
+      const activeDashboards = list.filter(d => !d.is_deleted);
+      const deletedDashboards = list.filter(d => d.is_deleted);
+
+      if (activeDashboards.length > 0) {
+        const activeGroup = document.createElement('optgroup');
+        activeGroup.label = 'Active Programs';
+        activeDashboards.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = d.program_line || 'Default Program';
+          if (d.id === currentDashboardId) {
+            opt.selected = true;
+          }
+          activeGroup.appendChild(opt);
+        });
+        programSelect.appendChild(activeGroup);
+      }
+
+      if (deletedDashboards.length > 0) {
+        const deletedGroup = document.createElement('optgroup');
+        deletedGroup.label = 'Trash / Deleted Programs';
+        deletedDashboards.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = `🗑️ [Deleted] ${d.program_line || 'Default Program'}`;
+          if (d.id === currentDashboardId) {
+            opt.selected = true;
+          }
+          deletedGroup.appendChild(opt);
+        });
+        programSelect.appendChild(deletedGroup);
+      }
 
       programSelect.onchange = async () => {
         const selectedId = programSelect.value;
@@ -585,7 +661,7 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
     const exportBtn = document.getElementById('program-export-btn');
 
     if (addBtn) {
-      if (isReadOnly) addBtn.classList.add('hidden');
+      if (isReadOnly && !isDeleted) addBtn.classList.add('hidden');
       else {
         addBtn.classList.remove('hidden');
         addBtn.onclick = async () => {
@@ -644,15 +720,16 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
       else {
         deleteBtn.classList.remove('hidden');
         deleteBtn.onclick = async () => {
-          if (programSelect && programSelect.options.length <= 1) {
-            await ui.showCustomAlert('Cannot delete the only dashboard. You must have at least one program.', 'Action Restricted');
+          const activeList = dashboardsData.dashboards.filter(d => !d.is_deleted) || [];
+          if (activeList.length <= 1) {
+            await ui.showCustomAlert('Cannot delete the only active dashboard program. You must maintain at least one active program.', 'Action Restricted');
             return;
           }
-          const confirmed = await ui.showCustomConfirm('Are you sure you want to delete the active program? This action cannot be undone.', 'Delete Program');
+          const confirmed = await ui.showCustomConfirm('Are you sure you want to archive/delete the active program? You can restore it using the Show Trash filter next to the selector.', 'Archive Program');
           if (!confirmed) return;
           try {
             await api.deleteDashboard(apiToken, currentDashboardId);
-            await ui.showCustomAlert('Program deleted.', 'Success');
+            await ui.showCustomAlert('Program archived successfully.', 'Success');
             await changeActiveEmployeeContext(currentDashboardUserId);
           } catch (e) {
             await ui.showCustomAlert('Failed to delete program: ' + e.message, 'Error');
@@ -1442,7 +1519,12 @@ window.toggleHierarchyNode = toggleHierarchyNode;
 window.collapseAllHierarchyNodes = collapseAllHierarchyNodes;
 window.toggleTeamViewMode = toggleTeamViewMode;
 window.focusOnEmployee = focusOnEmployee;
-window.resetOrgChartFocus = resetOrgChartFocus;
+window.saveCurrentVersion = saveCurrentVersion;
+window.restoreVersionAction = restoreVersionAction;
+window.deleteVersionAction = deleteVersionAction;
+window.restoreDashboardAction = restoreDashboardAction;
+window.deleteDashboardPermanentAction = deleteDashboardPermanentAction;
+window.loadHistoryAndVersions = loadHistoryAndVersions;
 
 let searchTimeout = null;
 let searchHighlightIndex = -1;
@@ -1944,6 +2026,233 @@ export function showProfilePopup(event) {
   const closeBtn = modal.querySelector('#user-profile-close-btn');
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
 }
+
+export async function saveCurrentVersion() {
+  if (!apiToken) return;
+  if (!currentDashboardId) {
+    await ui.showCustomAlert('No active dashboard program loaded to save a version of.', 'Action Restricted');
+    return;
+  }
+  const isSelf = currentDashboardUserId === userData.id;
+  const isDeleted = !!currentDashboardData.is_deleted;
+  if (!isSelf || isDeleted) {
+    await ui.showCustomAlert('You cannot save version snapshots of a read-only or deleted workspace.', 'Action Restricted');
+    return;
+  }
+
+  const name = await ui.showCustomPrompt(
+    'Enter a description name for this version snapshot:', 
+    `Snapshot - ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
+    'Save Version Snapshot'
+  );
+  if (name === null) return;
+  const versionName = name.trim() || `Snapshot ${new Date().toLocaleString()}`;
+  try {
+    await api.saveVersion(apiToken, currentDashboardId, versionName);
+    await ui.showCustomAlert('Dashboard version saved successfully!', 'Success');
+    await loadHistoryAndVersions();
+  } catch (err) {
+    await ui.showCustomAlert('Failed to save version: ' + err.message, 'Error');
+  }
+}
+
+export async function restoreVersionAction(versionId, versionName) {
+  const confirmed = await ui.showCustomConfirm(`Are you sure you want to restore the dashboard version "${versionName}"? Current active goals and links will be overwritten with the snapshot.`, 'Restore Version');
+  if (!confirmed) return;
+  try {
+    await api.restoreVersion(apiToken, currentDashboardId, versionId);
+    await ui.showCustomAlert(`Dashboard restored to version "${versionName}" successfully.`, 'Success');
+    await changeActiveEmployeeContext(currentDashboardUserId, currentDashboardId);
+  } catch (err) {
+    await ui.showCustomAlert('Failed to restore version: ' + err.message, 'Error');
+  }
+}
+
+export async function deleteVersionAction(versionId) {
+  const confirmed = await ui.showCustomConfirm('Are you sure you want to delete this version snapshot permanently?', 'Delete Version');
+  if (!confirmed) return;
+  try {
+    await api.deleteVersion(apiToken, currentDashboardId, versionId);
+    await loadHistoryAndVersions();
+  } catch (err) {
+    await ui.showCustomAlert('Failed to delete version: ' + err.message, 'Error');
+  }
+}
+
+export async function restoreDashboardAction(dashboardId) {
+  try {
+    await api.restoreDashboard(apiToken, dashboardId);
+    await ui.showCustomAlert('Dashboard program restored successfully.', 'Success');
+    
+    // Refresh trash history tab if open
+    const activeEl = document.getElementById('tab-history-versions');
+    if (activeEl && !activeEl.classList.contains('hidden')) {
+      await loadTrashHistory();
+    }
+    
+    // Refresh programs dropdown / active context list
+    await changeActiveEmployeeContext(currentDashboardUserId, dashboardId);
+  } catch (err) {
+    await ui.showCustomAlert('Failed to restore dashboard: ' + err.message, 'Error');
+  }
+}
+
+export async function deleteDashboardPermanentAction(dashboardId) {
+  const confirmed = await ui.showCustomConfirm('Are you sure you want to permanently destroy this dashboard program? All items, links, and history for it will be lost forever.', 'Destroy Program Permanently');
+  if (!confirmed) return;
+  try {
+    await api.deleteDashboardPermanent(apiToken, dashboardId);
+    await ui.showCustomAlert('Dashboard program permanently deleted.', 'Success');
+    
+    // Refresh trash history tab if open
+    const activeEl = document.getElementById('tab-history-versions');
+    if (activeEl && !activeEl.classList.contains('hidden')) {
+      await loadTrashHistory();
+    }
+    
+    if (dashboardId === currentDashboardId) {
+      await changeActiveEmployeeContext(currentDashboardUserId);
+    } else {
+      await changeActiveEmployeeContext(currentDashboardUserId, currentDashboardId);
+    }
+  } catch (err) {
+    await ui.showCustomAlert('Failed to delete program permanently: ' + err.message, 'Error');
+  }
+}
+
+export async function loadHistoryAndVersions() {
+  if (!apiToken) return;
+
+  const versionsContainer = document.getElementById('versions-list');
+  if (versionsContainer) {
+    versionsContainer.innerHTML = `
+      <div class="flex items-center justify-center p-8 text-[var(--text-secondary)] text-xs">
+        <span class="animate-spin mr-2">⏳</span> Loading versions...
+      </div>
+    `;
+  }
+
+  // Manage save button visibility inside History & Versions page
+  const pageSaveVerBtn = document.getElementById('page-save-ver-btn');
+  if (pageSaveVerBtn) {
+    const isSelf = currentDashboardUserId === userData.id;
+    const isDeleted = currentDashboardData ? !!currentDashboardData.is_deleted : false;
+    if (!isSelf || isDeleted) {
+      pageSaveVerBtn.classList.add('hidden');
+    } else {
+      pageSaveVerBtn.classList.remove('hidden');
+    }
+  }
+
+  if (!currentDashboardId) {
+    if (versionsContainer) {
+      versionsContainer.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-8 bg-[var(--bg-input)] rounded-xl border border-[var(--border-color)] text-center text-[var(--text-secondary)]">
+          <span class="text-2xl mb-2">📁</span>
+          <p class="text-xs font-semibold">No active dashboard program loaded.</p>
+          <p class="text-[10px] text-gray-500 mt-1">Please select or create a dashboard program first.</p>
+        </div>
+      `;
+    }
+    return;
+  }
+
+  try {
+    const versionsData = await api.fetchVersions(apiToken, currentDashboardId);
+    ui.renderVersions(versionsData.versions);
+  } catch (err) {
+    console.error('Failed to load versions:', err);
+    if (versionsContainer) {
+      versionsContainer.innerHTML = `
+        <div class="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl text-center">
+          ⚠️ Failed to load versions: ${err.message}
+        </div>
+      `;
+    }
+  }
+}
+
+export async function loadTrashHistory() {
+  if (!apiToken) return;
+
+  const historyContainer = document.getElementById('history-list');
+  if (historyContainer) {
+    historyContainer.innerHTML = `
+      <div class="flex items-center justify-center p-8 text-[var(--text-secondary)] text-xs">
+        <span class="animate-spin mr-2">⏳</span> Loading trash history and version snapshots...
+      </div>
+    `;
+  }
+
+  // Fetch deleted dashboards (History) and their versions in parallel
+  try {
+    const historyData = await api.fetchDashboardHistory(apiToken);
+    const dashboards = historyData.dashboards || [];
+
+    const dashboardsWithVersions = await Promise.all(
+      dashboards.map(async (d) => {
+        try {
+          const versionsData = await api.fetchVersions(apiToken, d.id);
+          return { ...d, versions: versionsData.versions || [] };
+        } catch (e) {
+          console.warn('Failed to fetch versions for deleted dashboard:', d.id, e);
+          return { ...d, versions: [] };
+        }
+      })
+    );
+
+    ui.renderHistory(dashboardsWithVersions);
+  } catch (err) {
+    console.error('Failed to load history:', err);
+    if (historyContainer) {
+      historyContainer.innerHTML = `
+        <div class="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl text-center">
+          ⚠️ Failed to load trash history: ${err.message}
+        </div>
+      `;
+    }
+  }
+}
+
+export async function restoreDeletedDashboardToVersion(dashboardId, versionId, versionName) {
+  const confirmed = await ui.showCustomConfirm(`Restore dashboard program to snapshot "${versionName}"? This will also reactivate the program.`, 'Restore Version');
+  if (!confirmed) return;
+  try {
+    // 1. Restore dashboard
+    await api.restoreDashboard(apiToken, dashboardId);
+    // 2. Restore version state
+    await api.restoreVersion(apiToken, dashboardId, versionId);
+    await ui.showCustomAlert(`Dashboard program restored and reset to version "${versionName}"!`, 'Success');
+    
+    // Switch to my-dashboard and reload context
+    ui.switchTab('my-dashboard');
+    await changeActiveEmployeeContext(currentDashboardUserId, dashboardId);
+  } catch (err) {
+    await ui.showCustomAlert('Failed to restore snapshot: ' + err.message, 'Error');
+  }
+}
+
+export async function deleteDeletedDashboardVersion(dashboardId, versionId) {
+  const confirmed = await ui.showCustomConfirm('Are you sure you want to delete this version snapshot permanently?', 'Delete Version');
+  if (!confirmed) return;
+  try {
+    await api.deleteVersion(apiToken, dashboardId, versionId);
+    await loadTrashHistory();
+  } catch (err) {
+    await ui.showCustomAlert('Failed to delete version: ' + err.message, 'Error');
+  }
+}
+
+// Bind globals for inline/HTML action triggers
+window.saveCurrentVersion = saveCurrentVersion;
+window.restoreVersionAction = restoreVersionAction;
+window.deleteVersionAction = deleteVersionAction;
+window.restoreDashboardAction = restoreDashboardAction;
+window.deleteDashboardPermanentAction = deleteDashboardPermanentAction;
+window.loadHistoryAndVersions = loadHistoryAndVersions;
+window.loadTrashHistory = loadTrashHistory;
+window.restoreDeletedDashboardToVersion = restoreDeletedDashboardToVersion;
+window.deleteDeletedDashboardVersion = deleteDeletedDashboardVersion;
 
 // Auto boot session
 initSession();
