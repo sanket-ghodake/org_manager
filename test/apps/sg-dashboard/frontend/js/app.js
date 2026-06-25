@@ -12,6 +12,22 @@ let parentOrigin = '';
 let portalOrigin = '';
 let directoryFetched = false;
 
+// Smart Sync State Management
+let syncTimeoutId = null;
+let lastActivityTime = Date.now();
+let lastDashboardUpdatedAt = '';
+let lastSubmissionsJson = '';
+let lastReviewsJson = '';
+let lastTeamJson = '';
+
+function recordUserActivity() {
+  lastActivityTime = Date.now();
+}
+window.addEventListener('mousemove', recordUserActivity);
+window.addEventListener('keydown', recordUserActivity);
+window.addEventListener('click', recordUserActivity);
+window.addEventListener('scroll', recordUserActivity);
+
 function setDirectoryCache(rawUsers) {
   const uuidToEid = {};
   rawUsers.forEach(u => {
@@ -438,7 +454,14 @@ function addToSearchHistory(emp) {
 export async function changeActiveEmployeeContext(userId, selectedDashboardId = '') {
   try {
     const isSelf = !userId || userId === userData.id;
+    const isInitialLoad = !currentDashboardUserId;
     currentDashboardUserId = isSelf ? userData.id : userId;
+
+    // Reset sync caches on context switch to force clean fetches
+    lastDashboardUpdatedAt = '';
+    lastSubmissionsJson = '';
+    lastReviewsJson = '';
+    lastTeamJson = '';
 
     // Show premium loading state
     const overlay = document.getElementById('auth-overlay');
@@ -446,8 +469,12 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
       overlay.classList.remove('hidden');
       const title = overlay.querySelector('h3');
       const subtitle = overlay.querySelector('p');
-      if (title) title.textContent = 'Switching Workspace Context...';
-      if (subtitle) subtitle.textContent = 'Synchronizing goal dashboard and reporting structures...';
+      if (title) {
+        title.textContent = isInitialLoad ? 'Loading Your Workspace...' : 'Switching Workspace Context...';
+      }
+      if (subtitle) {
+        subtitle.textContent = isInitialLoad ? 'Initializing and syncing goal dashboard from database...' : 'Synchronizing goal dashboard and reporting structures...';
+      }
     }
 
     // Load all data in parallel to avoid waterfalls
@@ -808,8 +835,99 @@ function toggleWorkspaceEditState(isReadOnly) {
 
 }
 
+function updateSyncStatusUI(status) {
+  const syncEl = document.getElementById('sync-status');
+  if (!syncEl) return;
+  
+  if (status === 'syncing') {
+    syncEl.className = "flex items-center gap-1.5 ml-2 text-[9px] font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full select-none";
+    syncEl.innerHTML = `
+      <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
+      Syncing
+    `;
+  } else if (status === 'idle') {
+    syncEl.className = "flex items-center gap-1.5 ml-2 text-[9px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full select-none";
+    syncEl.innerHTML = `
+      <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+      Idle Sync
+    `;
+  } else if (status === 'error') {
+    syncEl.className = "flex items-center gap-1.5 ml-2 text-[9px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full select-none";
+    syncEl.innerHTML = `
+      <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+      Offline
+    `;
+  } else {
+    // live
+    syncEl.className = "flex items-center gap-1.5 ml-2 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full select-none";
+    syncEl.innerHTML = `
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+      Live Sync
+    `;
+  }
+}
+
+export async function refreshActiveDashboardSilently() {
+  if (!apiToken || !currentDashboardUserId || !currentDashboardId) return;
+
+  updateSyncStatusUI('syncing');
+  try {
+    const isSelf = currentDashboardUserId === userData.id;
+    const isReadOnly = !isSelf;
+
+    const dashData = isSelf
+      ? await api.fetchMyDashboard(apiToken, currentDashboardId)
+      : await api.fetchUserDashboard(apiToken, currentDashboardUserId, currentDashboardId);
+
+    if (!dashData || !dashData.dashboard) {
+      const isIdle = (Date.now() - lastActivityTime) > 60000;
+      updateSyncStatusUI(isIdle ? 'idle' : 'live');
+      return;
+    }
+
+    currentDashboardData = dashData.dashboard;
+    lastDashboardUpdatedAt = dashData.dashboard.updated_at;
+
+    // 1. Update program line names if they changed
+    const subProg = document.getElementById('sub-program-display');
+    if (subProg) {
+      subProg.textContent = dashData.dashboard.program_line || 'Default Program';
+    }
+
+    // 2. Update objective
+    const objDisplay = document.getElementById('sub-objective-display');
+    const objInput = document.getElementById('sub-objective-input');
+    if (objDisplay && (!objInput || objInput.classList.contains('hidden'))) {
+      objDisplay.textContent = dashData.dashboard.objective || (isReadOnly ? 'No objective stated.' : 'Click to enter objective');
+      if (!dashData.dashboard.objective) {
+        objDisplay.classList.add('italic');
+      } else {
+        objDisplay.classList.remove('italic');
+      }
+    }
+
+    // 3. Update notes
+    const notesTextarea = document.getElementById('dashboard-notes-textarea');
+    if (notesTextarea && document.activeElement !== notesTextarea) {
+      notesTextarea.value = dashData.dashboard.notes || '';
+    }
+
+    // 4. Update items list (Key skills, Gaps, Plans) without full screen refresh
+    ui.renderDashboardItems(dashData.items, isReadOnly, dashData.links || []);
+
+    // 5. Update autocomplete suggestions list in background
+    updateAllSuggestions().catch(err => console.warn('Failed to update suggestions:', err));
+
+    const isIdle = (Date.now() - lastActivityTime) > 60000;
+    updateSyncStatusUI(isIdle ? 'idle' : 'live');
+  } catch (err) {
+    console.error('[Silent Refresh] Failed to refresh active dashboard:', err);
+    updateSyncStatusUI('error');
+  }
+}
+
 async function loadMyDashboard() {
-  await changeActiveEmployeeContext(userData.id);
+  await refreshActiveDashboardSilently();
 }
 
 async function loadSubmissions(userId) {
@@ -1022,79 +1140,151 @@ async function redirectToSSO() {
   }
 }
 
-let syncIntervalId = null;
+async function performBackgroundSync() {
+  if (!apiToken) return;
 
-function startBackgroundSync() {
-  if (syncIntervalId) return;
-
-  syncIntervalId = setInterval(async () => {
-    // Smart checks: active tab, logged in, and viewing dashboard tab
-    if (!apiToken || document.visibilityState !== 'visible') {
-      return;
-    }
-
+  try {
+    // 1. Dashboard Tab is active
     const dashboardTab = document.getElementById('tab-my-dashboard');
-    if (!dashboardTab || dashboardTab.classList.contains('hidden')) {
-      return;
-    }
+    if (dashboardTab && !dashboardTab.classList.contains('hidden')) {
+      if (currentDashboardUserId && currentDashboardId) {
+        const isSelf = currentDashboardUserId === userData.id;
+        const isReadOnly = !isSelf;
 
-    if (!currentDashboardUserId || !currentDashboardId) {
-      return;
-    }
+        const dashData = isSelf
+          ? await api.fetchMyDashboard(apiToken, currentDashboardId)
+          : await api.fetchUserDashboard(apiToken, currentDashboardUserId, currentDashboardId);
 
-    try {
-      const isSelf = currentDashboardUserId === userData.id;
-      const isReadOnly = !isSelf;
+        if (dashData && dashData.dashboard) {
+          // Check if updated_at is different, meaning there are updates
+          if (dashData.dashboard.updated_at !== lastDashboardUpdatedAt) {
+            console.log(`[Smart Sync] Detected dashboard updates (last updated: ${dashData.dashboard.updated_at}). Updating UI...`);
 
-      // Silent fetch (no loading overlay)
-      const dashData = isSelf
-        ? await api.fetchMyDashboard(apiToken, currentDashboardId)
-        : await api.fetchUserDashboard(apiToken, currentDashboardUserId, currentDashboardId);
+            lastDashboardUpdatedAt = dashData.dashboard.updated_at;
+            currentDashboardData = dashData.dashboard;
 
-      if (!dashData || !dashData.dashboard) return;
+            // 1. Update program line names if they changed
+            const subProg = document.getElementById('sub-program-display');
+            if (subProg) {
+              subProg.textContent = dashData.dashboard.program_line || 'Default Program';
+            }
 
-      // Check if updated_at is different, meaning there are updates
-      if (dashData.dashboard.updated_at !== currentDashboardData?.updated_at) {
-        console.log(`[Background Sync] Detected dashboard updates (last updated: ${dashData.dashboard.updated_at}). Updating UI...`);
+            // 2. Update objective
+            const objDisplay = document.getElementById('sub-objective-display');
+            const objInput = document.getElementById('sub-objective-input');
+            // Only update if user is not currently editing objective
+            if (objDisplay && (!objInput || objInput.classList.contains('hidden'))) {
+              objDisplay.textContent = dashData.dashboard.objective || (isReadOnly ? 'No objective stated.' : 'Click to enter objective');
+              if (!dashData.dashboard.objective) {
+                objDisplay.classList.add('italic');
+              } else {
+                objDisplay.classList.remove('italic');
+              }
+            }
 
-        // Update stored dashboard state
-        currentDashboardData = dashData.dashboard;
+            // 3. Update notes (only if not active/focused)
+            const notesTextarea = document.getElementById('dashboard-notes-textarea');
+            if (notesTextarea && document.activeElement !== notesTextarea) {
+              notesTextarea.value = dashData.dashboard.notes || '';
+            }
 
-        // 1. Update program line names if they changed
-        const subProg = document.getElementById('sub-program-display');
-        if (subProg) {
-          subProg.textContent = dashData.dashboard.program_line || 'Default Program';
-        }
+            // 4. Update items list (Key skills, Gaps, Plans) without full screen refresh
+            ui.renderDashboardItems(dashData.items, isReadOnly, dashData.links || []);
 
-        // 2. Update objective
-        const objDisplay = document.getElementById('sub-objective-display');
-        const objInput = document.getElementById('objective-input');
-        // Only update if user is not currently editing objective
-        if (objDisplay && (!objInput || objInput.classList.contains('hidden'))) {
-          objDisplay.textContent = dashData.dashboard.objective || (isReadOnly ? 'No objective stated.' : 'Click to enter objective');
-          if (!dashData.dashboard.objective) {
-            objDisplay.classList.add('italic');
-          } else {
-            objDisplay.classList.remove('italic');
+            // 5. Update autocomplete suggestions list in background
+            updateAllSuggestions().catch(err => console.warn('Failed to update suggestions:', err));
           }
         }
-
-        // 3. Update notes (only if not active/focused)
-        const notesTextarea = document.getElementById('dashboard-notes-textarea');
-        if (notesTextarea && document.activeElement !== notesTextarea) {
-          notesTextarea.value = dashData.dashboard.notes || '';
-        }
-
-        // 4. Update items list (Key skills, Gaps, Plans) without full screen refresh
-        ui.renderDashboardItems(dashData.items, isReadOnly, dashData.links || []);
-
-        // 5. Update autocomplete suggestions list in background
-        updateAllSuggestions().catch(err => console.warn('Failed to update suggestions:', err));
       }
-    } catch (e) {
-      console.warn('[Background Sync] Failed to check for dashboard updates:', e);
     }
-  }, 10000); // Poll every 10 seconds (smart and efficient)
+
+    // 2. Submissions Tab is active
+    const submissionsTab = document.getElementById('tab-submissions');
+    if (submissionsTab && !submissionsTab.classList.contains('hidden')) {
+      const panelMy = document.getElementById('panel-my-submissions');
+      const panelReviews = document.getElementById('panel-reviews-queue');
+
+      // Sync my submissions
+      if (panelMy && !panelMy.classList.contains('hidden')) {
+        const targetUserId = currentDashboardUserId || userData.id;
+        const subData = await api.fetchSubmissions(apiToken, targetUserId);
+        const subJson = JSON.stringify(subData.submissions);
+        if (subJson !== lastSubmissionsJson) {
+          lastSubmissionsJson = subJson;
+          ui.renderMySubmissions(subData.submissions);
+        }
+      }
+
+      // Sync reviews queue
+      if (panelReviews && !panelReviews.classList.contains('hidden')) {
+        const isManagerOrAdmin = userData.role === 'Manager' || userData.role === 'Admin';
+        if (isManagerOrAdmin) {
+          const reviewsData = await api.fetchSubmissionsReviews(apiToken);
+          const reviewsJson = JSON.stringify(reviewsData.reviews);
+          if (reviewsJson !== lastReviewsJson) {
+            lastReviewsJson = reviewsJson;
+            window.cachedReviews = reviewsData.reviews || [];
+            ui.renderReviewsQueue(window.cachedReviews);
+          }
+        }
+      }
+    }
+
+    // 3. Team View Tab is active
+    const teamTab = document.getElementById('tab-team-view');
+    if (teamTab && !teamTab.classList.contains('hidden')) {
+      const targetUserId = currentDashboardUserId || userData.id;
+      const targetUser = cachedUsers.find(u => u.id === targetUserId) || userData;
+      const targetUserRole = targetUser ? targetUser.role : 'Employee';
+
+      const teamData = await api.fetchTeam(apiToken, targetUserId);
+      const teamJson = JSON.stringify(teamData.team);
+      if (teamJson !== lastTeamJson) {
+        lastTeamJson = teamJson;
+        ui.renderTeam(teamData.team, targetUserId, targetUserRole);
+      }
+    }
+  } catch (err) {
+    console.warn('[Smart Sync] Sync cycle error:', err);
+    throw err;
+  }
+}
+
+function startBackgroundSync() {
+  if (syncTimeoutId) return;
+
+  async function syncLoop() {
+    // Check dynamic interval based on state
+    let delay = 10000; // default 10s
+
+    if (document.visibilityState !== 'visible') {
+      delay = 30000; // slow down significantly if hidden
+    } else {
+      const isSelf = !currentDashboardUserId || currentDashboardUserId === userData.id;
+      const isIdle = (Date.now() - lastActivityTime) > 60000; // 1 min idle
+
+      if (isSelf) {
+        delay = isIdle ? 20000 : 10000; // self: 10s active, 20s idle
+      } else {
+        // Viewing someone else's dashboard: 3s active (near real-time), 10s idle
+        delay = isIdle ? 10000 : 3000;
+      }
+    }
+
+    syncTimeoutId = setTimeout(async () => {
+      updateSyncStatusUI('syncing');
+      try {
+        await performBackgroundSync();
+        const isIdle = (Date.now() - lastActivityTime) > 60000;
+        updateSyncStatusUI(isIdle ? 'idle' : 'live');
+      } catch (e) {
+        updateSyncStatusUI('error');
+      }
+      syncLoop();
+    }, delay);
+  }
+
+  syncLoop();
 }
 
 async function initializeApplication() {
@@ -1105,8 +1295,6 @@ async function initializeApplication() {
   if (userData && !cachedUsers.some(u => u.id === userData.id)) {
     cachedUsers.push(userData);
   }
-
-  document.getElementById('auth-overlay').classList.add('hidden');
 
   try {
     console.log('Syncing current user session with main portal database context...');
