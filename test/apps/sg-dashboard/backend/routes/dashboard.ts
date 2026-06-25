@@ -15,16 +15,36 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     try {
       const sql = includeDeleted
         ? `
-          SELECT id, program_line, is_deleted, updated_at
-          FROM dashboards
-          WHERE user_id = ?
-          ORDER BY is_deleted ASC, updated_at DESC
+          SELECT d.id, d.program_line, d.is_deleted, d.updated_at,
+                 s.id as last_submission_id,
+                 s.status as last_submission_status,
+                 s.submitted_at as last_submission_date,
+                 s.feedback as last_submission_feedback,
+                 s.deadline as last_submission_deadline
+          FROM dashboards d
+          LEFT JOIN (
+            SELECT id, dashboard_id, status, submitted_at, feedback, deadline,
+                   ROW_NUMBER() OVER (PARTITION BY dashboard_id ORDER BY COALESCE(submitted_at, deadline) DESC) as rn
+            FROM submission_requests
+          ) s ON s.dashboard_id = d.id AND s.rn = 1
+          WHERE d.user_id = ?
+          ORDER BY d.is_deleted ASC, d.updated_at DESC
         `
         : `
-          SELECT id, program_line, is_deleted, updated_at
-          FROM dashboards
-          WHERE user_id = ? AND is_deleted = 0
-          ORDER BY updated_at DESC
+          SELECT d.id, d.program_line, d.is_deleted, d.updated_at,
+                 s.id as last_submission_id,
+                 s.status as last_submission_status,
+                 s.submitted_at as last_submission_date,
+                 s.feedback as last_submission_feedback,
+                 s.deadline as last_submission_deadline
+          FROM dashboards d
+          LEFT JOIN (
+            SELECT id, dashboard_id, status, submitted_at, feedback, deadline,
+                   ROW_NUMBER() OVER (PARTITION BY dashboard_id ORDER BY COALESCE(submitted_at, deadline) DESC) as rn
+            FROM submission_requests
+          ) s ON s.dashboard_id = d.id AND s.rn = 1
+          WHERE d.user_id = ? AND d.is_deleted = 0
+          ORDER BY d.updated_at DESC
         `;
       const res = await db.execute({
         sql,

@@ -162,12 +162,34 @@ export async function fetchSuggestions(apiToken, section) {
   return res.json();
 }
 
-export async function submitDashboardReq(apiToken, requestId) {
+export async function freezeSubmissionReq(apiToken, requestId) {
+  const res = await fetch(`${apiPrefix}/submissions/${requestId}/freeze`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiToken}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Failed to freeze submission');
+  }
+  return res.json();
+}
+
+export async function submitDashboardReq(apiToken, requestId, dashboardId) {
   const res = await fetch(`${apiPrefix}/submissions/${requestId}/submit`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiToken}` }
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiToken}`
+    },
+    body: JSON.stringify({ dashboard_id: dashboardId })
   });
-  if (!res.ok) throw new Error('Failed to submit dashboard');
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Failed to submit dashboard');
+  }
   return res.json();
 }
 
@@ -180,18 +202,21 @@ export async function reviewSubmission(apiToken, requestId, status, feedback) {
     },
     body: JSON.stringify({ status, feedback })
   });
-  if (!res.ok) throw new Error('Failed to submit review');
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Failed to submit review');
+  }
   return res.json();
 }
 
-export async function createSubmissionRequest(apiToken, employeeId, deadline) {
+export async function createSubmissionRequest(apiToken, employeeId, deadline, dashboardId) {
   const res = await fetch(`${apiPrefix}/submissions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiToken}`
     },
-    body: JSON.stringify({ employee_id: employeeId, deadline })
+    body: JSON.stringify({ employee_id: employeeId, deadline, dashboard_id: dashboardId })
   });
   return res;
 }

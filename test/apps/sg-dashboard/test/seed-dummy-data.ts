@@ -169,21 +169,13 @@ export async function seedDummyData(db: any) {
       let submitted_at = null;
       let reviewed_at = null;
 
-      if (status === 'Submitted') {
-        submitted_at = new Date().toISOString().split('T')[0];
-      } else if (status === 'Approved') {
-        submitted_at = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        reviewed_at = new Date().toISOString().split('T')[0];
-        feedback = 'Excellent progression on strategic objectives. The plan covers all crucial technical skills required for L5 progression. Signed off.';
-      } else if (status === 'Needs Revision') {
-        submitted_at = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        reviewed_at = new Date().toISOString().split('T')[0];
-        feedback = 'Please add a concrete Mitigation Plan for the Rust systems programming skill gap. Let us discuss in our next 1:1.';
-      }
+      const dashboardId = (status === 'Submitted' || status === 'Approved' || status === 'Needs Revision')
+        ? `dash-${emp.id}-1`
+        : null;
 
       await db.execute({
-        sql: `INSERT OR REPLACE INTO submission_requests (id, manager_id, employee_id, deadline, status, feedback, submitted_at, reviewed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [subId, emp.managerEid, emp.id, deadline, status, feedback, submitted_at, reviewed_at]
+        sql: `INSERT OR REPLACE INTO submission_requests (id, manager_id, employee_id, dashboard_id, deadline, status, feedback, submitted_at, reviewed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [subId, emp.managerEid, emp.id, dashboardId, deadline, status, feedback, submitted_at, reviewed_at]
       });
     }
 

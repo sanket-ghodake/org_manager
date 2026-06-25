@@ -2,18 +2,53 @@ import { FastifyInstance } from 'fastify';
 import { db } from '../db/client';
 import { checkUplineManager } from '../utils/hierarchy';
 
+async function autoSubmitExpiredRequests() {
+  const nowStr = new Date().toISOString().split('T')[0];
+  try {
+    // Find all Pending submission requests where the deadline has passed (is in the past)
+    const expired = await db.execute({
+      sql: "SELECT id, employee_id, deadline FROM submission_requests WHERE status = 'Pending' AND deadline < ?",
+      args: [nowStr]
+    });
+    
+    for (const req of expired.rows) {
+      // Find the employee's active dashboard
+      const dashRes = await db.execute({
+        sql: "SELECT id FROM dashboards WHERE user_id = ? AND is_deleted = 0 ORDER BY updated_at DESC LIMIT 1",
+        args: [req.employee_id]
+      });
+      
+      const dashboardId = dashRes.rows[0]?.id || null;
+      
+      // Auto-submit the request with the deadline as the submitted date
+      await db.execute({
+        sql: "UPDATE submission_requests SET status = 'Submitted', submitted_at = ?, dashboard_id = ? WHERE id = ?",
+        args: [req.deadline + 'T23:59:59Z', dashboardId, req.id]
+      });
+      console.log(`[AUTO-SUBMIT] Request ${req.id} for employee ${req.employee_id} was automatically submitted because the deadline ${req.deadline} has passed.`);
+    }
+  } catch (err: any) {
+    console.error('Error auto-submitting expired requests:', err.message);
+  }
+}
+
 export default async function submissionsRoutes(fastify: FastifyInstance) {
   // Get Submissions Requests (Employee)
   fastify.get('/api/submissions', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
     const { employeeId } = (request.query as any) || {};
     const targetUserId = employeeId || user.id;
+    
+    // Process any expired pending submission requests
+    await autoSubmitExpiredRequests();
+
     try {
       const res = await db.execute({
         sql: `
-          SELECT s.*, u.name as manager_name
+          SELECT s.*, u.name as manager_name, d.program_line as dashboard_program
           FROM submission_requests s
           JOIN users u ON s.manager_id = u.id
+          LEFT JOIN dashboards d ON s.dashboard_id = d.id
           WHERE s.employee_id = ?
           ORDER BY s.deadline DESC
         `,
@@ -45,7 +80,7 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Employee not found.' });
       }
 
-      const immediateManagerId = empRes.rows[0].manager_id;
+      const immediateManagerId = (empRes.rows[0] as any).manager_id;
       const isUpline = await checkUplineManager(user.id, employee_id);
       if (immediateManagerId !== user.id && !isUpline && user.role !== 'Admin') {
         return reply.status(403).send({ error: 'Forbidden: You can only request submissions from your reporting line.' });
@@ -75,11 +110,15 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
   fastify.post('/api/submissions/:id/submit', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
     const requestId = request.params.id;
+    const { dashboard_id } = request.body || {};
+
+    // Process any expired pending submission requests first
+    await autoSubmitExpiredRequests();
 
     try {
       // Verify ownership of the request
       const reqRes = await db.execute({
-        sql: 'SELECT employee_id FROM submission_requests WHERE id = ?',
+        sql: 'SELECT employee_id, deadline, status FROM submission_requests WHERE id = ?',
         args: [requestId],
       });
 
@@ -87,15 +126,26 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Submission request not found.' });
       }
 
-      if (reqRes.rows[0].employee_id !== user.id) {
+      const row = reqRes.rows[0] as any;
+      if (row.employee_id !== user.id) {
         return reply.status(403).send({ error: 'Forbidden: Only the assigned employee can submit.' });
       }
 
-      // Update status to Submitted with current date
+      // Check if deadline has passed
       const nowStr = new Date().toISOString().split('T')[0];
+      if (row.deadline < nowStr) {
+        return reply.status(400).send({ error: 'Submission deadline has passed and this request is frozen. Your last active dashboard version has been locked for review.' });
+      }
+
+      if (row.status !== 'Pending' && row.status !== 'Needs Revision') {
+        return reply.status(400).send({ error: 'This request is already submitted or approved.' });
+      }
+
+      // Update status to Submitted with current date and link the submitted dashboard
+      const nowStrFull = new Date().toISOString();
       await db.execute({
-        sql: 'UPDATE submission_requests SET status = "Submitted", submitted_at = ? WHERE id = ?',
-        args: [nowStr, requestId],
+        sql: "UPDATE submission_requests SET status = 'Submitted', submitted_at = ?, dashboard_id = ? WHERE id = ?",
+        args: [nowStrFull, dashboard_id || null, requestId],
       });
 
       // Send simulated real-time alert to the manager
@@ -115,14 +165,18 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
   // Get Reviews Queue (Manager view of reports submissions)
   fastify.get('/api/submissions/reviews', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
+    
+    // Process any expired pending submission requests
+    await autoSubmitExpiredRequests();
+
     try {
       const res = await db.execute({
         sql: `
           SELECT s.*, u.name as employee_name, u.email as employee_email, u.role as employee_role, u.designation as employee_designation,
-                 d.status as dashboard_status
+                 d.program_line as dashboard_program
           FROM submission_requests s
           JOIN users u ON s.employee_id = u.id
-          LEFT JOIN dashboards d ON d.user_id = u.id
+          LEFT JOIN dashboards d ON s.dashboard_id = d.id
           WHERE s.manager_id = ?
           ORDER BY s.deadline DESC
         `,
@@ -155,7 +209,8 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Submission request not found.' });
       }
 
-      if (reqRes.rows[0].manager_id !== user.id && user.role !== 'Admin') {
+      const row = reqRes.rows[0] as any;
+      if (row.manager_id !== user.id && user.role !== 'Admin') {
         return reply.status(403).send({ error: 'Forbidden: You can only review submissions assigned to you.' });
       }
 
@@ -171,7 +226,51 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
         args: [requestId],
       });
       const employeeName = empCheck.rows[0]?.name || 'Employee';
-      console.log(`\x1b[35m[ALERT] Real-time notification sent to ${employeeName}: Your SG Dashboard plan has been reviewed by ${user.name}. Status: ${status}. Feedback: "${feedback || 'None'}".\x1b[0m`);
+      console.log(`\x1b[35m[ALERT] Real-time notification sent to dots: Your SG Dashboard plan has been reviewed by ${user.name}. Status: ${status}. Feedback: "${feedback || 'None'}".\x1b[0m`);
+
+      return { success: true };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Freeze Submission Request (Manager or Admin)
+  fastify.post('/api/submissions/:id/freeze', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const requestId = request.params.id;
+
+    try {
+      const reqRes = await db.execute({
+        sql: 'SELECT manager_id, employee_id, status FROM submission_requests WHERE id = ?',
+        args: [requestId],
+      });
+
+      if (reqRes.rows.length === 0) {
+        return reply.status(404).send({ error: 'Submission request not found.' });
+      }
+
+      const row = reqRes.rows[0] as any;
+      if (row.manager_id !== user.id && user.role !== 'Admin') {
+        return reply.status(403).send({ error: 'Forbidden: You can only freeze submissions assigned to you.' });
+      }
+
+      if (row.status !== 'Pending') {
+        return reply.status(400).send({ error: 'Only pending submission requests can be frozen.' });
+      }
+
+      // Find the employee's active dashboard
+      const dashRes = await db.execute({
+        sql: "SELECT id FROM dashboards WHERE user_id = ? AND is_deleted = 0 ORDER BY updated_at DESC LIMIT 1",
+        args: [row.employee_id]
+      });
+      const dashboardId = dashRes.rows[0]?.id || null;
+
+      // Auto-submit the request as of today
+      const nowStr = new Date().toISOString();
+      await db.execute({
+        sql: "UPDATE submission_requests SET status = 'Submitted', submitted_at = ?, dashboard_id = ? WHERE id = ?",
+        args: [nowStr, dashboardId, requestId],
+      });
 
       return { success: true };
     } catch (err: any) {

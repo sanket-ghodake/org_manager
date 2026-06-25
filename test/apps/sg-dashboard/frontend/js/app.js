@@ -389,10 +389,20 @@ export async function updateItemLinks(sourceId, targetIds) {
 }
 
 export async function submitDashboard(id) {
-  const confirmed = await ui.showCustomConfirm('Are you sure you want to submit your current SG Dashboard to your manager for review?', 'Submit Dashboard');
-  if (!confirmed) return;
+  let dashboards = [];
   try {
-    await api.submitDashboardReq(apiToken, id);
+    const dashData = await api.fetchDashboards(apiToken, userData.id);
+    dashboards = dashData.dashboards || [];
+  } catch (err) {
+    console.error('Failed to fetch employee dashboards:', err);
+  }
+
+  const modalResult = await ui.showSubmitDashboardModal(dashboards, currentDashboardId);
+  if (!modalResult) return;
+  const { dashboardId } = modalResult;
+
+  try {
+    await api.submitDashboardReq(apiToken, id, dashboardId);
     await ui.showCustomAlert('Dashboard submitted successfully!', 'Success');
     await loadSubmissions();
     if (userData.role === 'Manager' || userData.role === 'Admin') {
@@ -400,6 +410,23 @@ export async function submitDashboard(id) {
     }
   } catch (err) {
     console.error(err);
+    await ui.showCustomAlert('Failed to submit dashboard: ' + err.message, 'Error');
+  }
+}
+
+export async function freezeSubmission(requestId) {
+  const confirmed = await ui.showCustomConfirm('Are you sure you want to freeze this submission request? No further edits will be allowed and the employee\'s last active dashboard version will be submitted directly.', 'Freeze Submission');
+  if (!confirmed) return;
+  try {
+    await api.freezeSubmissionReq(apiToken, requestId);
+    await ui.showCustomAlert('Submission request frozen and locked successfully!', 'Success');
+    await loadSubmissions();
+    if (userData.role === 'Manager' || userData.role === 'Admin') {
+      await loadTeamView();
+    }
+  } catch (err) {
+    console.error(err);
+    await ui.showCustomAlert('Failed to freeze submission: ' + err.message, 'Error');
   }
 }
 
@@ -622,7 +649,27 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
         activeDashboards.forEach(d => {
           const opt = document.createElement('option');
           opt.value = d.id;
-          opt.textContent = d.program_line || 'Default Program';
+          
+          let prefix = '📝'; // Draft / Modified
+          if (d.last_submission_status === 'Approved') {
+            if (d.last_submission_date && d.updated_at && new Date(d.updated_at) > new Date(d.last_submission_date)) {
+              prefix = '📝'; // Modified after approval
+            } else {
+              prefix = '✅'; // Approved & Up-to-date
+            }
+          } else if (d.last_submission_status === 'Submitted') {
+            if (d.last_submission_date && d.updated_at && new Date(d.updated_at) > new Date(d.last_submission_date)) {
+              prefix = '📝'; // Modified after submission
+            } else {
+              prefix = '📤'; // Submitted
+            }
+          } else if (d.last_submission_status === 'Needs Revision') {
+            prefix = '⚠️';
+          } else if (d.last_submission_status === 'Pending') {
+            prefix = '⏳';
+          }
+
+          opt.textContent = `${prefix} ${d.program_line || 'Default Program'}`;
           if (d.id === currentDashboardId) {
             opt.selected = true;
           }
@@ -854,6 +901,19 @@ export async function viewEmployeeDashboard(empId) {
   ui.switchTab('my-dashboard');
   await changeActiveEmployeeContext(empId);
 }
+
+export async function viewEmployeeSubmissions(empId) {
+  const employee = cachedUsers.find(u => u.id === empId);
+  const employeeName = employee ? employee.name : 'Employee';
+  try {
+    const subData = await api.fetchSubmissions(apiToken, empId);
+    await ui.showEmployeeSubmissionsModal(employeeName, subData.submissions);
+  } catch (err) {
+    console.error(err);
+    await ui.showCustomAlert('Failed to load employee submissions: ' + err.message, 'Error');
+  }
+}
+
 
 export async function resetToMyWorkspace() {
   ui.switchTab('my-dashboard');
@@ -1092,7 +1152,7 @@ export async function openReviewModal(requestId) {
   }
 
   try {
-    const data = await api.fetchUserDashboard(apiToken, review.employee_id);
+    const data = await api.fetchUserDashboard(apiToken, review.employee_id, review.dashboard_id);
     ui.populateReviewModal(review, data);
   } catch (err) {
     console.error(err);
@@ -1500,7 +1560,9 @@ window.startEditingObjective = startEditingObjective;
 window.saveObjectiveEdit = saveObjectiveEdit;
 window.addQuickItem = addQuickItem;
 window.submitDashboard = submitDashboard;
+window.freezeSubmission = freezeSubmission;
 window.viewEmployeeDashboard = viewEmployeeDashboard;
+window.viewEmployeeSubmissions = viewEmployeeSubmissions;
 window.changeActiveEmployeeContext = changeActiveEmployeeContext;
 window.resetToMyWorkspace = resetToMyWorkspace;
 window.triggerRequestSubmission = triggerRequestSubmission;

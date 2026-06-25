@@ -37,13 +37,17 @@ export async function initDb() {
       (row: any) => row.name === 'designation'
     );
 
-    // Check if feedback column is missing in submission_requests table
+    // Check if feedback and dashboard_id columns are missing in submission_requests table
     let hasFeedback = false;
+    let hasDashboardId = false;
     const subTableCheck = await db.execute(`SELECT name FROM sqlite_master WHERE type='table' AND name='submission_requests'`);
     if (subTableCheck.rows && subTableCheck.rows.length > 0) {
       const subTableInfo = await db.execute(`PRAGMA table_info(submission_requests)`);
       hasFeedback = subTableInfo.rows?.some(
         (row: any) => row.name === 'feedback'
+      );
+      hasDashboardId = subTableInfo.rows?.some(
+        (row: any) => row.name === 'dashboard_id'
       );
     }
 
@@ -81,7 +85,7 @@ export async function initDb() {
       !hasIsDeleted ||
       !hasVersionsTable ||
       (tableInfo.rows && tableInfo.rows.length > 0 && !hasDesignation) || 
-      (subTableCheck.rows && subTableCheck.rows.length > 0 && !hasFeedback) ||
+      (subTableCheck.rows && subTableCheck.rows.length > 0 && (!hasFeedback || !hasDashboardId)) ||
       (itemsTableCheck.rows && itemsTableCheck.rows.length > 0 && !hasNewPlanColumns)
     ) {
       console.log('Recreating tables to remove dashboard status, support multiple dashboards, or update schemas...');
@@ -163,13 +167,15 @@ export async function initDb() {
         id TEXT PRIMARY KEY,
         manager_id TEXT NOT NULL,
         employee_id TEXT NOT NULL,
+        dashboard_id TEXT,
         deadline TEXT NOT NULL,
         status TEXT CHECK(status IN ('Pending', 'Submitted', 'Approved', 'Needs Revision')) DEFAULT 'Pending',
         feedback TEXT,
         submitted_at TEXT,
         reviewed_at TEXT,
         FOREIGN KEY(manager_id) REFERENCES users(id),
-        FOREIGN KEY(employee_id) REFERENCES users(id)
+        FOREIGN KEY(employee_id) REFERENCES users(id),
+        FOREIGN KEY(dashboard_id) REFERENCES dashboards(id) ON DELETE SET NULL
       )
     `);
 
@@ -183,6 +189,43 @@ export async function initDb() {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboard_item_links_target_id ON dashboard_item_links(target_id);`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_submission_requests_employee_id ON submission_requests(employee_id);`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboard_versions_dashboard_id ON dashboard_versions(dashboard_id);`);
+
+    // Add SQLite triggers for updating dashboards.updated_at automatically
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS trg_dashboard_items_update
+      AFTER UPDATE ON dashboard_items
+      BEGIN
+        UPDATE dashboards SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.dashboard_id;
+      END;
+    `);
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS trg_dashboard_items_insert
+      AFTER INSERT ON dashboard_items
+      BEGIN
+        UPDATE dashboards SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.dashboard_id;
+      END;
+    `);
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS trg_dashboard_items_delete
+      AFTER DELETE ON dashboard_items
+      BEGIN
+        UPDATE dashboards SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.dashboard_id;
+      END;
+    `);
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS trg_dashboard_item_links_insert
+      AFTER INSERT ON dashboard_item_links
+      BEGIN
+        UPDATE dashboards SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.dashboard_id;
+      END;
+    `);
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS trg_dashboard_item_links_delete
+      AFTER DELETE ON dashboard_item_links
+      BEGIN
+        UPDATE dashboards SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.dashboard_id;
+      END;
+    `);
 
     await seedDummyData(db);
     console.log('SQLite database initialized successfully!');

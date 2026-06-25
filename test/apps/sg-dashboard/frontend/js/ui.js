@@ -795,11 +795,13 @@ export function renderMySubmissions(submissions) {
     if (sub.status === 'Submitted') statusColor = 'text-blue-400 font-bold';
 
     const feedbackText = sub.feedback ? `<div class="bg-[var(--bg-input)] text-xs text-[var(--text-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] max-w-xs truncate" title="${sub.feedback}">${sub.feedback}</div>` : `<span class="text-gray-500 italic text-[10px]">No feedback yet</span>`;
+    const programName = sub.dashboard_program || 'General / Unlinked';
 
     body.innerHTML += `
       <tr class="hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-color)] font-medium">
         <td class="py-3.5 pl-3 font-mono text-[9px] text-[var(--accent)]">#${sub.id.substring(0,8)}</td>
         <td class="py-3.5 font-bold text-[var(--text-primary)]">${sub.manager_name}</td>
+        <td class="py-3.5 font-bold text-[var(--text-secondary)]">${programName}</td>
         <td class="py-3.5 font-mono text-[10px] text-[var(--text-secondary)]">${sub.deadline}</td>
         <td class="py-3.5 ${statusColor}">${sub.status}</td>
         <td class="py-3.5">${feedbackText}</td>
@@ -816,7 +818,7 @@ export function renderReviewsQueue(reviews) {
   body.innerHTML = '';
 
   if (reviews.length === 0) {
-    body.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-500 font-medium">No reviews in your queue. Request a submission from your team members.</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-gray-500 font-medium">No reviews in your queue. Request a submission from your team members.</td></tr>';
     return;
   }
 
@@ -826,6 +828,8 @@ export function renderReviewsQueue(reviews) {
       actionCell = `<button onclick="openReviewModal('${rev.id}')" class="text-indigo-400 hover:text-indigo-300 font-bold text-[10px] bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded hover:bg-indigo-500/25 transition-all shadow-sm">Review & Action</button>`;
     } else if (rev.status === 'Approved' || rev.status === 'Needs Revision') {
       actionCell = `<button onclick="openReviewModal('${rev.id}')" class="text-gray-400 hover:text-[var(--text-primary)] font-bold text-[10px] bg-[var(--bg-input)] border border-[var(--border-color)] px-2.5 py-1 rounded transition-all shadow-sm">View Review</button>`;
+    } else if (rev.status === 'Pending') {
+      actionCell = `<button onclick="freezeSubmission('${rev.id}')" class="text-amber-400 hover:text-amber-300 font-bold text-[10px] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded hover:bg-amber-500/25 transition-all shadow-sm" title="Freeze deadline & submit employee active dashboard directly">Freeze Now</button>`;
     } else {
       actionCell = `<span class="text-gray-500 italic text-[10px]">Awaiting Employee</span>`;
     }
@@ -837,6 +841,7 @@ export function renderReviewsQueue(reviews) {
 
     const feedbackText = rev.feedback ? `<div class="bg-[var(--bg-input)] text-xs text-[var(--text-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] max-w-xs truncate" title="${rev.feedback}">${rev.feedback}</div>` : `<span class="text-gray-500 italic text-[10px]">-</span>`;
     const submittedOn = rev.submitted_at ? rev.submitted_at : `<span class="text-gray-500 italic text-[10px]">-</span>`;
+    const programName = rev.dashboard_program || 'General / Unlinked';
 
     body.innerHTML += `
       <tr class="hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-color)] font-medium">
@@ -844,6 +849,7 @@ export function renderReviewsQueue(reviews) {
           <div class="font-bold text-[var(--text-primary)]">${rev.employee_name}</div>
           <div class="text-[9px] font-mono text-[var(--text-secondary)]">${rev.employee_designation || rev.employee_role}</div>
         </td>
+        <td class="py-3.5 font-bold text-[var(--text-secondary)]">${programName}</td>
         <td class="py-3.5 font-mono text-[10px] text-[var(--text-secondary)]">${rev.deadline}</td>
         <td class="py-3.5 ${statusColor}">${rev.status}</td>
         <td class="py-3.5 font-mono text-[10px] text-[var(--text-secondary)]">${submittedOn}</td>
@@ -1026,9 +1032,11 @@ export function renderTeam(team, currentUserId, currentUserRole) {
       actions += `<button onclick="viewEmployeeDashboard('${emp.id}')" class="flex-1 text-center font-bold text-xs bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-xl transition-all shadow-sm">View Dashboard</button>`;
     }
     
+    // Add Submissions history button for direct/indirect report review
+    actions += `<button onclick="viewEmployeeSubmissions('${emp.id}')" class="px-3.5 text-center font-bold text-xs bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] py-2 rounded-xl transition-all border border-[var(--border-color)]" title="View all submissions">Submissions</button>`;
+
     if (emp.managerId === currentUserId || currentUserRole === 'Admin') {
-      const buttonWidth = emp.hasDashboard ? 'w-auto px-3.5' : 'flex-1';
-      actions += `<button onclick="triggerRequestSubmission('${emp.id}')" class="${buttonWidth} text-center font-bold text-xs bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] py-2 rounded-xl transition-all border border-[var(--border-color)]">Request Update</button>`;
+      actions += `<button onclick="triggerRequestSubmission('${emp.id}')" class="px-3.5 text-center font-bold text-xs bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] py-2 rounded-xl transition-all border border-[var(--border-color)]" title="Request update / freeze deadline">Request Update</button>`;
     }
 
     card.innerHTML = `
@@ -1515,6 +1523,198 @@ export function showCustomConfirm(message, title = 'Confirm Action') {
   });
 }
 
+export function showEmployeeSubmissionsModal(employeeName, submissions) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] opacity-0 transition-opacity duration-300';
+    overlay.style.pointerEvents = 'auto';
+    
+    let tableRows = '';
+    if (submissions && submissions.length > 0) {
+      submissions.forEach(sub => {
+        let statusColor = 'text-amber-400 font-bold';
+        if (sub.status === 'Approved') statusColor = 'text-emerald-400 font-bold';
+        if (sub.status === 'Needs Revision') statusColor = 'text-rose-400 font-bold';
+        if (sub.status === 'Submitted') statusColor = 'text-blue-400 font-bold';
+        
+        const feedbackText = sub.feedback 
+          ? `<div class="bg-[var(--bg-input)] text-[10px] text-[var(--text-secondary)] px-2.5 py-1 rounded border border-[var(--border-color)] max-w-xs truncate" title="${sub.feedback}">${sub.feedback}</div>` 
+          : `<span class="text-gray-500 italic text-[9px]">-</span>`;
+          
+        const submittedOn = sub.submitted_at ? sub.submitted_at.split('T')[0] : `<span class="text-gray-500 italic text-[9px]">Not submitted</span>`;
+        const programName = sub.dashboard_program || 'General / Unlinked';
+
+        tableRows += `
+          <tr class="hover:bg-[var(--bg-hover)] border-b border-[var(--border-color)] text-xs">
+            <td class="py-2.5 pl-2 font-mono text-[9px] text-[var(--accent)]">#${sub.id.substring(0,8)}</td>
+            <td class="py-2.5 font-semibold text-[var(--text-secondary)]">${programName}</td>
+            <td class="py-2.5 font-mono text-[10px] text-[var(--text-secondary)]">${sub.deadline}</td>
+            <td class="py-2.5 ${statusColor}">${sub.status}</td>
+            <td class="py-2.5 font-mono text-[10px] text-[var(--text-secondary)]">${submittedOn}</td>
+            <td class="py-2.5">${feedbackText}</td>
+          </tr>
+        `;
+      });
+    } else {
+      tableRows = '<tr><td colspan="6" class="text-center py-6 text-gray-500 font-medium">No submission requests found for this employee.</td></tr>';
+    }
+    
+    overlay.innerHTML = `
+      <div class="bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-2xl p-6 max-w-2xl w-full mx-4 shadow-2xl scale-90 opacity-0 transition-all duration-300">
+        <div class="flex items-center justify-between mb-4 select-none">
+          <div class="flex items-center gap-2">
+            <span class="text-indigo-400 text-lg">📋</span>
+            <h3 class="text-xs font-black uppercase tracking-wider text-[var(--text-primary)]">${employeeName}'s Submissions</h3>
+          </div>
+          <button id="emp-subs-close-x" class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all font-bold">✕</button>
+        </div>
+        
+        <div class="overflow-x-auto custom-scrollbar border border-[var(--border-color)] rounded-xl mb-6 max-h-80 overflow-y-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-[var(--bg-card)] border-b border-[var(--border-color)] text-[9px] font-black uppercase tracking-wider text-[var(--text-secondary)] select-none">
+                <th class="py-2.5 pl-2">ID</th>
+                <th class="py-2.5">Program</th>
+                <th class="py-2.5">Deadline</th>
+                <th class="py-2.5">Status</th>
+                <th class="py-2.5">Submitted On</th>
+                <th class="py-2.5">Feedback</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex justify-end select-none">
+          <button id="emp-subs-close" class="px-5 py-2 rounded-xl text-xs font-bold bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-color)] active:scale-95 hover:bg-[var(--bg-input)] transition-all select-none">Close</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    requestAnimationFrame(() => {
+      overlay.classList.add('opacity-100');
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-90', 'opacity-0');
+      dialog.classList.add('scale-100', 'opacity-100');
+    });
+    
+    const close = () => {
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve();
+      }, 300);
+    };
+    
+    overlay.querySelector('#emp-subs-close').onclick = close;
+    overlay.querySelector('#emp-subs-close-x').onclick = close;
+  });
+}
+
+export function showSubmitDashboardModal(dashboards, currentDashboardId) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] opacity-0 transition-opacity duration-300';
+    overlay.style.pointerEvents = 'auto';
+    
+    let optionsHtml = '';
+    const activeDashboards = (dashboards || []).filter(d => !d.is_deleted);
+    if (activeDashboards.length > 0) {
+      activeDashboards.forEach(d => {
+        const isSelected = d.id === currentDashboardId ? 'selected' : '';
+        
+        let prefix = '📝'; // Draft / Modified
+        if (d.last_submission_status === 'Approved') {
+          if (d.last_submission_date && d.updated_at && new Date(d.updated_at) > new Date(d.last_submission_date)) {
+            prefix = '📝'; // Modified after approval
+          } else {
+            prefix = '✅'; // Approved & Up-to-date
+          }
+        } else if (d.last_submission_status === 'Submitted') {
+          if (d.last_submission_date && d.updated_at && new Date(d.updated_at) > new Date(d.last_submission_date)) {
+            prefix = '📝'; // Modified after submission
+          } else {
+            prefix = '📤'; // Submitted
+          }
+        } else if (d.last_submission_status === 'Needs Revision') {
+          prefix = '⚠️';
+        } else if (d.last_submission_status === 'Pending') {
+          prefix = '⏳';
+        }
+        
+        optionsHtml += `<option value="${d.id}" ${isSelected}>${prefix} ${d.program_line || 'General'}</option>`;
+      });
+    } else {
+      optionsHtml = '<option value="">-- General / New Dashboard --</option>';
+    }
+    
+    overlay.innerHTML = `
+      <div class="bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl scale-90 opacity-0 transition-all duration-300">
+        <div class="flex items-center gap-2 mb-4 select-none">
+          <span class="text-emerald-400 text-lg">📤</span>
+          <h3 class="text-xs font-black uppercase tracking-wider select-none text-[var(--text-primary)]">Submit SG Dashboard</h3>
+        </div>
+        <p class="text-xs text-[var(--text-secondary)] mb-4 leading-relaxed select-none">
+          Submit your Technical Resource Plan for manager review. Select which program dashboard you would like to submit:
+        </p>
+        
+        <div class="space-y-4 mb-6">
+          <div class="space-y-1">
+            <label class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Select Dashboard</label>
+            <select id="sub-plan-dashboard" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)] font-medium">
+              ${optionsHtml}
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 select-none">
+          <button id="sub-plan-cancel" class="px-5 py-2 rounded-xl text-xs font-bold bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-color)] active:scale-95 hover:bg-[var(--bg-input)] transition-all select-none">Cancel</button>
+          <button id="sub-plan-ok" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-500 text-white shadow-lg active:scale-95 transition-all select-none hover:opacity-90">Submit Plan</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    requestAnimationFrame(() => {
+      overlay.classList.add('opacity-100');
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-90', 'opacity-0');
+      dialog.classList.add('scale-100', 'opacity-100');
+    });
+    
+    overlay.querySelector('#sub-plan-cancel').onclick = () => {
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve(null);
+      }, 300);
+    };
+    
+    overlay.querySelector('#sub-plan-ok').onclick = () => {
+      const dashboardId = overlay.querySelector('#sub-plan-dashboard').value || null;
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve({ dashboardId });
+      }, 300);
+    };
+  });
+}
+
 export function showCustomPrompt(message, defaultValue = '', title = 'Required Input') {
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
@@ -1582,6 +1782,93 @@ export function showCustomPrompt(message, defaultValue = '', title = 'Required I
     };
   });
 }
+
+export function showSubmissionRequestModal(employeeName, dashboards) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] opacity-0 transition-opacity duration-300';
+    overlay.style.pointerEvents = 'auto';
+    
+    let optionsHtml = '<option value="">-- General / New Dashboard --</option>';
+    if (dashboards && dashboards.length > 0) {
+      dashboards.forEach(d => {
+        optionsHtml += `<option value="${d.id}">${d.program_line || 'General'}</option>`;
+      });
+    }
+    
+    const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    overlay.innerHTML = `
+      <div class="bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl scale-90 opacity-0 transition-all duration-300">
+        <div class="flex items-center gap-2 mb-4 select-none">
+          <span class="text-[var(--accent)] text-lg">📥</span>
+          <h3 class="text-xs font-black uppercase tracking-wider select-none text-[var(--text-primary)]">Request Plan Submission</h3>
+        </div>
+        <p class="text-xs text-[var(--text-secondary)] mb-4 leading-relaxed select-none">
+          Request a formal Technical Resource Plan review from <strong>${employeeName}</strong>.
+        </p>
+        
+        <div class="space-y-4 mb-6">
+          <div class="space-y-1">
+            <label class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Target Program Dashboard</label>
+            <select id="sub-req-dashboard" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)] font-medium">
+              ${optionsHtml}
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Review Deadline</label>
+            <input type="date" id="sub-req-deadline" value="${defaultDate}" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)] font-medium">
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 select-none">
+          <button id="sub-req-cancel" class="px-5 py-2 rounded-xl text-xs font-bold bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-color)] active:scale-95 hover:bg-[var(--bg-input)] transition-all select-none">Cancel</button>
+          <button id="sub-req-ok" class="px-5 py-2 rounded-xl text-xs font-bold bg-[var(--accent)] text-white shadow-lg active:scale-95 transition-all select-none hover:opacity-90">Request</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    requestAnimationFrame(() => {
+      overlay.classList.add('opacity-100');
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-90', 'opacity-0');
+      dialog.classList.add('scale-100', 'opacity-100');
+    });
+    
+    overlay.querySelector('#sub-req-cancel').onclick = () => {
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve(null);
+      }, 300);
+    };
+    
+    overlay.querySelector('#sub-req-ok').onclick = () => {
+      const dashboardId = overlay.querySelector('#sub-req-dashboard').value || null;
+      const deadline = overlay.querySelector('#sub-req-deadline').value;
+      
+      if (!deadline) {
+        alert('Please enter a target deadline date.');
+        return;
+      }
+      
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve({ dashboardId, deadline });
+      }, 300);
+    };
+  });
+}
+
 
 const suggestionCache = {
   key_skill: [],
