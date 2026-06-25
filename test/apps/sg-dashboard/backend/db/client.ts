@@ -105,6 +105,19 @@ export async function initDb() {
     `);
 
     await db.execute(`
+      CREATE TABLE IF NOT EXISTS dashboard_item_links (
+        id TEXT PRIMARY KEY,
+        dashboard_id TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        FOREIGN KEY(dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE,
+        FOREIGN KEY(source_id) REFERENCES dashboard_items(id) ON DELETE CASCADE,
+        FOREIGN KEY(target_id) REFERENCES dashboard_items(id) ON DELETE CASCADE,
+        UNIQUE(source_id, target_id)
+      )
+    `);
+
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS submission_requests (
         id TEXT PRIMARY KEY,
         manager_id TEXT NOT NULL,
@@ -124,6 +137,9 @@ export async function initDb() {
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboards_user_id ON dashboards(user_id);`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboard_items_dashboard_id ON dashboard_items(dashboard_id);`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboard_item_links_dashboard_id ON dashboard_item_links(dashboard_id);`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboard_item_links_source_id ON dashboard_item_links(source_id);`);
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_dashboard_item_links_target_id ON dashboard_item_links(target_id);`);
     await db.execute(`CREATE INDEX IF NOT EXISTS idx_submission_requests_employee_id ON submission_requests(employee_id);`);
 
     await seedDummyData(db);

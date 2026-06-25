@@ -5,7 +5,8 @@ import {
   deleteItem,
   submitDashboard,
   viewEmployeeDashboard,
-  triggerRequestSubmission
+  triggerRequestSubmission,
+  updateItemLinks
 } from './app.js';
 
 // Apply persisted theme on load
@@ -133,8 +134,7 @@ export function populateManagerDropdown(users, currentManagerId) {
 
 
 // Render Dashboard Items
-// Render Dashboard Items
-export function renderDashboardItems(items, isReadOnly = false) {
+export function renderDashboardItems(items, isReadOnly = false, links = []) {
   // 1. Key Skills
   const coreList = document.getElementById('core-skills-list');
   const stratList = document.getElementById('strategic-skills-list');
@@ -157,7 +157,7 @@ export function renderDashboardItems(items, isReadOnly = false) {
       coreList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No core skills listed.</li>';
     } else {
       coreSkills.forEach(item => {
-        coreList.appendChild(createGenericElement(item, isReadOnly));
+        coreList.appendChild(createGenericElement(item, isReadOnly, []));
       });
     }
 
@@ -165,16 +165,16 @@ export function renderDashboardItems(items, isReadOnly = false) {
       stratList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No strategic skills listed.</li>';
     } else {
       stratSkills.forEach(item => {
-        stratList.appendChild(createGenericElement(item, isReadOnly));
+        stratList.appendChild(createGenericElement(item, isReadOnly, []));
       });
     }
   }
 
   // 2. Gaps
   const gapsList = document.getElementById('gaps-list');
+  const gaps = items.filter(i => i.section === 'gap');
   if (gapsList) {
     gapsList.innerHTML = '';
-    const gaps = items.filter(i => i.section === 'gap');
     
     const criticalCount = gaps.filter(g => {
       let p = g.category || 'Low';
@@ -197,7 +197,9 @@ export function renderDashboardItems(items, isReadOnly = false) {
       gapsList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No skill gaps identified.</li>';
     } else {
       gaps.forEach(item => {
-        gapsList.appendChild(createGenericElement(item, isReadOnly));
+        // Find plans linked to this gap
+        const linkedPlanIds = links.filter(l => l.target_id === item.id).map(l => l.source_id);
+        gapsList.appendChild(createGenericElement(item, isReadOnly, linkedPlanIds));
       });
     }
   }
@@ -224,7 +226,10 @@ export function renderDashboardItems(items, isReadOnly = false) {
       stratPlansList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No strategic plans scheduled.</li>';
     } else {
       stratPlans.forEach(item => {
-        stratPlansList.appendChild(createGenericElement(item, isReadOnly));
+        // Find gaps linked to this plan
+        const linkedGapIds = links.filter(l => l.source_id === item.id).map(l => l.target_id);
+        const linkedGapsList = gaps.filter(g => linkedGapIds.includes(g.id));
+        stratPlansList.appendChild(createTrainingPlanElement(item, gaps, linkedGapsList, isReadOnly));
       });
     }
 
@@ -232,7 +237,10 @@ export function renderDashboardItems(items, isReadOnly = false) {
       tactPlansList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No tactical plans scheduled.</li>';
     } else {
       tactPlans.forEach(item => {
-        tactPlansList.appendChild(createGenericElement(item, isReadOnly));
+        // Find gaps linked to this plan
+        const linkedGapIds = links.filter(l => l.source_id === item.id).map(l => l.target_id);
+        const linkedGapsList = gaps.filter(g => linkedGapIds.includes(g.id));
+        tactPlansList.appendChild(createTrainingPlanElement(item, gaps, linkedGapsList, isReadOnly));
       });
     }
   }
@@ -250,9 +258,32 @@ export function getGenericBadgeStyle(category) {
   return base + "bg-blue-500 text-white shadow-sm shadow-blue-500/10";
 }
 
-function createGenericElement(item, isReadOnly = false) {
+function createGenericElement(item, isReadOnly = false, linkedIds = []) {
   const li = document.createElement('li');
-  li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)] font-medium";
+  li.id = `item-row-${item.id}`;
+  li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)] font-medium border border-transparent";
+  li.dataset.linkedIds = JSON.stringify(linkedIds);
+
+  // Hover highlights
+  li.addEventListener('mouseenter', () => {
+    try {
+      const ids = JSON.parse(li.dataset.linkedIds || '[]');
+      ids.forEach(id => {
+        const el = document.getElementById(`item-row-${id}`);
+        if (el) el.classList.add('relational-highlight');
+      });
+    } catch(e) {}
+  });
+
+  li.addEventListener('mouseleave', () => {
+    try {
+      const ids = JSON.parse(li.dataset.linkedIds || '[]');
+      ids.forEach(id => {
+        const el = document.getElementById(`item-row-${id}`);
+        if (el) el.classList.remove('relational-highlight');
+      });
+    } catch(e) {}
+  });
 
   const leftSide = document.createElement('div');
   leftSide.className = "flex items-center gap-2.5 truncate flex-1";
@@ -266,7 +297,7 @@ function createGenericElement(item, isReadOnly = false) {
   const badge = document.createElement('span');
   badge.className = getGenericBadgeStyle(item.category);
   badge.textContent = priority.toUpperCase();
-  if (!isReadOnly) {
+  if (!isReadOnly && item.section === 'gap') {
     badge.title = "Click to cycle priority";
     badge.onclick = (e) => {
       e.stopPropagation();
@@ -283,6 +314,18 @@ function createGenericElement(item, isReadOnly = false) {
 
   leftSide.appendChild(badge);
   leftSide.appendChild(titleSpan);
+
+  if (item.section === 'gap') {
+    const countPill = document.createElement('span');
+    countPill.className = 'count-badge' + (linkedIds.length > 0 ? ' active-count' : '');
+    countPill.textContent = `${linkedIds.length} plans`;
+    leftSide.appendChild(countPill);
+
+    if (linkedIds.length === 0) {
+      li.classList.add('unlinked-alert');
+    }
+  }
+
   li.appendChild(leftSide);
 
   if (!isReadOnly) {
@@ -297,6 +340,222 @@ function createGenericElement(item, isReadOnly = false) {
   }
 
   return li;
+}
+
+function createTrainingPlanElement(item, allGaps, linkedGaps, isReadOnly = false) {
+  const li = document.createElement('li');
+  li.id = `item-row-${item.id}`;
+  li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)] font-medium border border-transparent relative";
+
+  const linkedGapIds = linkedGaps.map(g => g.id);
+  li.dataset.linkedIds = JSON.stringify(linkedGapIds);
+
+  if (linkedGaps.length === 0) {
+    li.classList.add('unlinked-alert');
+  }
+
+  // Hover highlights
+  li.addEventListener('mouseenter', () => {
+    try {
+      const ids = JSON.parse(li.dataset.linkedIds || '[]');
+      ids.forEach(id => {
+        const el = document.getElementById(`item-row-${id}`);
+        if (el) el.classList.add('relational-highlight');
+      });
+    } catch(e) {}
+  });
+
+  li.addEventListener('mouseleave', () => {
+    try {
+      const ids = JSON.parse(li.dataset.linkedIds || '[]');
+      ids.forEach(id => {
+        const el = document.getElementById(`item-row-${id}`);
+        if (el) el.classList.remove('relational-highlight');
+      });
+    } catch(e) {}
+  });
+
+  const leftSide = document.createElement('div');
+  leftSide.className = "flex items-center gap-2.5 truncate flex-1";
+
+  // Parse category/badge type
+  let planCategory = item.category || 'Strategic:TIME';
+  let planType = 'Strategic';
+  let badgeText = 'PLAN';
+  if (planCategory.includes(':')) {
+    const parts = planCategory.split(':');
+    planType = parts[0];
+    badgeText = parts[1];
+  }
+
+  const badge = document.createElement('span');
+  badge.className = "px-2 py-0.5 rounded text-[9px] font-black tracking-wide uppercase select-none cursor-pointer bg-emerald-500 text-white shadow-sm shadow-emerald-500/20";
+  badge.textContent = badgeText.toUpperCase();
+  if (!isReadOnly) {
+    badge.title = "Click to cycle badge type";
+    badge.onclick = (e) => {
+      e.stopPropagation();
+      cyclePlanBadgeType(item, planType, badgeText);
+    };
+  }
+
+  const titleSpan = document.createElement('span');
+  titleSpan.className = "font-medium truncate item-title-text" + (isReadOnly ? "" : " cursor-pointer");
+  titleSpan.textContent = item.title;
+  if (!isReadOnly) {
+    titleSpan.onclick = () => startEditingItem(item, titleSpan);
+  }
+
+  leftSide.appendChild(badge);
+  leftSide.appendChild(titleSpan);
+  li.appendChild(leftSide);
+
+  // Right wrapper for bubbles and actions
+  const rightSide = document.createElement('div');
+  rightSide.className = "flex items-center gap-2 shrink-0";
+
+  // Stack of linked gaps
+  if (linkedGaps.length > 0) {
+    const stack = document.createElement('div');
+    stack.className = "bubble-stack";
+
+    const maxVisible = 2;
+    const visibleGaps = linkedGaps.slice(0, maxVisible);
+    const remainingCount = linkedGaps.length - maxVisible;
+
+    if (remainingCount > 0) {
+      const moreBubble = document.createElement('div');
+      moreBubble.className = "bubble-item bubble-more custom-tooltip";
+      moreBubble.textContent = `+${remainingCount}`;
+      const remainingNames = linkedGaps.slice(maxVisible).map(g => g.title).join(', ');
+      moreBubble.setAttribute('data-tooltip', remainingNames);
+      stack.appendChild(moreBubble);
+    }
+
+    // reverse for flex row-reverse
+    visibleGaps.reverse().forEach(gap => {
+      const bubble = document.createElement('div');
+      bubble.className = "bubble-item custom-tooltip";
+      const initials = gap.title.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+      bubble.textContent = initials;
+      bubble.setAttribute('data-tooltip', gap.title);
+
+      const colors = [
+        'linear-gradient(135deg, #f87171 0%, #ef4444 100%)',
+        'linear-gradient(135deg, #fb923c 0%, #f97316 100%)',
+        'linear-gradient(135deg, #fb7185 0%, #f43f5e 100%)'
+      ];
+      const charSum = gap.title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      bubble.style.background = colors[charSum % colors.length];
+
+      stack.appendChild(bubble);
+    });
+
+    rightSide.appendChild(stack);
+  }
+
+  // Link button
+  if (!isReadOnly) {
+    const linkBtn = document.createElement('button');
+    linkBtn.className = "text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold px-1.5 py-0.5 rounded text-xs select-none hover:bg-[var(--bg-hover)] transition-all";
+    linkBtn.innerHTML = "+🔗";
+    linkBtn.title = "Link Skill Gaps";
+    linkBtn.onclick = (e) => {
+      e.stopPropagation();
+      showLinkPopover(e.currentTarget, item, allGaps, linkedGapIds);
+    };
+    rightSide.appendChild(linkBtn);
+  }
+
+  // Delete button
+  if (!isReadOnly) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px]";
+    deleteBtn.innerHTML = "✕";
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteItem(item.id);
+    };
+    rightSide.appendChild(deleteBtn);
+  }
+
+  li.appendChild(rightSide);
+  return li;
+}
+
+function showLinkPopover(buttonEl, item, allGaps, linkedGapIds) {
+  const oldPopover = document.getElementById('active-links-popover');
+  if (oldPopover) oldPopover.remove();
+
+  if (allGaps.length === 0) {
+    const alertOverlay = document.createElement('div');
+    alertOverlay.className = "fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm";
+    alertOverlay.innerHTML = `
+      <div class="bg-[var(--bg-card)] border border-[var(--border-color)] p-6 rounded-2xl max-w-sm text-center shadow-2xl animate-fade-in">
+        <h3 class="font-bold text-sm text-[var(--text-primary)]">No Skill Gaps Found</h3>
+        <p class="text-xs text-[var(--text-secondary)] mt-2">Please define at least one skill gap in the "Skill Gaps" column before linking it to training plans.</p>
+        <button id="close-link-alert" class="mt-4 px-4 py-1.5 rounded-lg bg-[var(--accent)] text-white text-xs font-bold shadow-sm hover:opacity-90 transition-all">OK</button>
+      </div>
+    `;
+    document.body.appendChild(alertOverlay);
+    document.getElementById('close-link-alert').onclick = () => alertOverlay.remove();
+    return;
+  }
+
+  const popover = document.createElement('div');
+  popover.id = 'active-links-popover';
+  popover.className = 'absolute links-popover';
+
+  const header = document.createElement('div');
+  header.className = 'text-[10px] font-black uppercase tracking-wider text-[var(--text-secondary)] px-2 pb-1.5 mb-1.5 border-b border-[var(--border-color)]';
+  header.textContent = 'Link Skill Gaps';
+  popover.appendChild(header);
+
+  allGaps.forEach(gap => {
+    const label = document.createElement('label');
+    label.className = 'links-popover-item';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = gap.id;
+    checkbox.checked = linkedGapIds.includes(gap.id);
+    checkbox.className = 'accent-[var(--accent)]';
+
+    checkbox.onchange = async () => {
+      let nextIds = [...linkedGapIds];
+      if (checkbox.checked) {
+        if (!nextIds.includes(gap.id)) nextIds.push(gap.id);
+      } else {
+        nextIds = nextIds.filter(id => id !== gap.id);
+      }
+      await updateItemLinks(item.id, nextIds);
+    };
+
+    const span = document.createElement('span');
+    span.className = 'text-xs text-[var(--text-primary)] truncate font-semibold';
+    span.textContent = gap.title;
+
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    popover.appendChild(label);
+  });
+
+  document.body.appendChild(popover);
+
+  const rect = buttonEl.getBoundingClientRect();
+  popover.style.top = `${rect.bottom + window.scrollY + 6}px`;
+  popover.style.left = `${Math.min(rect.left + window.scrollX - 100, window.innerWidth - 240)}px`;
+
+  const clickOutside = (event) => {
+    if (!popover.contains(event.target) && !buttonEl.contains(event.target)) {
+      popover.remove();
+      document.removeEventListener('click', clickOutside);
+    }
+  };
+
+  setTimeout(() => {
+    document.addEventListener('click', clickOutside);
+  }, 50);
 }
 
 // Render Submissions

@@ -88,8 +88,12 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
         sql: 'SELECT * FROM dashboard_items WHERE dashboard_id = ?',
         args: [dashboard.id],
       });
+      const linksRes = await db.execute({
+        sql: 'SELECT * FROM dashboard_item_links WHERE dashboard_id = ?',
+        args: [dashboard.id],
+      });
 
-      return { dashboard, items: itemsRes.rows };
+      return { dashboard, items: itemsRes.rows, links: linksRes.rows };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -196,7 +200,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
           args: [dashboardId],
         });
         const dashboard = freshRes.rows[0];
-        return { dashboard, items: [] };
+        return { dashboard, items: [], links: [] };
       }
 
       const dashboard = res?.rows[0];
@@ -204,8 +208,12 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
         sql: 'SELECT * FROM dashboard_items WHERE dashboard_id = ?',
         args: [dashboard.id],
       });
+      const linksRes = await db.execute({
+        sql: 'SELECT * FROM dashboard_item_links WHERE dashboard_id = ?',
+        args: [dashboard.id],
+      });
 
-      return { dashboard, items: itemsRes.rows };
+      return { dashboard, items: itemsRes.rows, links: linksRes.rows };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -425,6 +433,8 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       const newDashboardId = crypto.randomUUID();
       const newProgramName = `${original.program_line || 'Default Program'} (Copy)`;
 
+      await db.execute('BEGIN TRANSACTION');
+
       await db.execute({
         sql: 'INSERT INTO dashboards (id, user_id, program_line, objective, notes) VALUES (?, ?, ?, ?, ?)',
         args: [
@@ -441,16 +451,92 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
         args: [dashboardId]
       });
 
+      const itemIdMap = new Map<string, string>();
       for (const item of itemsRes.rows) {
         const newItemId = crypto.randomUUID();
+        itemIdMap.set(item.id as string, newItemId);
         await db.execute({
           sql: 'INSERT INTO dashboard_items (id, dashboard_id, section, category, title, description, deadline) VALUES (?, ?, ?, ?, ?, ?, ?)',
           args: [newItemId, newDashboardId, item.section, item.category, item.title, item.description, item.deadline]
         });
       }
 
+      // Clone links mapping old item IDs to new item IDs
+      const linksRes = await db.execute({
+        sql: 'SELECT * FROM dashboard_item_links WHERE dashboard_id = ?',
+        args: [dashboardId]
+      });
+
+      for (const link of linksRes.rows) {
+        const newSourceId = itemIdMap.get(link.source_id as string);
+        const newTargetId = itemIdMap.get(link.target_id as string);
+        if (newSourceId && newTargetId) {
+          const newLinkId = crypto.randomUUID();
+          await db.execute({
+            sql: 'INSERT INTO dashboard_item_links (id, dashboard_id, source_id, target_id) VALUES (?, ?, ?, ?)',
+            args: [newLinkId, newDashboardId, newSourceId, newTargetId]
+          });
+        }
+      }
+
+      await db.execute('COMMIT');
       return { success: true, newDashboardId, newProgramName };
     } catch (err: any) {
+      try {
+        await db.execute('ROLLBACK');
+      } catch (e) {}
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Sync Item Links (Owner only)
+  fastify.post('/api/dashboard/:id/links', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const dashboardId = request.params.id;
+    const { source_id, target_ids } = request.body || {};
+
+    if (!source_id || !Array.isArray(target_ids)) {
+      return reply.status(400).send({ error: 'source_id and target_ids array are required.' });
+    }
+
+    try {
+      const ownerRes = await db.execute({
+        sql: 'SELECT user_id FROM dashboards WHERE id = ?',
+        args: [dashboardId],
+      });
+
+      if (ownerRes.rows.length === 0) {
+        return reply.status(404).send({ error: 'Dashboard not found' });
+      }
+
+      if (ownerRes.rows[0].user_id !== user.id) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+
+      // Sync links in transaction
+      await db.execute('BEGIN TRANSACTION');
+
+      // Delete old links
+      await db.execute({
+        sql: 'DELETE FROM dashboard_item_links WHERE dashboard_id = ? AND source_id = ?',
+        args: [dashboardId, source_id],
+      });
+
+      // Insert new links
+      for (const targetId of target_ids) {
+        const linkId = crypto.randomUUID();
+        await db.execute({
+          sql: 'INSERT INTO dashboard_item_links (id, dashboard_id, source_id, target_id) VALUES (?, ?, ?, ?)',
+          args: [linkId, dashboardId, source_id, targetId],
+        });
+      }
+
+      await db.execute('COMMIT');
+      return { success: true };
+    } catch (err: any) {
+      try {
+        await db.execute('ROLLBACK');
+      } catch (e) {}
       return reply.status(500).send({ error: err.message });
     }
   });

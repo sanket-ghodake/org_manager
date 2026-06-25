@@ -235,3 +235,16 @@ export async function createDashboard(apiToken, programName) {
   if (!res.ok) throw new Error('Failed to create new program dashboard');
   return res.json();
 }
+
+export async function syncDashboardItemLinks(apiToken, dashboardId, sourceId, targetIds) {
+  const res = await fetch(`${apiPrefix}/dashboard/${dashboardId}/links`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiToken}`
+    },
+    body: JSON.stringify({ source_id: sourceId, target_ids: targetIds })
+  });
+  if (!res.ok) throw new Error('Failed to update linked skill gaps');
+  return res.json();
+}

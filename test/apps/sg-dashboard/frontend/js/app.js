@@ -309,6 +309,16 @@ export async function deleteItem(id) {
   }
 }
 
+export async function updateItemLinks(sourceId, targetIds) {
+  try {
+    await api.syncDashboardItemLinks(apiToken, currentDashboardId, sourceId, targetIds);
+    await loadMyDashboard();
+  } catch (err) {
+    console.error(err);
+    await ui.showCustomAlert('Failed to update linked skill gaps: ' + err.message, 'Error');
+  }
+}
+
 export async function submitDashboard(id) {
   const confirmed = await ui.showCustomConfirm('Are you sure you want to submit your current TRR dashboard to your manager for review?', 'Submit Dashboard');
   if (!confirmed) return;
@@ -629,7 +639,7 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
       notesTextarea.disabled = isReadOnly;
     }
 
-    ui.renderDashboardItems(dashData.items, isReadOnly);
+    ui.renderDashboardItems(dashData.items, isReadOnly, dashData.links || []);
 
     // Update autocomplete suggestions list
     updateAllSuggestions().catch(err => console.warn('Failed to update suggestions:', err));
