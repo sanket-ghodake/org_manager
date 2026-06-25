@@ -97,7 +97,7 @@ export async function seedDummyData(db: any) {
     ];
 
     for (const user of userMap.values()) {
-      if (user.role === 'Admin') continue; // Admins don't hold personal TRR plans
+      if (user.role === 'Admin') continue; // Admins don't hold personal SG Dashboard plans
 
       // Create two dashboards for each user to showcase the multiple dashboard capability
       const dashboardsToCreate = [

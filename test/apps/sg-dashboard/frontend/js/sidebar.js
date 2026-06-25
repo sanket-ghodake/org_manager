@@ -156,6 +156,8 @@ function initSidebar() {
     }
   }
 
+  window.toggleSidebar = toggleSidebar;
+
   // Bind click event
   toggleBtn.addEventListener('click', toggleSidebar);
 

@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TRR Strategy // Technical Resource Review</title>
+  <title>SG Dashboard // Technical Resource Review</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=1.0.1">
 </head>
 <body class="h-screen w-screen overflow-hidden flex flex-col custom-scrollbar">
 
@@ -24,7 +24,7 @@
   <!-- Top Sticky Header (Full Width) -->
   <header class="h-[45px] border-b border-[var(--border-color)] bg-[var(--bg-header)] flex items-center justify-between shrink-0 z-40 relative">
     <!-- Left Header Section (aligned with Sidebar width) -->
-    <div id="header-left" class="h-full flex items-center px-4 border-r border-[var(--border-color)] shrink-0 transition-all duration-300 relative" style="width: 256px;">
+    <div id="header-left" class="h-full flex items-center px-4 border-r border-[var(--border-color)] shrink-0 transition-all duration-300 relative select-none" style="width: 256px;">
       <!-- Logo -->
       <div class="flex items-center gap-2.5 overflow-hidden">
         <div class="w-7 h-7 rounded-md flex items-center justify-center text-base bg-gradient-to-tr from-purple-600 to-pink-500 text-white shrink-0">
@@ -32,7 +32,7 @@
         </div>
         <div class="logo-text transition-opacity duration-300 leading-none">
           <h1 class="text-xs font-black tracking-wider text-[var(--text-primary)] whitespace-nowrap leading-tight">SG_Dashboard</h1>
-          <p class="text-[9px] text-[var(--text-secondary)] whitespace-nowrap leading-none mt-0.5">TRR Strategy Portal</p>
+          <p class="text-[9px] text-[var(--text-secondary)] whitespace-nowrap leading-none mt-0.5">SG Dashboard Portal</p>
         </div>
       </div>
     </div>
@@ -76,7 +76,7 @@
   <!-- Layout Body Wrapper -->
   <div class="flex-1 flex overflow-hidden w-full relative">
     <!-- Left Sidebar Nav -->
-    <aside id="sidebar" class="w-64 h-full flex flex-col justify-between border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] shrink-0 z-30 overflow-hidden">
+    <aside id="sidebar" class="w-64 h-full flex flex-col justify-between border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] shrink-0 z-30 overflow-hidden select-none">
       <div>
         <!-- Menu Items -->
         <nav class="p-4 space-y-1">
@@ -97,7 +97,7 @@
 
       <!-- User Profile & Avatar Card -->
       <div class="p-4 border-t border-[var(--border-color)]">
-        <div class="flex items-center gap-3 bg-[var(--bg-input)] p-2.5 rounded-xl border border-[var(--border-color)]">
+        <div onclick="showProfilePopup(event)" class="flex items-center gap-3 bg-[var(--bg-input)] p-2.5 rounded-xl border border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-hover)] transition-all select-none" id="sidebar-profile-card">
           <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-xs" id="user-avatar">
             AP
           </div>
@@ -335,7 +335,7 @@
               <h3 class="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
                 📋 Team Review Requests
               </h3>
-              <p class="text-xs text-[var(--text-secondary)] mt-1">Approve or request updates on TRR dashboards submitted by your reporting chain.</p>
+              <p class="text-xs text-[var(--text-secondary)] mt-1">Approve or request updates on SG Dashboards submitted by your reporting chain.</p>
             </div>
             
             <!-- Filters & Search -->
@@ -566,7 +566,7 @@
                 ⚠️ Request Revision
               </button>
               <button onclick="submitReviewAction('Approved')" class="flex-1 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all text-center shadow-md">
-                ✓ Approve TRR Plan
+                ✓ Approve SG Dashboard Plan
               </button>
             </div>
             <p class="text-[9px] text-gray-500 text-center">Approving signs off the Technical Resource Review for this performance cycle. Requesting revision reopens editing permissions for the employee.</p>
@@ -583,7 +583,7 @@
   <datalist id="suggestions-gap"></datalist>
   <datalist id="suggestions-training_plan"></datalist>
 
-  <script type="module" src="./js/sidebar.js"></script>
-  <script type="module" src="./js/app.js"></script>
+  <script type="module" src="./js/sidebar.js?v=1.0.1"></script>
+  <script type="module" src="./js/app.js?v=1.0.1"></script>
 </body>
 </html>

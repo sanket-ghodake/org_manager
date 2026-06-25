@@ -103,6 +103,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         name: user.name,
         email: user.email,
         role: mappedRole,
+        designation: user.designation || '',
       });
 
       return {
@@ -114,6 +115,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           name: user.name,
           email: user.email,
           role: mappedRole,
+          designation: user.designation || '',
         }
       };
     } catch (err: any) {

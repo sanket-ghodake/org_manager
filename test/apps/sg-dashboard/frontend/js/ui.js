@@ -10,7 +10,7 @@ import {
   updatePlanStatus,
   updatePlanTargetQuarter,
   updatePlanCompletedQuarter
-} from './app.js';
+} from './app.js?v=1.0.1';
 
 // Apply persisted theme on load
 const savedTheme = localStorage.getItem('selected-theme') || 'default';
@@ -1187,7 +1187,7 @@ export function renderTreeNodes(container, list) {
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
               <span class="text-xs font-bold text-[var(--text-primary)] truncate">${emp.name}</span>
-              <span class="text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-color)] shrink-0 select-none">${emp.role}</span>
+              <span class="text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-color)] shrink-0 select-none">${emp.designation || emp.role}</span>
             </div>
             <div class="text-[9px] text-[var(--text-secondary)] truncate font-mono">${emp.email}</div>
           </div>
@@ -1346,9 +1346,9 @@ export function renderOrgExplorer({
         <div class="min-w-0 flex-1 text-center sm:text-left">
           <div class="flex flex-wrap items-center gap-1.5 justify-center sm:justify-start">
             <span class="text-sm font-black text-[var(--text-primary)] truncate">${focusedUser.name}</span>
-            <span class="px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-color)] select-none shrink-0">${focusedUser.role}</span>
+            <span class="px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest bg-[var(--bg-input)] text-[var(--text-secondary)] border border-[var(--border-color)] select-none shrink-0">${focusedUser.designation || focusedUser.role}</span>
           </div>
-          <div class="text-xs text-[var(--text-secondary)] font-semibold mt-0.5 truncate">${focusedUser.designation || ''}</div>
+          <div class="text-xs text-[var(--text-secondary)] font-semibold mt-0.5 truncate">${focusedUser.designation ? focusedUser.role : ''}</div>
           <div class="text-[10px] text-[var(--text-secondary)] truncate font-mono mt-0.5 select-text">${focusedUser.email}</div>
           
           <!-- Health Dashboard Status -->

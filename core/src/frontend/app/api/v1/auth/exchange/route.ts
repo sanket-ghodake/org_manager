@@ -44,10 +44,12 @@ export async function POST(request: NextRequest) {
         u.eid as "userEid",
         u.name as "userName",
         u.email as "userEmail",
-        u.role as "userRole"
+        u.role as "userRole",
+        dm.name as "userDesignation"
       FROM forge_apps fa
       LEFT JOIN forge_auth_codes fac ON fac.app_id = fa.id AND fac.code = ${code}
       LEFT JOIN users u ON fac.user_id = u.id
+      LEFT JOIN structural_metadata dm ON u.designation_id = dm.id
       WHERE fa.client_id = ${clientId}
     `);
 
@@ -92,7 +94,8 @@ export async function POST(request: NextRequest) {
       eid: row.userEid,
       name: row.userName,
       email: row.userEmail,
-      role: row.userRole
+      role: row.userRole,
+      designation: row.userDesignation || ''
     };
 
     // Resolve intersection of app scopes and user permissions
@@ -100,12 +103,12 @@ export async function POST(request: NextRequest) {
 
     // 5. Generate signed JWT access token with 15-minute lifetime
     const activeKeys = getKeys();
-    const expiresIn = 900; // 15 minutes
     const accessToken = await new SignJWT({
       eid: user.eid,
       name: user.name,
       email: user.email,
       role: user.role,
+      designation: user.designation,
       scopes: authorizedScopes,
       scope: authorizedScopes.join(' '),
     })
@@ -125,7 +128,8 @@ export async function POST(request: NextRequest) {
         eid: user.eid,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        designation: user.designation
       },
       scopes: authorizedScopes
     });

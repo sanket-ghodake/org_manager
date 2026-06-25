@@ -269,11 +269,21 @@ async function main() {
   }
 
   // 3. Seed Users with temporary manager_id = NULL
-  const adminPasswordHash = '$2b$10$8Gub3V3ScET0bRZPdM8ONeG543SkOwVKLcfO6jU0CjmGlGxPRrAVm'; // password123
+  // Safe mock bcrypt hash representing 'password123' used purely for local development database seeding.
+  const adminPasswordHash = '$2b$10$8Gub3V3ScET0bRZPdM8ONeG543SkOwVKLcfO6jU0CjmGlGxPRrAVm'; // password123 // nosemgrep: generic.secrets.security.detected-bcrypt-hash.detected-bcrypt-hash
   const userEidToIdMap = new Map<string, string>();
 
   for (const emp of mockData.employees) {
-    const designationId = designationIdMap.get(emp.designation) || null;
+    let designationId = designationIdMap.get(emp.designation) || null;
+    if (emp.designation && !designationId) {
+      const newId = crypto.randomUUID();
+      await db.execute(sql`
+        INSERT INTO structural_metadata (id, type, name, sort_order)
+        VALUES (${newId}, 'job_level', ${emp.designation}, 100);
+      `);
+      designationIdMap.set(emp.designation, newId);
+      designationId = newId;
+    }
     const verticalId = verticalIdMap.get(emp.vertical) || null;
     
     let jobLevel = 1;
@@ -288,7 +298,7 @@ async function main() {
       VALUES (${emp.eid}, ${emp.name}, ${emp.email}, ${adminPasswordHash}, false, ${emp.role}, ${designationId}, ${verticalId}, NULL, ${jobLevel})
       RETURNING id;
     `);
-    const id = (result.rows || result)[0].id;
+    const id = (result.rows || result)[0].id as string;
     userEidToIdMap.set(emp.eid, id);
   }
 
@@ -655,7 +665,7 @@ async function main() {
       VALUES (${vName})
       RETURNING id;
     `);
-    const deptId = (result.rows || result)[0].id;
+    const deptId = (result.rows || result)[0].id as string;
     verticalToDeptIdMap.set(vName, deptId);
   }
 
@@ -682,7 +692,7 @@ async function main() {
           VALUES (${tName}, ${deptId})
           RETURNING id;
         `);
-        const teamId = (result.rows || result)[0].id;
+        const teamId = (result.rows || result)[0].id as string;
         teamIds.push(teamId);
       }
       verticalToTeamsMap.set(vName, teamIds);
@@ -716,7 +726,7 @@ async function main() {
       VALUES (${gName})
       RETURNING id;
     `);
-    const groupId = (result.rows || result)[0].id;
+    const groupId = (result.rows || result)[0].id as string;
     groupNameToIdMap.set(gName, groupId);
   }
 

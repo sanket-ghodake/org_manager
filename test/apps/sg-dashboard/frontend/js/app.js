@@ -1,5 +1,5 @@
-import * as api from './api.js';
-import * as ui from './ui.js';
+import * as api from './api.js?v=1.0.1';
+import * as ui from './ui.js?v=1.0.1';
 
 // State management
 let apiToken = '';
@@ -35,6 +35,21 @@ function setDirectoryCache(rawUsers) {
     };
   });
   directoryFetched = true;
+
+  // Update logged-in user's designation if found in directory cache
+  if (userData) {
+    const matchedSelf = cachedUsers.find(u => u.id === userData.id);
+    if (matchedSelf && matchedSelf.designation) {
+      userData.designation = matchedSelf.designation;
+      sessionStorage.setItem('dashboard_user_data', JSON.stringify(userData));
+      
+      // Update sidebar role display
+      const userRoleEl = document.getElementById('user-role');
+      if (userRoleEl) {
+        userRoleEl.textContent = userData.designation;
+      }
+    }
+  }
 }
 
 async function getPortalOrigin() {
@@ -65,6 +80,14 @@ if ((parentOrigin === 'null' || !parentOrigin) && window.location.ancestorOrigin
 // ----------------------------------------------------
 
 export function switchTab(tab) {
+  const activeEl = document.getElementById(`tab-${tab}`);
+  if (activeEl && !activeEl.classList.contains('hidden')) {
+    // Tab is already active, toggle the sidebar (minimize/maximize) like VSCode
+    if (typeof window.toggleSidebar === 'function') {
+      window.toggleSidebar();
+    }
+    return;
+  }
   ui.switchTab(tab);
   if (tab === 'my-dashboard') {
     loadDashboard(currentDashboardUserId);
@@ -347,7 +370,7 @@ export async function updateItemLinks(sourceId, targetIds) {
 }
 
 export async function submitDashboard(id) {
-  const confirmed = await ui.showCustomConfirm('Are you sure you want to submit your current TRR dashboard to your manager for review?', 'Submit Dashboard');
+  const confirmed = await ui.showCustomConfirm('Are you sure you want to submit your current SG Dashboard to your manager for review?', 'Submit Dashboard');
   if (!confirmed) return;
   try {
     await api.submitDashboardReq(apiToken, id);
@@ -467,7 +490,8 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
         name: dashData.dashboard.name,
         email: dashData.dashboard.email,
         role: dashData.dashboard.role,
-        managerId: dashData.dashboard.manager_id || dashData.dashboard.managerId || null
+        managerId: dashData.dashboard.manager_id || dashData.dashboard.managerId || null,
+        designation: dashData.dashboard.designation || ''
       };
       if (!cachedUsers.some(u => u.id === emp.id)) {
         cachedUsers.push(emp);
@@ -998,9 +1022,84 @@ async function redirectToSSO() {
   }
 }
 
+let syncIntervalId = null;
+
+function startBackgroundSync() {
+  if (syncIntervalId) return;
+
+  syncIntervalId = setInterval(async () => {
+    // Smart checks: active tab, logged in, and viewing dashboard tab
+    if (!apiToken || document.visibilityState !== 'visible') {
+      return;
+    }
+
+    const dashboardTab = document.getElementById('tab-my-dashboard');
+    if (!dashboardTab || dashboardTab.classList.contains('hidden')) {
+      return;
+    }
+
+    if (!currentDashboardUserId || !currentDashboardId) {
+      return;
+    }
+
+    try {
+      const isSelf = currentDashboardUserId === userData.id;
+      const isReadOnly = !isSelf;
+
+      // Silent fetch (no loading overlay)
+      const dashData = isSelf
+        ? await api.fetchMyDashboard(apiToken, currentDashboardId)
+        : await api.fetchUserDashboard(apiToken, currentDashboardUserId, currentDashboardId);
+
+      if (!dashData || !dashData.dashboard) return;
+
+      // Check if updated_at is different, meaning there are updates
+      if (dashData.dashboard.updated_at !== currentDashboardData?.updated_at) {
+        console.log(`[Background Sync] Detected dashboard updates (last updated: ${dashData.dashboard.updated_at}). Updating UI...`);
+
+        // Update stored dashboard state
+        currentDashboardData = dashData.dashboard;
+
+        // 1. Update program line names if they changed
+        const subProg = document.getElementById('sub-program-display');
+        if (subProg) {
+          subProg.textContent = dashData.dashboard.program_line || 'Default Program';
+        }
+
+        // 2. Update objective
+        const objDisplay = document.getElementById('sub-objective-display');
+        const objInput = document.getElementById('objective-input');
+        // Only update if user is not currently editing objective
+        if (objDisplay && (!objInput || objInput.classList.contains('hidden'))) {
+          objDisplay.textContent = dashData.dashboard.objective || (isReadOnly ? 'No objective stated.' : 'Click to enter objective');
+          if (!dashData.dashboard.objective) {
+            objDisplay.classList.add('italic');
+          } else {
+            objDisplay.classList.remove('italic');
+          }
+        }
+
+        // 3. Update notes (only if not active/focused)
+        const notesTextarea = document.getElementById('dashboard-notes-textarea');
+        if (notesTextarea && document.activeElement !== notesTextarea) {
+          notesTextarea.value = dashData.dashboard.notes || '';
+        }
+
+        // 4. Update items list (Key skills, Gaps, Plans) without full screen refresh
+        ui.renderDashboardItems(dashData.items, isReadOnly, dashData.links || []);
+
+        // 5. Update autocomplete suggestions list in background
+        updateAllSuggestions().catch(err => console.warn('Failed to update suggestions:', err));
+      }
+    } catch (e) {
+      console.warn('[Background Sync] Failed to check for dashboard updates:', e);
+    }
+  }, 10000); // Poll every 10 seconds (smart and efficient)
+}
+
 async function initializeApplication() {
   document.getElementById('user-name').textContent = userData.name;
-  document.getElementById('user-role').textContent = userData.role.replace('_', ' ');
+  document.getElementById('user-role').textContent = userData.designation || userData.role.replace('_', ' ');
   document.getElementById('user-avatar').textContent = userData.name.split(' ').map(n => n[0]).join('');
 
   if (userData && !cachedUsers.some(u => u.id === userData.id)) {
@@ -1033,6 +1132,7 @@ async function initializeApplication() {
 
   await changeActiveEmployeeContext(userData.id);
   ui.convertNativeSelectsToCustom();
+  startBackgroundSync();
 }
 
 function adjustFontScaling() {
@@ -1145,6 +1245,8 @@ window.filterReviewsQueue = filterReviewsQueue;
 window.openReviewModal = openReviewModal;
 window.closeReviewModal = closeReviewModal;
 window.submitReviewAction = submitReviewAction;
+window.showProfilePopup = showProfilePopup;
+window.handleLogout = handleLogout;
 
 // Hierarchy and Search Window Exports
 window.handleHeaderSearch = handleHeaderSearch;
@@ -1465,7 +1567,8 @@ export async function loadOrgExplorer(focusedUserId) {
           name: dashData.dashboard.name,
           email: dashData.dashboard.email,
           role: dashData.dashboard.role,
-          managerId: dashData.dashboard.manager_id || dashData.dashboard.managerId
+          managerId: dashData.dashboard.manager_id || dashData.dashboard.managerId,
+          designation: dashData.dashboard.designation || ''
         };
         cachedUsers.push(focusedUser);
         statusMap[focusedUserId] = 'Active';
@@ -1550,6 +1653,109 @@ export function resetOrgChartFocus() {
 }
 
 export function collapseAllHierarchyNodes() {}
+
+export function handleLogout() {
+  sessionStorage.removeItem('dashboard_api_token');
+  sessionStorage.removeItem('dashboard_user_data');
+  window.location.reload();
+}
+
+export function showProfilePopup(event) {
+  event.stopPropagation();
+  
+  // If this click is part of a double-click, ignore it to prevent flickering
+  if (event.detail > 1) {
+    return;
+  }
+
+  if (!userData) return;
+
+  // Remove existing popup/modal overlay if any
+  const existingOverlay = document.getElementById('user-profile-modal-overlay');
+  if (existingOverlay) {
+    existingOverlay.remove();
+  }
+
+  // Create backdrop overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'user-profile-modal-overlay';
+  overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[99998] transition-opacity duration-200 opacity-0';
+
+  // Create modal content
+  const modal = document.createElement('div');
+  modal.id = 'user-profile-popup';
+  modal.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-3xl shadow-2xl p-6 w-80 max-w-[90%] z-[99999] transition-all duration-200 opacity-0 scale-95 select-none';
+
+  const initials = userData.name.split(' ').map(n => n[0]).join('');
+  const email = userData.email || '';
+  const roleText = userData.role ? userData.role.replace('_', ' ') : '';
+  const designationText = userData.designation || roleText;
+
+  modal.innerHTML = `
+    <div class="flex flex-col items-center text-center gap-4 relative">
+      <!-- Close Button (X) at Top Right -->
+      <button id="user-profile-close-x" class="absolute -top-2 -right-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-sm font-black p-1.5 hover:bg-[var(--bg-hover)] rounded-lg">
+        ✕
+      </button>
+
+      <!-- Avatar -->
+      <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-2xl border border-[var(--border-color)] shadow-lg mt-2">
+        ${initials}
+      </div>
+
+      <!-- User Details -->
+      <div class="w-full">
+        <h4 class="text-sm font-black text-[var(--text-primary)] truncate">${userData.name}</h4>
+        <p class="text-[10px] uppercase tracking-wider text-[var(--text-secondary)] font-bold mt-1 truncate">${designationText}</p>
+        <p class="text-[11px] text-[var(--text-secondary)] font-mono mt-3 truncate border-t border-[var(--border-color)] pt-3 select-text">${email}</p>
+      </div>
+
+      <!-- Buttons Section -->
+      <div class="w-full flex flex-col gap-2 mt-2">
+        <!-- Logout Button -->
+        <button onclick="handleLogout()" class="w-full py-2.5 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all select-none active:scale-[0.98]">
+          Sign Out / Log Out
+        </button>
+        <!-- Cancel Button -->
+        <button id="user-profile-close-btn" class="w-full py-2.5 rounded-xl text-xs font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all bg-[var(--bg-input)] border border-[var(--border-color)] active:scale-[0.98]">
+          Cancel
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(modal);
+
+  // Transition animations
+  requestAnimationFrame(() => {
+    overlay.classList.remove('opacity-0');
+    overlay.classList.add('opacity-100');
+    modal.classList.remove('opacity-0', 'scale-95');
+    modal.classList.add('opacity-100', 'scale-100');
+  });
+
+  // Close function
+  const closeModal = () => {
+    overlay.classList.remove('opacity-100');
+    overlay.classList.add('opacity-0');
+    modal.classList.remove('opacity-100', 'scale-100');
+    modal.classList.add('opacity-0', 'scale-95');
+    setTimeout(() => {
+      overlay.remove();
+      modal.remove();
+    }, 200);
+  };
+
+  // Close event listeners
+  overlay.addEventListener('click', closeModal);
+  
+  const closeX = modal.querySelector('#user-profile-close-x');
+  if (closeX) closeX.addEventListener('click', closeModal);
+
+  const closeBtn = modal.querySelector('#user-profile-close-btn');
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+}
 
 // Auto boot session
 initSession();

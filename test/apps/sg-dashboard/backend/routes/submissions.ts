@@ -63,7 +63,7 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
         args: [employee_id]
       });
       const employeeName = empInfo.rows[0]?.name || 'Employee';
-      console.log(`\x1b[35m[ALERT] Real-time email alert sent to ${employeeName} (${employee_id}): Manager ${user.name} has requested a new TRR plan submission with deadline ${deadline}.\x1b[0m`);
+      console.log(`\x1b[35m[ALERT] Real-time email alert sent to ${employeeName} (${employee_id}): Manager ${user.name} has requested a new SG Dashboard plan submission with deadline ${deadline}.\x1b[0m`);
 
       return { success: true, submissionId };
     } catch (err: any) {
@@ -104,7 +104,7 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
         args: [requestId],
       });
       const managerName = mgrCheck.rows[0]?.name || 'Manager';
-      console.log(`\x1b[35m[ALERT] Real-time chat notification sent to ${managerName}: Employee ${user.name} has submitted their TRR dashboard plan for review.\x1b[0m`);
+      console.log(`\x1b[35m[ALERT] Real-time chat notification sent to ${managerName}: Employee ${user.name} has submitted their SG Dashboard plan for review.\x1b[0m`);
 
       return { success: true };
     } catch (err: any) {
@@ -171,7 +171,7 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
         args: [requestId],
       });
       const employeeName = empCheck.rows[0]?.name || 'Employee';
-      console.log(`\x1b[35m[ALERT] Real-time notification sent to ${employeeName}: Your TRR dashboard plan has been reviewed by ${user.name}. Status: ${status}. Feedback: "${feedback || 'None'}".\x1b[0m`);
+      console.log(`\x1b[35m[ALERT] Real-time notification sent to ${employeeName}: Your SG Dashboard plan has been reviewed by ${user.name}. Status: ${status}. Feedback: "${feedback || 'None'}".\x1b[0m`);
 
       return { success: true };
     } catch (err: any) {
