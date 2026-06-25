@@ -540,4 +540,22 @@ html.zoom-compensation {
   }
 }
 
+/* Overdue highlight styles */
+.overdue-highlight {
+  border-left: 4px solid #ef4444 !important;
+  background-color: rgba(239, 68, 68, 0.04) !important;
+  box-shadow: 0 0 2px rgba(239, 68, 68, 0.2) !important;
+  animation: overdue-pulse 3s infinite ease-in-out;
+}
+
+@keyframes overdue-pulse {
+  0%, 100% {
+    background-color: rgba(239, 68, 68, 0.03);
+  }
+  50% {
+    background-color: rgba(239, 68, 68, 0.07);
+  }
+}
+
+
 

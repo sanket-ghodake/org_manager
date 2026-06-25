@@ -309,6 +309,33 @@ export async function deleteItem(id) {
   }
 }
 
+export async function updatePlanStatus(itemId, newStatus) {
+  try {
+    await api.updateDashboardItem(apiToken, itemId, { status: newStatus });
+    await loadMyDashboard();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+export async function updatePlanTargetQuarter(itemId, newTargetQuarter) {
+  try {
+    await api.updateDashboardItem(apiToken, itemId, { target_quarter: newTargetQuarter });
+    await loadMyDashboard();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+export async function updatePlanCompletedQuarter(itemId, newCompletedQuarter) {
+  try {
+    await api.updateDashboardItem(apiToken, itemId, { completed_quarter: newCompletedQuarter });
+    await loadMyDashboard();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 export async function updateItemLinks(sourceId, targetIds) {
   try {
     await api.syncDashboardItemLinks(apiToken, currentDashboardId, sourceId, targetIds);

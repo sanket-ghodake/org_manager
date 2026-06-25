@@ -6,7 +6,10 @@ import {
   submitDashboard,
   viewEmployeeDashboard,
   triggerRequestSubmission,
-  updateItemLinks
+  updateItemLinks,
+  updatePlanStatus,
+  updatePlanTargetQuarter,
+  updatePlanCompletedQuarter
 } from './app.js';
 
 // Apply persisted theme on load
@@ -142,7 +145,6 @@ export function renderDashboardItems(items, isReadOnly = false, links = []) {
     coreList.innerHTML = '';
     stratList.innerHTML = '';
     const skills = items.filter(i => i.section === 'key_skill');
-    document.getElementById('skills-count-pill').textContent = `${skills.length} skills`;
 
     const coreSkills = skills.filter(s => {
       const cat = (s.category || '').toLowerCase();
@@ -152,6 +154,8 @@ export function renderDashboardItems(items, isReadOnly = false, links = []) {
       const cat = (s.category || '').toLowerCase();
       return cat.startsWith('strategic:') || cat.includes('strategic') || cat.includes('transformation');
     });
+
+    document.getElementById('skills-count-pill').textContent = `${coreSkills.length} Core • ${stratSkills.length} Strategic`;
 
     if (coreSkills.length === 0) {
       coreList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No core skills listed.</li>';
@@ -191,7 +195,8 @@ export function renderDashboardItems(items, isReadOnly = false, links = []) {
       if (p.includes(':')) p = p.split(':')[1];
       return p === 'Low';
     }).length;
-    document.getElementById('gaps-count-pill').textContent = `${criticalCount} critical, ${mediumCount} medium, ${lowCount} low`;
+    
+    document.getElementById('gaps-count-pill').textContent = `${criticalCount} Critical • ${mediumCount} Medium • ${lowCount} Low`;
 
     if (gaps.length === 0) {
       gapsList.innerHTML = '<li class="text-gray-500 italic py-1 pl-2">No skill gaps identified.</li>';
@@ -211,7 +216,15 @@ export function renderDashboardItems(items, isReadOnly = false, links = []) {
     stratPlansList.innerHTML = '';
     tactPlansList.innerHTML = '';
     const plans = items.filter(i => i.section === 'training_plan');
-    document.getElementById('plans-count-pill').textContent = `${plans.length} items`;
+    
+    const completedCount = plans.filter(p => p.status === 'completed').length;
+    const overdueCount = plans.filter(p => p.status !== 'completed' && isQuarterPassed(p.target_quarter)).length;
+
+    let plansText = `${completedCount}/${plans.length} Done`;
+    if (overdueCount > 0) {
+      plansText += ` • ⚠️ ${overdueCount} Overdue`;
+    }
+    document.getElementById('plans-count-pill').textContent = plansText;
 
     const stratPlans = plans.filter(p => {
       const cat = (p.category || '').toLowerCase();
@@ -261,7 +274,7 @@ export function getGenericBadgeStyle(category) {
 function createGenericElement(item, isReadOnly = false, linkedIds = []) {
   const li = document.createElement('li');
   li.id = `item-row-${item.id}`;
-  li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)] font-medium border border-transparent";
+  li.className = "group flex items-start justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)] font-medium border border-transparent";
   li.dataset.linkedIds = JSON.stringify(linkedIds);
 
   // Hover highlights
@@ -286,7 +299,7 @@ function createGenericElement(item, isReadOnly = false, linkedIds = []) {
   });
 
   const leftSide = document.createElement('div');
-  leftSide.className = "flex items-center gap-2.5 truncate flex-1";
+  leftSide.className = "flex items-start gap-2.5 flex-1 min-w-0";
 
   // Parse priority
   let priority = item.category || 'Low';
@@ -306,7 +319,7 @@ function createGenericElement(item, isReadOnly = false, linkedIds = []) {
   }
 
   const titleSpan = document.createElement('span');
-  titleSpan.className = "font-medium truncate item-title-text" + (isReadOnly ? "" : " cursor-pointer");
+  titleSpan.className = "font-medium break-words whitespace-normal item-title-text flex-1 min-w-0" + (isReadOnly ? "" : " cursor-pointer");
   titleSpan.textContent = item.title;
   if (!isReadOnly) {
     titleSpan.onclick = () => startEditingItem(item, titleSpan);
@@ -342,16 +355,56 @@ function createGenericElement(item, isReadOnly = false, linkedIds = []) {
   return li;
 }
 
+function isQuarterPassed(targetQuarterStr) {
+  if (!targetQuarterStr) return false;
+  const parts = targetQuarterStr.split(' ');
+  if (parts.length !== 2) return false;
+  
+  const qStr = parts[0]; // "Q3"
+  const yStr = parts[1]; // "2026"
+  const quarter = parseInt(qStr.substring(1));
+  const year = parseInt(yStr);
+
+  const quarterEndMonths = {
+    1: 2,  // March
+    2: 5,  // June
+    3: 8,  // September
+    4: 11  // December
+  };
+
+  const current = new Date();
+  const targetDate = new Date(year, quarterEndMonths[quarter], 31, 23, 59, 59);
+
+  return current > targetDate;
+}
+
+function getQuarterOptions() {
+  const currentYear = new Date().getFullYear();
+  const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+  const options = [];
+  for (let y = currentYear; y <= currentYear + 5; y++) {
+    for (const q of quarters) {
+      options.push(`${q} ${y}`);
+    }
+  }
+  return options;
+}
+
 function createTrainingPlanElement(item, allGaps, linkedGaps, isReadOnly = false) {
   const li = document.createElement('li');
   li.id = `item-row-${item.id}`;
-  li.className = "group flex items-center justify-between py-1 px-2 rounded hover:bg-[var(--bg-hover)] transition-all text-[var(--text-primary)] font-medium border border-transparent relative";
+  li.className = "group flex flex-col gap-2 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] hover:bg-[var(--bg-hover)] hover:border-[var(--accent)] transition-all text-[var(--text-primary)] font-medium relative w-full";
 
   const linkedGapIds = linkedGaps.map(g => g.id);
   li.dataset.linkedIds = JSON.stringify(linkedGapIds);
 
   if (linkedGaps.length === 0) {
     li.classList.add('unlinked-alert');
+  }
+
+  const isOverdue = item.status !== 'completed' && isQuarterPassed(item.target_quarter);
+  if (isOverdue) {
+    li.classList.add('overdue-highlight');
   }
 
   // Hover highlights
@@ -375,8 +428,71 @@ function createTrainingPlanElement(item, allGaps, linkedGaps, isReadOnly = false
     } catch(e) {}
   });
 
+  // --- FIRST ROW: Status, Badge, Title, Overdue Label, Delete button ---
+  const mainRow = document.createElement('div');
+  mainRow.className = "flex items-start justify-between w-full gap-2.5 min-w-0";
+
   const leftSide = document.createElement('div');
-  leftSide.className = "flex items-center gap-2.5 truncate flex-1";
+  leftSide.className = "flex items-start gap-2 flex-1 min-w-0";
+
+  // 1. Fully Clickable Status Indicator
+  const statusContainer = document.createElement('div');
+  statusContainer.className = 'flex items-center shrink-0 select-none';
+  if (!isReadOnly) {
+    statusContainer.className += ' cursor-pointer hover:opacity-80 transition-opacity';
+  }
+
+  const statusSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  statusSvg.setAttribute('width', '16');
+  statusSvg.setAttribute('height', '16');
+  statusSvg.setAttribute('viewBox', '0 0 16 16');
+  statusSvg.setAttribute('class', 'shrink-0 transition-all');
+
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', '8');
+  circle.setAttribute('cy', '8');
+  circle.setAttribute('r', '6');
+  circle.setAttribute('stroke-width', '2');
+  statusSvg.appendChild(circle);
+
+  const status = item.status || 'not_started';
+
+  if (status === 'completed') {
+    circle.setAttribute('stroke', '#10b981');
+    circle.setAttribute('fill', '#10b981');
+    const check = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    check.setAttribute('d', 'M5 8 l2 2 l4 -4');
+    check.setAttribute('stroke', '#ffffff');
+    check.setAttribute('stroke-width', '2');
+    check.setAttribute('fill', 'none');
+    statusSvg.appendChild(check);
+  } else if (status === 'in_progress') {
+    circle.setAttribute('stroke', '#fbbf24');
+    circle.setAttribute('fill', 'none');
+    const half = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    half.setAttribute('d', 'M 8 8 M 8 2 A 6 6 0 0 1 8 14 Z');
+    half.setAttribute('fill', '#fbbf24');
+    statusSvg.appendChild(half);
+  } else {
+    circle.setAttribute('stroke', '#94a3b8');
+    circle.setAttribute('fill', 'none');
+  }
+
+  statusContainer.appendChild(statusSvg);
+
+  if (!isReadOnly) {
+    statusContainer.title = "Click to cycle status (New -> Active -> Done)";
+    statusContainer.onclick = async (e) => {
+      e.stopPropagation();
+      const statusFlow = {
+        'not_started': 'in_progress',
+        'in_progress': 'completed',
+        'completed': 'not_started'
+      };
+      const nextStatus = statusFlow[status] || 'not_started';
+      await updatePlanStatus(item.id, nextStatus);
+    };
+  }
 
   // Parse category/badge type
   let planCategory = item.category || 'Strategic:TIME';
@@ -389,7 +505,7 @@ function createTrainingPlanElement(item, allGaps, linkedGaps, isReadOnly = false
   }
 
   const badge = document.createElement('span');
-  badge.className = "px-2 py-0.5 rounded text-[9px] font-black tracking-wide uppercase select-none cursor-pointer bg-emerald-500 text-white shadow-sm shadow-emerald-500/20";
+  badge.className = "px-1.5 py-0.5 rounded text-[8px] font-black tracking-wide uppercase select-none cursor-pointer bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0";
   badge.textContent = badgeText.toUpperCase();
   if (!isReadOnly) {
     badge.title = "Click to cycle badge type";
@@ -400,19 +516,127 @@ function createTrainingPlanElement(item, allGaps, linkedGaps, isReadOnly = false
   }
 
   const titleSpan = document.createElement('span');
-  titleSpan.className = "font-medium truncate item-title-text" + (isReadOnly ? "" : " cursor-pointer");
+  titleSpan.className = "font-semibold break-words whitespace-normal text-xs item-title-text flex-1 min-w-0" + (isReadOnly ? "" : " cursor-pointer");
   titleSpan.textContent = item.title;
   if (!isReadOnly) {
     titleSpan.onclick = () => startEditingItem(item, titleSpan);
   }
 
+  leftSide.appendChild(statusContainer);
   leftSide.appendChild(badge);
   leftSide.appendChild(titleSpan);
-  li.appendChild(leftSide);
 
-  // Right wrapper for bubbles and actions
-  const rightSide = document.createElement('div');
-  rightSide.className = "flex items-center gap-2 shrink-0";
+  mainRow.appendChild(leftSide);
+
+  // Right side actions (Delete)
+  const rightSideActions = document.createElement('div');
+  rightSideActions.className = "flex items-center shrink-0 ml-auto";
+
+  if (!isReadOnly) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px] cursor-pointer";
+    deleteBtn.innerHTML = "✕";
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteItem(item.id);
+    };
+    rightSideActions.appendChild(deleteBtn);
+  }
+  mainRow.appendChild(rightSideActions);
+  li.appendChild(mainRow);
+
+  // --- SECOND ROW: Separator + Target Quarter + Completed Quarter + Linked Gaps + Link button ---
+  const metaRow = document.createElement('div');
+  metaRow.className = "flex items-center justify-between gap-2.5 mt-1.5 pt-1.5 border-t border-[var(--border-color)] text-[10px] w-full min-w-0 select-none";
+
+  // Left part of Metadata Row: Select elements
+  const selectorsContainer = document.createElement('div');
+  selectorsContainer.className = "flex items-center gap-3 flex-wrap min-w-0";
+
+  // 2. Target Quarter Dropdown
+  const targetGroup = document.createElement('div');
+  targetGroup.className = 'flex items-center gap-1 shrink-0';
+
+  const targetSelect = document.createElement('select');
+  targetSelect.className = 'bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-color)] text-[9px] rounded-md px-1.5 py-0.5 font-bold text-[var(--text-primary)] focus:outline-none cursor-pointer transition-all';
+  if (isReadOnly) {
+    targetSelect.disabled = true;
+    targetSelect.className += ' cursor-default opacity-80';
+  }
+
+  const placeholderOpt = document.createElement('option');
+  placeholderOpt.value = '';
+  placeholderOpt.textContent = 'Target Qtr';
+  targetSelect.appendChild(placeholderOpt);
+
+  const quarterOptions = getQuarterOptions();
+  quarterOptions.forEach(optVal => {
+    const opt = document.createElement('option');
+    opt.value = optVal;
+    opt.textContent = optVal;
+    if (item.target_quarter === optVal) {
+      opt.selected = true;
+    }
+    targetSelect.appendChild(opt);
+  });
+
+  if (!isReadOnly) {
+    targetSelect.onchange = async () => {
+      await updatePlanTargetQuarter(item.id, targetSelect.value);
+    };
+  }
+  targetGroup.appendChild(targetSelect);
+
+  if (isOverdue) {
+    const overdueLabel = document.createElement('span');
+    overdueLabel.className = 'text-[8px] font-black text-rose-500 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 animate-pulse ml-1.5';
+    overdueLabel.textContent = '⚠️ Overdue';
+    targetGroup.appendChild(overdueLabel);
+  }
+
+  selectorsContainer.appendChild(targetGroup);
+
+  // 3. Completed Quarter Dropdown (only visible when status is completed)
+  if (status === 'completed') {
+    const completedGroup = document.createElement('div');
+    completedGroup.className = 'flex items-center gap-1 shrink-0';
+
+    const completedSelect = document.createElement('select');
+    completedSelect.className = 'bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border-color)] text-[9px] rounded-md px-1.5 py-0.5 font-bold text-[var(--text-primary)] focus:outline-none cursor-pointer transition-all';
+    if (isReadOnly) {
+      completedSelect.disabled = true;
+      completedSelect.className += ' cursor-default opacity-80';
+    }
+
+    const compPlaceholderOpt = document.createElement('option');
+    compPlaceholderOpt.value = '';
+    compPlaceholderOpt.textContent = 'Completed Qtr';
+    completedSelect.appendChild(compPlaceholderOpt);
+
+    quarterOptions.forEach(optVal => {
+      const opt = document.createElement('option');
+      opt.value = optVal;
+      opt.textContent = optVal;
+      if (item.completed_quarter === optVal) {
+        opt.selected = true;
+      }
+      completedSelect.appendChild(opt);
+    });
+
+    if (!isReadOnly) {
+      completedSelect.onchange = async () => {
+        await updatePlanCompletedQuarter(item.id, completedSelect.value);
+      };
+    }
+    completedGroup.appendChild(completedSelect);
+    selectorsContainer.appendChild(completedGroup);
+  }
+
+  metaRow.appendChild(selectorsContainer);
+
+  // Right part of Metadata Row: Bubbles & Links
+  const linksContainer = document.createElement('div');
+  linksContainer.className = "flex items-center gap-2 shrink-0 ml-auto";
 
   // Stack of linked gaps
   if (linkedGaps.length > 0) {
@@ -451,35 +675,24 @@ function createTrainingPlanElement(item, allGaps, linkedGaps, isReadOnly = false
       stack.appendChild(bubble);
     });
 
-    rightSide.appendChild(stack);
+    linksContainer.appendChild(stack);
   }
 
   // Link button
   if (!isReadOnly) {
     const linkBtn = document.createElement('button');
-    linkBtn.className = "text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold px-1.5 py-0.5 rounded text-xs select-none hover:bg-[var(--bg-hover)] transition-all";
+    linkBtn.className = "text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-bold px-1 py-0.5 rounded text-xs select-none hover:bg-[var(--bg-hover)] transition-all cursor-pointer";
     linkBtn.innerHTML = "+🔗";
     linkBtn.title = "Link Skill Gaps";
     linkBtn.onclick = (e) => {
       e.stopPropagation();
       showLinkPopover(e.currentTarget, item, allGaps, linkedGapIds);
     };
-    rightSide.appendChild(linkBtn);
+    linksContainer.appendChild(linkBtn);
   }
 
-  // Delete button
-  if (!isReadOnly) {
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = "text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity font-bold px-1.5 py-0.5 rounded text-[10px]";
-    deleteBtn.innerHTML = "✕";
-    deleteBtn.onclick = (e) => {
-      e.stopPropagation();
-      deleteItem(item.id);
-    };
-    rightSide.appendChild(deleteBtn);
-  }
-
-  li.appendChild(rightSide);
+  metaRow.appendChild(linksContainer);
+  li.appendChild(metaRow);
   return li;
 }
 
@@ -693,9 +906,21 @@ export function populateReviewModal(review, data) {
     rTraining.innerHTML = '<div class="text-gray-500 italic py-1 pl-1">None logged.</div>';
   } else {
     training.forEach(item => {
+      const isOverdue = item.status !== 'completed' && isQuarterPassed(item.target_quarter);
+      const overdueBadge = isOverdue ? `<span class="text-[8px] font-black text-rose-400 bg-rose-500/10 px-1 py-0.5 rounded border border-rose-500/20 ml-1.5">⚠️ OVERDUE</span>` : '';
+      const statusText = (item.status || 'not_started').replace('_', ' ').toUpperCase();
+      const targetText = item.target_quarter ? `Target: ${item.target_quarter}` : 'No Target Qtr';
+      const completedText = item.status === 'completed' && item.completed_quarter ? ` | Completed: ${item.completed_quarter}` : '';
+      const borderStyle = isOverdue ? 'border-l-4 border-rose-500 bg-rose-500/5' : '';
+
       rTraining.innerHTML += `
-        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1 flex items-center justify-between">
-          <div class="font-bold text-[var(--text-primary)] text-[10px] truncate max-w-[70%]">${item.title}</div>
+        <div class="p-1.5 bg-[var(--bg-card)] rounded border border-[var(--border-color)] mb-1 flex items-center justify-between ${borderStyle}">
+          <div class="truncate max-w-[70%]">
+            <div class="font-bold text-[var(--text-primary)] text-[10px] truncate">${item.title}</div>
+            <div class="text-[8px] text-[var(--text-secondary)] mt-0.5 font-bold uppercase tracking-wider">
+              [${statusText}] ${targetText}${completedText}${overdueBadge}
+            </div>
+          </div>
           <span class="${getGenericBadgeStyle(item.category)} text-[8px] font-black uppercase tracking-wider scale-90 origin-right">${(item.category || 'Medium').toUpperCase()}</span>
         </div>
       `;
@@ -885,10 +1110,22 @@ export function showViewerModal(data) {
     vTraining.innerHTML = '<div class="text-[var(--text-secondary)] italic py-1">None logged.</div>';
   } else {
     training.forEach(item => {
+      const isOverdue = item.status !== 'completed' && isQuarterPassed(item.target_quarter);
+      const overdueBadge = isOverdue ? `<span class="text-[8px] font-black text-rose-400 bg-rose-500/10 px-1 py-0.5 rounded border border-rose-500/20 ml-1.5">⚠️ OVERDUE</span>` : '';
+      const statusText = (item.status || 'not_started').replace('_', ' ').toUpperCase();
+      const targetText = item.target_quarter ? `Target: ${item.target_quarter}` : 'No Target Qtr';
+      const completedText = item.status === 'completed' && item.completed_quarter ? ` | Completed: ${item.completed_quarter}` : '';
+      const borderStyle = isOverdue ? 'border-l-4 border-rose-500 bg-rose-500/5' : '';
       const badgeText = item.category.split(':')[1] || 'PLAN';
+
       vTraining.innerHTML += `
-        <div class="p-2 bg-[var(--bg-input)] rounded border border-[var(--border-color)]">
-          <div class="font-bold text-[var(--text-primary)] text-[10px]">${item.title}</div>
+        <div class="p-2 bg-[var(--bg-input)] rounded border border-[var(--border-color)] flex items-center justify-between ${borderStyle}">
+          <div class="truncate max-w-[75%]">
+            <div class="font-bold text-[var(--text-primary)] text-[10px] truncate">${item.title}</div>
+            <div class="text-[8px] text-[var(--text-secondary)] mt-0.5 font-bold uppercase tracking-wider">
+              [${statusText}] ${targetText}${completedText}${overdueBadge}
+            </div>
+          </div>
           <div class="text-[9px] text-[var(--col-plans-text)] font-mono mt-0.5">${badgeText}</div>
         </div>
       `;

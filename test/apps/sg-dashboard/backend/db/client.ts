@@ -60,9 +60,25 @@ export async function initDb() {
       hasStatus = dashTableInfo.rows?.some((row: any) => row.name === 'status') || false;
     }
 
-    if (hasStatus || isDashboardUnique || hasManagerFk || (tableInfo.rows && tableInfo.rows.length > 0 && !hasDesignation) || (subTableCheck.rows && subTableCheck.rows.length > 0 && !hasFeedback)) {
+    // Check if new training plan tracking columns are missing in dashboard_items
+    let hasNewPlanColumns = false;
+    const itemsTableCheck = await db.execute(`SELECT name FROM sqlite_master WHERE type='table' AND name='dashboard_items'`);
+    if (itemsTableCheck.rows && itemsTableCheck.rows.length > 0) {
+      const itemsTableInfo = await db.execute(`PRAGMA table_info(dashboard_items)`);
+      hasNewPlanColumns = itemsTableInfo.rows?.some((row: any) => row.name === 'status') || false;
+    }
+
+    if (
+      hasStatus || 
+      isDashboardUnique || 
+      hasManagerFk || 
+      (tableInfo.rows && tableInfo.rows.length > 0 && !hasDesignation) || 
+      (subTableCheck.rows && subTableCheck.rows.length > 0 && !hasFeedback) ||
+      (itemsTableCheck.rows && itemsTableCheck.rows.length > 0 && !hasNewPlanColumns)
+    ) {
       console.log('Recreating tables to remove dashboard status, support multiple dashboards, or update schemas...');
       await db.execute(`DROP TABLE IF EXISTS submission_requests`);
+      await db.execute(`DROP TABLE IF EXISTS dashboard_item_links`);
       await db.execute(`DROP TABLE IF EXISTS dashboard_items`);
       await db.execute(`DROP TABLE IF EXISTS dashboards`);
       await db.execute(`DROP TABLE IF EXISTS users`);
@@ -100,6 +116,9 @@ export async function initDb() {
         title TEXT NOT NULL,
         description TEXT,
         deadline TEXT,
+        status TEXT DEFAULT 'not_started',
+        target_quarter TEXT,
+        completed_quarter TEXT,
         FOREIGN KEY(dashboard_id) REFERENCES dashboards(id) ON DELETE CASCADE
       )
     `);

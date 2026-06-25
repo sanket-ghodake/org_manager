@@ -275,7 +275,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.post('/api/dashboard/:id/items', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
     const dashboardId = request.params.id;
-    const { section, category, title, description, deadline } = request.body || {};
+    const { section, category, title, description, deadline, status, target_quarter, completed_quarter } = request.body || {};
 
     if (!section || !title) {
       return reply.status(400).send({ error: 'Section and Title are required.' });
@@ -297,8 +297,8 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
 
       const itemId = crypto.randomUUID();
       await db.execute({
-        sql: 'INSERT INTO dashboard_items (id, dashboard_id, section, category, title, description, deadline) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        args: [itemId, dashboardId, section, category || '', title, description || '', deadline || ''],
+        sql: 'INSERT INTO dashboard_items (id, dashboard_id, section, category, title, description, deadline, status, target_quarter, completed_quarter) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        args: [itemId, dashboardId, section, category || '', title, description || '', deadline || '', status || 'not_started', target_quarter || null, completed_quarter || null],
       });
 
       return { success: true, itemId };
@@ -346,12 +346,12 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
   fastify.put('/api/dashboard/items/:itemId', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
     const itemId = request.params.itemId;
-    const { category, title, description, deadline } = request.body || {};
+    const { category, title, description, deadline, status, target_quarter, completed_quarter } = request.body || {};
 
     try {
       const res = await db.execute({
         sql: `
-          SELECT d.user_id, i.category, i.title, i.description, i.deadline
+          SELECT d.user_id, i.category, i.title, i.description, i.deadline, i.status, i.target_quarter, i.completed_quarter
           FROM dashboard_items i
           JOIN dashboards d ON i.dashboard_id = d.id
           WHERE i.id = ?
@@ -372,10 +372,13 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       const newTitle = title !== undefined ? title : current.title;
       const newDescription = description !== undefined ? description : current.description;
       const newDeadline = deadline !== undefined ? deadline : current.deadline;
+      const newStatus = status !== undefined ? status : current.status;
+      const newTargetQuarter = target_quarter !== undefined ? target_quarter : current.target_quarter;
+      const newCompletedQuarter = completed_quarter !== undefined ? completed_quarter : current.completed_quarter;
 
       await db.execute({
-        sql: 'UPDATE dashboard_items SET category = ?, title = ?, description = ?, deadline = ? WHERE id = ?',
-        args: [newCategory, newTitle, newDescription, newDeadline, itemId],
+        sql: 'UPDATE dashboard_items SET category = ?, title = ?, description = ?, deadline = ?, status = ?, target_quarter = ?, completed_quarter = ? WHERE id = ?',
+        args: [newCategory, newTitle, newDescription, newDeadline, newStatus, newTargetQuarter, newCompletedQuarter, itemId],
       });
 
       return { success: true };
@@ -456,8 +459,8 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
         const newItemId = crypto.randomUUID();
         itemIdMap.set(item.id as string, newItemId);
         await db.execute({
-          sql: 'INSERT INTO dashboard_items (id, dashboard_id, section, category, title, description, deadline) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          args: [newItemId, newDashboardId, item.section, item.category, item.title, item.description, item.deadline]
+          sql: 'INSERT INTO dashboard_items (id, dashboard_id, section, category, title, description, deadline, status, target_quarter, completed_quarter) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          args: [newItemId, newDashboardId, item.section, item.category, item.title, item.description, item.deadline, item.status, item.target_quarter, item.completed_quarter]
         });
       }
 
