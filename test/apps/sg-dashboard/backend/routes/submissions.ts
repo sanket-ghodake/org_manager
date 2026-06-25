@@ -1,6 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { db } from '../db/client';
 import { checkUplineManager } from '../utils/hierarchy';
+import crypto from 'crypto';
+
 
 async function autoSubmitExpiredRequests() {
   const nowStr = new Date().toISOString().split('T')[0];
@@ -63,7 +65,7 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
   // Create Submission Request (Manager -> Report only)
   fastify.post('/api/submissions', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
     const user = request.user;
-    const { employee_id, deadline } = request.body || {};
+    const { employee_id, deadline, dashboard_id } = request.body || {};
 
     if (!employee_id || !deadline) {
       return reply.status(400).send({ error: 'employee_id and deadline are required.' });
@@ -88,8 +90,8 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
 
       const submissionId = crypto.randomUUID();
       await db.execute({
-        sql: 'INSERT INTO submission_requests (id, manager_id, employee_id, deadline, status) VALUES (?, ?, ?, ?, ?)',
-        args: [submissionId, user.id, employee_id, deadline, 'Pending'],
+        sql: 'INSERT INTO submission_requests (id, manager_id, employee_id, dashboard_id, deadline, status) VALUES (?, ?, ?, ?, ?, ?)',
+        args: [submissionId, user.id, employee_id, dashboard_id || null, deadline, 'Pending'],
       });
 
       // Query employee info for notification mock
@@ -105,6 +107,71 @@ export default async function submissionsRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({ error: err.message });
     }
   });
+
+  // Direct Self-Initiated Submission (Employee)
+  fastify.post('/api/submissions/direct', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {
+    const user = request.user;
+    const { dashboard_id } = request.body || {};
+
+    if (!dashboard_id) {
+      return reply.status(400).send({ error: 'dashboard_id is required.' });
+    }
+
+    try {
+      // Find employee's manager
+      const empRes = await db.execute({
+        sql: 'SELECT manager_id FROM users WHERE id = ?',
+        args: [user.id],
+      });
+
+      let managerId = null;
+      if (empRes.rows.length > 0) {
+        managerId = (empRes.rows[0] as any).manager_id;
+      }
+
+      // If no manager is assigned, find any Manager or fallback to self
+      if (!managerId) {
+        const mgrRes = await db.execute({
+          sql: "SELECT id FROM users WHERE role = 'Manager' LIMIT 1",
+          args: []
+        });
+        if (mgrRes.rows.length > 0) {
+          managerId = (mgrRes.rows[0] as any).id;
+        } else {
+          managerId = user.id;
+        }
+      }
+
+      // Check if there is already an existing submission request for this dashboard
+      const existing = await db.execute({
+        sql: "SELECT id FROM submission_requests WHERE employee_id = ? AND dashboard_id = ? ORDER BY deadline DESC LIMIT 1",
+        args: [user.id, dashboard_id]
+      });
+
+      let requestId = null;
+      if (existing.rows.length > 0) {
+        requestId = (existing.rows[0] as any).id;
+        const nowStrFull = new Date().toISOString();
+        await db.execute({
+          sql: "UPDATE submission_requests SET status = 'Submitted', submitted_at = ? WHERE id = ?",
+          args: [nowStrFull, requestId]
+        });
+      } else {
+        requestId = crypto.randomUUID();
+        const nowStrFull = new Date().toISOString();
+        const defaultDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        await db.execute({
+          sql: "INSERT INTO submission_requests (id, manager_id, employee_id, dashboard_id, deadline, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          args: [requestId, managerId, user.id, dashboard_id, defaultDeadline, 'Submitted', nowStrFull]
+        });
+      }
+
+      return { success: true, submissionId: requestId };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
 
   // Submit Dashboard (Employee)
   fastify.post('/api/submissions/:id/submit', { preValidation: [fastify.authenticate] }, async (request: any, reply) => {

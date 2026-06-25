@@ -784,15 +784,23 @@ export function renderMySubmissions(submissions) {
   }
 
   submissions.forEach(sub => {
-    const isPending = sub.status === 'Pending' || sub.status === 'Needs Revision';
-    const actionCell = isPending 
-      ? `<button onclick="submitDashboard('${sub.id}')" class="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded hover:bg-emerald-500/25 transition-all shadow-sm">Submit Dashboard</button>` 
-      : `<span class="text-gray-500 font-semibold text-[10px] flex items-center justify-end gap-1">Verified ✓</span>`;
+    const isActionable = sub.status === 'Pending' || sub.status === 'Needs Revision' || sub.status === 'Not Submitted';
+    let actionCell = '';
+    if (isActionable) {
+      if (sub.is_direct || (sub.id && sub.id.startsWith('direct-'))) {
+        actionCell = `<button onclick="submitDirectDashboard('${sub.dashboard_id}')" class="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded hover:bg-emerald-500/25 transition-all shadow-sm">Submit Dashboard</button>`;
+      } else {
+        actionCell = `<button onclick="submitDashboard('${sub.id}', ${sub.dashboard_id ? `'${sub.dashboard_id}'` : 'null'})" class="text-emerald-400 hover:text-emerald-300 font-bold text-[10px] bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded hover:bg-emerald-500/25 transition-all shadow-sm">Submit Dashboard</button>`;
+      }
+    } else {
+      actionCell = `<span class="text-gray-500 font-semibold text-[10px] flex items-center justify-end gap-1">Verified ✓</span>`;
+    }
 
     let statusColor = 'text-amber-400 font-bold';
     if (sub.status === 'Approved') statusColor = 'text-emerald-400 font-bold';
     if (sub.status === 'Needs Revision') statusColor = 'text-rose-400 font-bold';
     if (sub.status === 'Submitted') statusColor = 'text-blue-400 font-bold';
+    if (sub.status === 'Not Submitted') statusColor = 'text-gray-400 font-bold';
 
     const feedbackText = sub.feedback ? `<div class="bg-[var(--bg-input)] text-xs text-[var(--text-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] max-w-xs truncate" title="${sub.feedback}">${sub.feedback}</div>` : `<span class="text-gray-500 italic text-[10px]">No feedback yet</span>`;
     const programName = sub.dashboard_program || 'General / Unlinked';
@@ -822,43 +830,82 @@ export function renderReviewsQueue(reviews) {
     return;
   }
 
+  // Group reviews by employee_id
+  const groups = {};
   reviews.forEach(rev => {
-    let actionCell = '';
-    if (rev.status === 'Submitted') {
-      actionCell = `<button onclick="openReviewModal('${rev.id}')" class="text-indigo-400 hover:text-indigo-300 font-bold text-[10px] bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded hover:bg-indigo-500/25 transition-all shadow-sm">Review & Action</button>`;
-    } else if (rev.status === 'Approved' || rev.status === 'Needs Revision') {
-      actionCell = `<button onclick="openReviewModal('${rev.id}')" class="text-gray-400 hover:text-[var(--text-primary)] font-bold text-[10px] bg-[var(--bg-input)] border border-[var(--border-color)] px-2.5 py-1 rounded transition-all shadow-sm">View Review</button>`;
-    } else if (rev.status === 'Pending') {
-      actionCell = `<button onclick="freezeSubmission('${rev.id}')" class="text-amber-400 hover:text-amber-300 font-bold text-[10px] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded hover:bg-amber-500/25 transition-all shadow-sm" title="Freeze deadline & submit employee active dashboard directly">Freeze Now</button>`;
-    } else {
-      actionCell = `<span class="text-gray-500 italic text-[10px]">Awaiting Employee</span>`;
+    if (!groups[rev.employee_id]) {
+      groups[rev.employee_id] = {
+        employeeName: rev.employee_name,
+        employeeRole: rev.employee_role,
+        employeeDesignation: rev.employee_designation,
+        employeeEmail: rev.employee_email,
+        items: []
+      };
     }
+    groups[rev.employee_id].items.push(rev);
+  });
 
-    let statusColor = 'text-amber-400 font-bold';
-    if (rev.status === 'Approved') statusColor = 'text-emerald-400 font-bold';
-    if (rev.status === 'Needs Revision') statusColor = 'text-rose-400 font-bold';
-    if (rev.status === 'Submitted') statusColor = 'text-blue-400 font-bold';
+  Object.keys(groups).forEach(empId => {
+    const group = groups[empId];
+    const initials = group.employeeName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-    const feedbackText = rev.feedback ? `<div class="bg-[var(--bg-input)] text-xs text-[var(--text-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] max-w-xs truncate" title="${rev.feedback}">${rev.feedback}</div>` : `<span class="text-gray-500 italic text-[10px]">-</span>`;
-    const submittedOn = rev.submitted_at ? rev.submitted_at : `<span class="text-gray-500 italic text-[10px]">-</span>`;
-    const programName = rev.dashboard_program || 'General / Unlinked';
-
-    body.innerHTML += `
-      <tr class="hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-color)] font-medium">
-        <td class="py-3.5 pl-3">
-          <div class="font-bold text-[var(--text-primary)]">${rev.employee_name}</div>
-          <div class="text-[9px] font-mono text-[var(--text-secondary)]">${rev.employee_designation || rev.employee_role}</div>
-        </td>
-        <td class="py-3.5 font-bold text-[var(--text-secondary)]">${programName}</td>
-        <td class="py-3.5 font-mono text-[10px] text-[var(--text-secondary)]">${rev.deadline}</td>
-        <td class="py-3.5 ${statusColor}">${rev.status}</td>
-        <td class="py-3.5 font-mono text-[10px] text-[var(--text-secondary)]">${submittedOn}</td>
-        <td class="py-3.5">${feedbackText}</td>
-        <td class="py-3.5 text-right pr-3">${actionCell}</td>
-      </tr>
+    // Group Header Row
+    const headerRow = document.createElement('tr');
+    headerRow.className = "bg-[var(--bg-input)]/55 border-b border-[var(--border-color)] select-none font-bold";
+    headerRow.innerHTML = `
+      <td colspan="7" class="py-3 pl-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-6 h-6 rounded-lg bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 text-[var(--text-primary)] flex items-center justify-center font-black text-[9px] border border-[var(--border-color)]">
+            ${initials}
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-xs font-bold text-[var(--text-primary)]">${group.employeeName}</span>
+            <span class="text-[9px] text-[var(--text-secondary)] font-mono font-semibold">(${group.employeeDesignation || group.employeeRole})</span>
+            <span class="text-[9px] text-gray-500 font-mono">(${group.employeeEmail})</span>
+          </div>
+        </div>
+      </td>
     `;
+    body.appendChild(headerRow);
+
+    // Sub-rows for each submission of this employee
+    group.items.forEach(rev => {
+      let actionCell = '';
+      if (rev.status === 'Submitted') {
+        actionCell = `<button onclick="openReviewModal('${rev.id}')" class="text-indigo-400 hover:text-indigo-300 font-bold text-[10px] bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded hover:bg-indigo-500/25 transition-all shadow-sm">Review & Action</button>`;
+      } else if (rev.status === 'Approved' || rev.status === 'Needs Revision') {
+        actionCell = `<button onclick="openReviewModal('${rev.id}')" class="text-gray-400 hover:text-[var(--text-primary)] font-bold text-[10px] bg-[var(--bg-input)] border border-[var(--border-color)] px-2.5 py-1 rounded transition-all shadow-sm">View Review</button>`;
+      } else if (rev.status === 'Pending') {
+        actionCell = `<button onclick="freezeSubmission('${rev.id}')" class="text-amber-400 hover:text-amber-300 font-bold text-[10px] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded hover:bg-amber-500/25 transition-all shadow-sm" title="Freeze deadline & submit employee active dashboard directly">Freeze Now</button>`;
+      } else {
+        actionCell = `<span class="text-gray-500 italic text-[10px]">Awaiting Employee</span>`;
+      }
+
+      let statusColor = 'text-amber-400 font-bold';
+      if (rev.status === 'Approved') statusColor = 'text-emerald-400 font-bold';
+      if (rev.status === 'Needs Revision') statusColor = 'text-rose-400 font-bold';
+      if (rev.status === 'Submitted') statusColor = 'text-blue-400 font-bold';
+
+      const feedbackText = rev.feedback ? `<div class="bg-[var(--bg-input)] text-xs text-[var(--text-secondary)] px-3 py-1.5 rounded-lg border border-[var(--border-color)] max-w-xs truncate" title="${rev.feedback}">${rev.feedback}</div>` : `<span class="text-gray-500 italic text-[10px]">-</span>`;
+      const submittedOn = rev.submitted_at ? rev.submitted_at.split('T')[0] : `<span class="text-gray-500 italic text-[10px]">-</span>`;
+      const programName = rev.dashboard_program || 'General / Unlinked';
+
+      const row = document.createElement('tr');
+      row.className = "hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-color)] font-medium text-xs";
+      row.innerHTML = `
+        <td class="py-3 pl-8 text-[var(--text-secondary)] font-mono text-[10px] select-none">└─</td>
+        <td class="py-3 font-bold text-[var(--text-primary)]">${programName}</td>
+        <td class="py-3 font-mono text-[10px] text-[var(--text-secondary)]">${rev.deadline}</td>
+        <td class="py-3 ${statusColor}">${rev.status}</td>
+        <td class="py-3 font-mono text-[10px] text-[var(--text-secondary)]">${submittedOn}</td>
+        <td class="py-3">${feedbackText}</td>
+        <td class="py-3 text-right pr-3">${actionCell}</td>
+      `;
+      body.appendChild(row);
+    });
   });
 }
+
 
 // Populate Manager Review Modal
 export function populateReviewModal(review, data) {
@@ -938,17 +985,21 @@ export function populateReviewModal(review, data) {
   const textarea = document.getElementById('review-comments-input');
   textarea.disabled = !isActionable;
 
-  const btnContainer = textarea.parentElement.parentElement.nextElementSibling;
-  const buttons = btnContainer.querySelectorAll('button');
-  buttons.forEach(btn => {
+  const btnRevision = document.getElementById('review-action-revision-btn');
+  const btnApprove = document.getElementById('review-action-approve-btn');
+  if (btnRevision && btnApprove) {
     if (isActionable) {
-      btn.classList.remove('opacity-50', 'cursor-not-allowed');
-      btn.removeAttribute('disabled');
+      btnRevision.classList.remove('opacity-50', 'cursor-not-allowed');
+      btnRevision.removeAttribute('disabled');
+      btnApprove.classList.remove('opacity-50', 'cursor-not-allowed');
+      btnApprove.removeAttribute('disabled');
     } else {
-      btn.classList.add('opacity-50', 'cursor-not-allowed');
-      btn.setAttribute('disabled', 'true');
+      btnRevision.classList.add('opacity-50', 'cursor-not-allowed');
+      btnRevision.setAttribute('disabled', 'true');
+      btnApprove.classList.add('opacity-50', 'cursor-not-allowed');
+      btnApprove.setAttribute('disabled', 'true');
     }
-  });
+  }
 
   document.getElementById('review-modal').classList.remove('hidden');
 }
@@ -999,26 +1050,92 @@ export function renderTeam(team, currentUserId, currentUserRole) {
     
     // Status Badge & Styles
     let statusClass = 'bg-slate-500/10 text-slate-400 border-slate-500/20';
-    let statusLabel = 'No Dashboard';
+    let statusLabel = 'No Plan';
     let borderClass = 'border-[var(--border-color)]';
     let avatarGradient = 'from-slate-600/30 to-slate-500/20';
 
     if (emp.hasDashboard) {
       statusClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      statusLabel = 'Active';
-      borderClass = 'hover:border-emerald-500/20';
-      avatarGradient = 'from-emerald-500/20 to-teal-500/20';
+      statusLabel = 'Active Plan';
+      borderClass = 'hover:border-[var(--accent)]/30';
+      avatarGradient = 'from-[var(--accent)]/30 to-indigo-500/20';
     }
 
-    // Last submission badge
+    // Submission Status Alert Badge
     let submissionHtml = '';
     if (emp.lastSubmissionStatus) {
-      const isPending = emp.lastSubmissionStatus === 'Pending';
-      const subColor = isPending ? 'text-amber-400' : 'text-emerald-400';
+      let badgeClass = 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+      let statusText = emp.lastSubmissionStatus;
+      if (emp.lastSubmissionStatus === 'Pending' || emp.lastSubmissionStatus === 'Submitted') {
+        badgeClass = 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+        statusText = 'Awaiting Review ⏳';
+      } else if (emp.lastSubmissionStatus === 'Approved') {
+        badgeClass = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+        statusText = 'Approved ✓';
+      } else if (emp.lastSubmissionStatus === 'Needs Revision') {
+        badgeClass = 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+        statusText = 'Revision Required ⚠️';
+      }
+      
       submissionHtml = `
-        <div class="mt-4 pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-[10px]">
-          <span class="text-[var(--text-secondary)]">Submission Status</span>
-          <span class="font-bold ${subColor}">${emp.lastSubmissionStatus} (By ${emp.lastSubmissionDeadline})</span>
+        <div class="mt-4 pt-3.5 border-t border-[var(--border-color)] flex items-center justify-between text-[10px] select-none">
+          <span class="text-[var(--text-secondary)] font-semibold uppercase tracking-wider">Review Status</span>
+          <span class="font-extrabold px-2.5 py-0.5 rounded border ${badgeClass}" title="Deadline: ${emp.lastSubmissionDeadline || '-'}">
+            ${statusText}
+          </span>
+        </div>
+      `;
+    }
+
+    // Dashboard metadata sections
+    let metadataHtml = '';
+    if (emp.hasDashboard) {
+      const progName = emp.dashboardProgram || 'General Program';
+      const progressPercent = emp.plansCount > 0 ? Math.round((emp.plansCompletedCount / emp.plansCount) * 100) : 0;
+      
+      metadataHtml = `
+        <!-- Active Program line -->
+        <div class="mt-3.5 bg-[var(--bg-input)] rounded-lg p-2.5 border border-[var(--border-color)] flex items-center gap-2 select-none">
+          <span class="text-sm">💡</span>
+          <div class="min-w-0 flex-1">
+            <div class="text-[8px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">Active Program</div>
+            <div class="text-xs font-bold text-[var(--text-primary)] truncate" title="${progName}">${progName}</div>
+          </div>
+        </div>
+
+        <!-- Skills and Gaps Count row -->
+        <div class="flex items-center gap-2.5 mt-3 select-none">
+          <div class="flex-1 flex items-center justify-between bg-blue-500/5 border border-blue-500/15 p-2 rounded-lg text-blue-400">
+            <div class="flex items-center gap-1.5 text-[10px] font-semibold">
+              <span>🔑</span>
+              <span>Skills</span>
+            </div>
+            <span class="font-black text-xs font-mono bg-blue-500/10 px-1.5 py-0.5 rounded">${emp.skillsCount}</span>
+          </div>
+          <div class="flex-1 flex items-center justify-between bg-amber-500/5 border border-amber-500/15 p-2 rounded-lg text-amber-400">
+            <div class="flex items-center gap-1.5 text-[10px] font-semibold">
+              <span>⚠️</span>
+              <span>Gaps</span>
+            </div>
+            <span class="font-black text-xs font-mono bg-amber-500/10 px-1.5 py-0.5 rounded">${emp.gapsCount}</span>
+          </div>
+        </div>
+
+        <!-- Training Plan progress -->
+        <div class="space-y-1.5 mt-3.5 select-none">
+          <div class="flex justify-between text-[9px] text-[var(--text-secondary)] font-extrabold uppercase tracking-wider">
+            <span>Training Progress</span>
+            <span class="font-mono text-[10px] text-[var(--text-primary)]">${emp.plansCompletedCount}/${emp.plansCount} Done</span>
+          </div>
+          <div class="w-full bg-[var(--bg-input)] rounded-full h-1.5 overflow-hidden border border-[var(--border-color)]">
+            <div class="bg-indigo-500 h-1.5 rounded-full transition-all duration-500" style="width: ${progressPercent}%"></div>
+          </div>
+        </div>
+      `;
+    } else {
+      metadataHtml = `
+        <div class="mt-3.5 bg-yellow-500/5 border border-yellow-500/10 text-yellow-400 rounded-lg p-3 text-center text-[10px] font-semibold select-none">
+          ⚠️ No Active SG Dashboard program has been created for this employee yet.
         </div>
       `;
     }
@@ -1029,20 +1146,20 @@ export function renderTeam(team, currentUserId, currentUserRole) {
 
     let actions = '';
     if (emp.hasDashboard) {
-      actions += `<button onclick="viewEmployeeDashboard('${emp.id}')" class="flex-1 text-center font-bold text-xs bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-xl transition-all shadow-sm">View Dashboard</button>`;
+      actions += `<button onclick="viewEmployeeDashboard('${emp.id}')" class="flex-1 text-center font-bold text-xs bg-indigo-500 hover:bg-indigo-600 text-white py-2.5 rounded-xl transition-all shadow-sm">View Dashboard</button>`;
     }
     
     // Add Submissions history button for direct/indirect report review
-    actions += `<button onclick="viewEmployeeSubmissions('${emp.id}')" class="px-3.5 text-center font-bold text-xs bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] py-2 rounded-xl transition-all border border-[var(--border-color)]" title="View all submissions">Submissions</button>`;
+    actions += `<button onclick="viewEmployeeSubmissions('${emp.id}')" class="px-3 text-center font-bold text-xs bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] py-2.5 rounded-xl transition-all border border-[var(--border-color)]" title="View all submissions">Submissions</button>`;
 
     if (emp.managerId === currentUserId || currentUserRole === 'Admin') {
-      actions += `<button onclick="triggerRequestSubmission('${emp.id}')" class="px-3.5 text-center font-bold text-xs bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] py-2 rounded-xl transition-all border border-[var(--border-color)]" title="Request update / freeze deadline">Request Update</button>`;
+      actions += `<button onclick="triggerRequestSubmission('${emp.id}')" class="px-3 text-center font-bold text-xs bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] py-2.5 rounded-xl transition-all border border-[var(--border-color)]" title="Request update / freeze deadline">Request Update</button>`;
     }
 
     card.innerHTML = `
       <div>
         <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 min-w-0">
             <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr ${avatarGradient} text-[var(--text-primary)] flex items-center justify-center font-extrabold text-sm border border-[var(--border-color)] select-none shrink-0">
               ${initials}
             </div>
@@ -1056,6 +1173,8 @@ export function renderTeam(team, currentUserId, currentUserRole) {
           </span>
         </div>
         <p class="text-[10px] text-[var(--text-secondary)] font-mono truncate mt-3 select-text">${emp.email}</p>
+        
+        ${metadataHtml}
         ${submissionHtml}
       </div>
       <div class="flex gap-2.5 mt-5">
@@ -2314,3 +2433,81 @@ export function renderVersions(versions) {
     };
   });
 }
+
+export function showRequestSubmissionModal(employeeName, dashboards) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] opacity-0 transition-opacity duration-300';
+    overlay.style.pointerEvents = 'auto';
+
+    const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    let optionsHtml = '<option value="">-- General / Unlinked --</option>';
+    const activeDashboards = (dashboards || []).filter(d => !d.is_deleted);
+    activeDashboards.forEach(d => {
+      optionsHtml += `<option value="${d.id}">${d.program_line || 'Default Program'}</option>`;
+    });
+
+    overlay.innerHTML = `
+      <div class="bg-[var(--bg-sidebar)] border border-[var(--border-color)] text-[var(--text-primary)] rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl scale-90 opacity-0 transition-all duration-300">
+        <div class="flex items-center gap-2 mb-4 select-none">
+          <span class="text-amber-400 text-lg">⏳</span>
+          <h3 class="text-xs font-black uppercase tracking-wider select-none text-[var(--text-primary)]">Request Submission</h3>
+        </div>
+        <p class="text-xs text-[var(--text-secondary)] mb-4 leading-relaxed select-none">
+          Request a technical resource plan submission from <strong>${employeeName}</strong>.
+        </p>
+        
+        <div class="space-y-4 mb-6">
+          <div class="space-y-1">
+            <label class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Select Dashboard (Project)</label>
+            <select id="req-plan-dashboard" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)] font-medium">
+              ${optionsHtml}
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Target Review Deadline</label>
+            <input type="date" id="req-plan-deadline" value="${defaultDate}" class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[var(--accent)] text-[var(--text-primary)] font-medium">
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 select-none">
+          <button id="req-plan-cancel" class="px-5 py-2 rounded-xl text-xs font-bold bg-[var(--bg-hover)] text-[var(--text-secondary)] border border-[var(--border-color)] active:scale-95 hover:bg-[var(--bg-input)] transition-all select-none">Cancel</button>
+          <button id="req-plan-ok" class="px-5 py-2 rounded-xl text-xs font-bold bg-amber-500 text-white shadow-lg active:scale-95 transition-all select-none hover:opacity-90">Request Update</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+      overlay.classList.add('opacity-100');
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-90', 'opacity-0');
+      dialog.classList.add('scale-100', 'opacity-100');
+    });
+
+    const close = (result) => {
+      const dialog = overlay.querySelector('div');
+      dialog.classList.remove('scale-100', 'opacity-100');
+      dialog.classList.add('scale-90', 'opacity-0');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.remove();
+        resolve(result);
+      }, 300);
+    };
+
+    overlay.querySelector('#req-plan-cancel').onclick = () => close(null);
+    overlay.querySelector('#req-plan-ok').onclick = () => {
+      const deadline = overlay.querySelector('#req-plan-deadline').value;
+      const dashboardId = overlay.querySelector('#req-plan-dashboard').value;
+      if (!deadline) {
+        alert('Please enter a target deadline date.');
+        return;
+      }
+      close({ deadline, dashboardId });
+    };
+  });
+}
+

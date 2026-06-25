@@ -66,9 +66,15 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       if (queryDashboardId) {
         res = await db.execute({
           sql: `
-            SELECT d.*, u.name, u.email, u.role, u.designation
+            SELECT d.*, u.name, u.email, u.role, u.designation,
+                   s.status AS last_submission_status
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
+            LEFT JOIN (
+              SELECT dashboard_id, status,
+                     ROW_NUMBER() OVER (PARTITION BY dashboard_id ORDER BY COALESCE(submitted_at, deadline) DESC) as rn
+              FROM submission_requests
+            ) s ON s.dashboard_id = d.id AND s.rn = 1
             WHERE d.id = ? AND d.user_id = ?
           `,
           args: [queryDashboardId, user.id],
@@ -78,9 +84,15 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       if (!queryDashboardId || !res || res.rows.length === 0) {
         res = await db.execute({
           sql: `
-            SELECT d.*, u.name, u.email, u.role, u.designation
+            SELECT d.*, u.name, u.email, u.role, u.designation,
+                   s.status AS last_submission_status
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
+            LEFT JOIN (
+              SELECT dashboard_id, status,
+                     ROW_NUMBER() OVER (PARTITION BY dashboard_id ORDER BY COALESCE(submitted_at, deadline) DESC) as rn
+              FROM submission_requests
+            ) s ON s.dashboard_id = d.id AND s.rn = 1
             WHERE d.user_id = ? AND d.is_deleted = 0
             ORDER BY d.updated_at DESC
           `,
@@ -103,9 +115,15 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
 
         res = await db.execute({
           sql: `
-            SELECT d.*, u.name, u.email, u.role, u.designation
+            SELECT d.*, u.name, u.email, u.role, u.designation,
+                   s.status AS last_submission_status
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
+            LEFT JOIN (
+              SELECT dashboard_id, status,
+                     ROW_NUMBER() OVER (PARTITION BY dashboard_id ORDER BY COALESCE(submitted_at, deadline) DESC) as rn
+              FROM submission_requests
+            ) s ON s.dashboard_id = d.id AND s.rn = 1
             WHERE d.id = ?
           `,
           args: [dashboardId],
@@ -138,9 +156,15 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       if (queryDashboardId) {
         res = await db.execute({
           sql: `
-            SELECT d.*, u.name, u.email, u.role, u.designation
+            SELECT d.*, u.name, u.email, u.role, u.designation,
+                   s.status AS last_submission_status
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
+            LEFT JOIN (
+              SELECT dashboard_id, status,
+                     ROW_NUMBER() OVER (PARTITION BY dashboard_id ORDER BY COALESCE(submitted_at, deadline) DESC) as rn
+              FROM submission_requests
+            ) s ON s.dashboard_id = d.id AND s.rn = 1
             WHERE d.id = ? AND d.user_id = ?
           `,
           args: [queryDashboardId, targetUserId],
@@ -150,9 +174,15 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
       if (!queryDashboardId || !res || res.rows.length === 0) {
         res = await db.execute({
           sql: `
-            SELECT d.*, u.name, u.email, u.role, u.designation
+            SELECT d.*, u.name, u.email, u.role, u.designation,
+                   s.status AS last_submission_status
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
+            LEFT JOIN (
+              SELECT dashboard_id, status,
+                     ROW_NUMBER() OVER (PARTITION BY dashboard_id ORDER BY COALESCE(submitted_at, deadline) DESC) as rn
+              FROM submission_requests
+            ) s ON s.dashboard_id = d.id AND s.rn = 1
             WHERE d.user_id = ? AND d.is_deleted = 0
             ORDER BY d.updated_at DESC
           `,
@@ -221,9 +251,15 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
 
         const freshRes = await db.execute({
           sql: `
-            SELECT d.*, u.name, u.email, u.role, u.designation
+            SELECT d.*, u.name, u.email, u.role, u.designation,
+                   s.status AS last_submission_status
             FROM dashboards d
             LEFT JOIN users u ON d.user_id = u.id
+            LEFT JOIN (
+              SELECT dashboard_id, status,
+                     ROW_NUMBER() OVER (PARTITION BY dashboard_id ORDER BY COALESCE(submitted_at, deadline) DESC) as rn
+              FROM submission_requests
+            ) s ON s.dashboard_id = d.id AND s.rn = 1
             WHERE d.id = ?
           `,
           args: [dashboardId],

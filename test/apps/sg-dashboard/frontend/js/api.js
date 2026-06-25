@@ -193,6 +193,22 @@ export async function submitDashboardReq(apiToken, requestId, dashboardId) {
   return res.json();
 }
 
+export async function directSubmitDashboard(apiToken, dashboardId) {
+  const res = await fetch(`${apiPrefix}/submissions/direct`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiToken}`
+    },
+    body: JSON.stringify({ dashboard_id: dashboardId })
+  });
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    throw new Error(errorBody.error || 'Failed to submit dashboard');
+  }
+  return res.json();
+}
+
 export async function reviewSubmission(apiToken, requestId, status, feedback) {
   const res = await fetch(`${apiPrefix}/submissions/${requestId}/review`, {
     method: 'POST',

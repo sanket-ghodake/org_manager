@@ -12,7 +12,11 @@ export default async function teamRoutes(fastify: FastifyInstance) {
 
       const selectFields = `
         u.id, u.name, u.email, u.role, u.manager_id, u.designation,
-        d.id AS dashboard_id, d.updated_at AS dashboard_updated_at,
+        d.id AS dashboard_id, d.updated_at AS dashboard_updated_at, d.program_line AS dashboard_program,
+        (SELECT COUNT(*) FROM dashboard_items WHERE dashboard_id = d.id AND section = 'key_skill') AS skills_count,
+        (SELECT COUNT(*) FROM dashboard_items WHERE dashboard_id = d.id AND section = 'gap') AS gaps_count,
+        (SELECT COUNT(*) FROM dashboard_items WHERE dashboard_id = d.id AND section = 'training_plan') AS plans_count,
+        (SELECT COUNT(*) FROM dashboard_items WHERE dashboard_id = d.id AND section = 'training_plan' AND status = 'completed') AS plans_completed_count,
         s.status AS last_submission_status, s.deadline AS last_submission_deadline
       `;
 
@@ -28,7 +32,7 @@ export default async function teamRoutes(fastify: FastifyInstance) {
       if (managerId) {
         // View mode open to all authenticated users
         sql = `
-          SELECT ${selectFields}
+          SELECT DISTINCT ${selectFields}
           FROM users u
           ${subqueryJoin}
           WHERE u.manager_id = ?
@@ -39,7 +43,7 @@ export default async function teamRoutes(fastify: FastifyInstance) {
         if (user.role === 'Admin') {
           if (rootsOnly === 'true') {
             sql = `
-              SELECT ${selectFields}
+              SELECT DISTINCT ${selectFields}
               FROM users u
               ${subqueryJoin}
               WHERE u.manager_id IS NULL OR u.manager_id = ''
@@ -49,7 +53,7 @@ export default async function teamRoutes(fastify: FastifyInstance) {
           } else {
             // Admin sees everyone
             sql = `
-              SELECT ${selectFields}
+              SELECT DISTINCT ${selectFields}
               FROM users u
               ${subqueryJoin}
               WHERE u.id != ?
@@ -60,7 +64,7 @@ export default async function teamRoutes(fastify: FastifyInstance) {
         } else {
           if (rootsOnly === 'true') {
             sql = `
-              SELECT ${selectFields}
+              SELECT DISTINCT ${selectFields}
               FROM users u
               ${subqueryJoin}
               WHERE u.manager_id = ?
@@ -80,9 +84,7 @@ export default async function teamRoutes(fastify: FastifyInstance) {
                 JOIN reports r ON u.manager_id = r.id
               )
               SELECT DISTINCT 
-                u.id, u.name, u.email, u.role, u.manager_id, u.designation,
-                d.id AS dashboard_id, d.updated_at AS dashboard_updated_at,
-                s.status AS last_submission_status, s.deadline AS last_submission_deadline
+                ${selectFields}
               FROM reports u
               LEFT JOIN dashboards d ON d.user_id = u.id
               LEFT JOIN (
@@ -109,6 +111,11 @@ export default async function teamRoutes(fastify: FastifyInstance) {
         hasDashboard: row.dashboard_id !== null && row.dashboard_id !== undefined,
         dashboardId: row.dashboard_id || null,
         dashboardUpdatedAt: row.dashboard_updated_at || null,
+        dashboardProgram: row.dashboard_program || null,
+        skillsCount: Number(row.skills_count || 0),
+        gapsCount: Number(row.gaps_count || 0),
+        plansCount: Number(row.plans_count || 0),
+        plansCompletedCount: Number(row.plans_completed_count || 0),
         lastSubmissionStatus: row.last_submission_status || null,
         lastSubmissionDeadline: row.last_submission_deadline || null,
       }));

@@ -388,7 +388,50 @@ export async function updateItemLinks(sourceId, targetIds) {
   }
 }
 
-export async function submitDashboard(id) {
+export async function submitDashboard(id, linkedDashboardId) {
+  let dashboardId = linkedDashboardId;
+
+  if (!dashboardId) {
+    let dashboards = [];
+    try {
+      const dashData = await api.fetchDashboards(apiToken, userData.id);
+      dashboards = dashData.dashboards || [];
+    } catch (err) {
+      console.error('Failed to fetch employee dashboards:', err);
+    }
+
+    const modalResult = await ui.showSubmitDashboardModal(dashboards, currentDashboardId);
+    if (!modalResult) return;
+    dashboardId = modalResult.dashboardId;
+  } else {
+    // Linked dashboard submission confirmation
+    let dashboards = [];
+    try {
+      const dashData = await api.fetchDashboards(apiToken, userData.id);
+      dashboards = dashData.dashboards || [];
+    } catch (err) {
+      console.error('Failed to fetch employee dashboards:', err);
+    }
+    const targetDash = dashboards.find(d => d.id === dashboardId);
+    const progName = targetDash ? targetDash.program_line : 'Selected Program';
+    const confirmed = await ui.showCustomConfirm(`Are you sure you want to submit your Technical Resource Plan for "${progName}" for review?`, 'Submit Dashboard');
+    if (!confirmed) return;
+  }
+
+  try {
+    await api.submitDashboardReq(apiToken, id, dashboardId);
+    await ui.showCustomAlert('Dashboard submitted successfully!', 'Success');
+    await loadSubmissions();
+    if (userData.role === 'Manager' || userData.role === 'Admin') {
+      await loadTeamView();
+    }
+  } catch (err) {
+    console.error(err);
+    await ui.showCustomAlert('Failed to submit dashboard: ' + err.message, 'Error');
+  }
+}
+
+export async function submitDirectDashboard(dashboardId) {
   let dashboards = [];
   try {
     const dashData = await api.fetchDashboards(apiToken, userData.id);
@@ -396,13 +439,13 @@ export async function submitDashboard(id) {
   } catch (err) {
     console.error('Failed to fetch employee dashboards:', err);
   }
-
-  const modalResult = await ui.showSubmitDashboardModal(dashboards, currentDashboardId);
-  if (!modalResult) return;
-  const { dashboardId } = modalResult;
+  const targetDash = dashboards.find(d => d.id === dashboardId);
+  const progName = targetDash ? targetDash.program_line : 'Selected Program';
+  const confirmed = await ui.showCustomConfirm(`Are you sure you want to submit your Technical Resource Plan for "${progName}" for review?`, 'Submit Dashboard');
+  if (!confirmed) return;
 
   try {
-    await api.submitDashboardReq(apiToken, id, dashboardId);
+    await api.directSubmitDashboard(apiToken, dashboardId);
     await ui.showCustomAlert('Dashboard submitted successfully!', 'Success');
     await loadSubmissions();
     if (userData.role === 'Manager' || userData.role === 'Admin') {
@@ -431,25 +474,33 @@ export async function freezeSubmission(requestId) {
 }
 
 export async function triggerRequestSubmission(empId) {
-  const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const deadline = await ui.showCustomPrompt(
-    'Enter a target review deadline date (YYYY-MM-DD):', 
-    defaultDate,
-    'Request Submission'
-  );
-  if (!deadline) return;
+  const employee = cachedUsers.find(u => u.id === empId);
+  const employeeName = employee ? employee.name : 'Employee';
+  let dashboards = [];
+  try {
+    const dashData = await api.fetchDashboards(apiToken, empId);
+    dashboards = dashData.dashboards || [];
+  } catch (err) {
+    console.warn('Failed to fetch employee dashboards:', err);
+  }
+
+  const modalResult = await ui.showRequestSubmissionModal(employeeName, dashboards);
+  if (!modalResult) return;
+  const { deadline, dashboardId } = modalResult;
 
   try {
-    const res = await api.createSubmissionRequest(apiToken, empId, deadline);
+    const res = await api.createSubmissionRequest(apiToken, empId, deadline, dashboardId);
     if (res.ok) {
       await ui.showCustomAlert('Submission request generated successfully!', 'Success');
       await loadTeamView();
+      await loadSubmissions();
     } else {
       const errData = await res.json();
       await ui.showCustomAlert('Error: ' + errData.error, 'Request Failed');
     }
   } catch (err) {
     console.error(err);
+    await ui.showCustomAlert('Failed to request submission: ' + err.message, 'Error');
   }
 }
 
@@ -592,19 +643,31 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
 
     // Toggle Warning Banner & Edit Controls
     const warningBanner = document.getElementById('read-only-warning-banner');
-    const isReadOnly = !isSelf || isDeleted;
+    const lastSubStatus = dashData.dashboard.last_submission_status;
+    const isLocked = lastSubStatus === 'Submitted' || lastSubStatus === 'Approved' || lastSubStatus === 'Pending';
+    const isReadOnly = !isSelf || isDeleted || isLocked;
 
     if (warningBanner) {
       if (isReadOnly && !isDeleted) {
         warningBanner.classList.remove('hidden');
-        warningBanner.className = "bg-amber-500/10 border-b border-amber-500/20 text-amber-500 px-6 py-2 text-xs font-medium flex items-center justify-between gap-2 select-none";
-        warningBanner.innerHTML = `
-          <div class="flex items-center gap-2">
-            <span>⚠️</span>
-            <span><strong>Read-Only Mode:</strong> You are viewing <strong>${ownerName}</strong>'s development dashboard workspace. Editing, status updates, and modifications are disabled.</span>
-          </div>
-          <button onclick="resetToMyWorkspace()" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/35 text-amber-400 font-bold border border-amber-500/30 transition-all text-[10px] shrink-0">Reset to My Workspace</button>
-        `;
+        if (isLocked && isSelf) {
+          warningBanner.className = "bg-indigo-500/10 border-b border-indigo-500/20 text-indigo-400 px-6 py-2 text-xs font-semibold flex items-center justify-between gap-2 select-none";
+          warningBanner.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span>🔒</span>
+              <span><strong>Dashboard Locked:</strong> This program has been submitted (${lastSubStatus === 'Approved' ? 'Approved ✓' : 'Awaiting Review ⏳'}). No changes can be made.</span>
+            </div>
+          `;
+        } else {
+          warningBanner.className = "bg-amber-500/10 border-b border-amber-500/20 text-amber-500 px-6 py-2 text-xs font-medium flex items-center justify-between gap-2 select-none";
+          warningBanner.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span>⚠️</span>
+              <span><strong>Read-Only Mode:</strong> You are viewing <strong>${ownerName}</strong>'s development dashboard workspace. Editing, status updates, and modifications are disabled.</span>
+            </div>
+            <button onclick="resetToMyWorkspace()" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/35 text-amber-400 font-bold border border-amber-500/30 transition-all text-[10px] shrink-0">Reset to My Workspace</button>
+          `;
+        }
       } else {
         warningBanner.classList.add('hidden');
       }
@@ -781,6 +844,19 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
           } catch (e) {
             await ui.showCustomAlert('Failed to delete program: ' + e.message, 'Error');
           }
+        };
+      }
+    }
+
+    const submitBtn = document.getElementById('program-submit-btn');
+    if (submitBtn) {
+      if (isReadOnly || isDeleted) {
+        submitBtn.classList.add('hidden');
+      } else {
+        submitBtn.classList.remove('hidden');
+        submitBtn.onclick = async () => {
+          if (!currentDashboardId) return;
+          await submitDirectDashboard(currentDashboardId);
         };
       }
     }
@@ -1074,7 +1150,39 @@ async function loadSubmissions(userId) {
     
     // Fetch submissions requests for the target employee
     const subData = await api.fetchSubmissions(apiToken, targetUserId);
-    ui.renderMySubmissions(subData.submissions);
+    const submissions = subData.submissions || [];
+
+    // Fetch all active dashboards of target employee
+    const dashData = await api.fetchDashboards(apiToken, targetUserId, false);
+    const dashboards = dashData.dashboards || [];
+
+    const submissionDashboardIds = new Set(
+      submissions
+        .map(s => s.dashboard_id)
+        .filter(id => id !== null && id !== undefined && id !== '')
+    );
+
+    const mergedSubmissions = [...submissions];
+
+    dashboards.forEach(dash => {
+      if (!submissionDashboardIds.has(dash.id)) {
+        mergedSubmissions.push({
+          id: `direct-${dash.id}`,
+          manager_id: userData.manager_id || '',
+          manager_name: 'Manager / Self-Initiated',
+          employee_id: targetUserId,
+          dashboard_id: dash.id,
+          dashboard_program: dash.program_line || 'Default Program',
+          deadline: '-',
+          status: 'Not Submitted',
+          feedback: '',
+          submitted_at: null,
+          is_direct: true
+        });
+      }
+    });
+
+    ui.renderMySubmissions(mergedSubmissions);
 
     // Show or hide submissions hub sub-tabs switcher based on roles
     const isManagerOrAdmin = userData.role === 'Manager' || userData.role === 'Admin';
@@ -1560,6 +1668,7 @@ window.startEditingObjective = startEditingObjective;
 window.saveObjectiveEdit = saveObjectiveEdit;
 window.addQuickItem = addQuickItem;
 window.submitDashboard = submitDashboard;
+window.submitDirectDashboard = submitDirectDashboard;
 window.freezeSubmission = freezeSubmission;
 window.viewEmployeeDashboard = viewEmployeeDashboard;
 window.viewEmployeeSubmissions = viewEmployeeSubmissions;
