@@ -6,7 +6,7 @@ import {
   X, ChevronRight, Search, ShieldCheck, LogOut, CheckCircle2,
   Clock, ArrowUpDown, ChevronDown, Check, Activity,
   Cpu, Zap, Shield, Lock, Server, AlertTriangle, CheckCircle,
-  Maximize2, Minimize2, Square
+  Maximize2, Minimize2, Square, HelpCircle
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
@@ -165,6 +165,10 @@ function App() {
   const [pollMenuOpen, setPollMenuOpen] = useState(false);
   const [severityMenuOpen, setSeverityMenuOpen] = useState(false);
   const [queryTemplateMenuOpen, setQueryTemplateMenuOpen] = useState(false);
+
+  // Org Hierarchy CSV validator states
+  const [csvPaste, setCsvPaste] = useState('');
+  const [validationResult, setValidationResult] = useState<any>(null);
 
   // Refs for resizers
   const sidebarResizerRef = useRef<boolean>(false);
@@ -1452,7 +1456,7 @@ function App() {
     ];
 
     const activeSlug = selectedAppSlug || (apps[0]?.slug || '');
-    const activeApp = apps.find(a => a.slug === activeSlug) || apps[0];
+    const activeApp = apps.find((a: any) => a.slug === activeSlug) || apps[0];
 
     // Filter events for the active app
     const appEvents = buffer.filter((e: any) => e.appSlug === activeSlug);
@@ -1532,7 +1536,7 @@ function App() {
     // Calculate latency percentiles for the active app
     const percentiles = (() => {
       if (appEvents.length > 0) {
-        const sorted = appEvents.map((e: any) => e.latencyMs).sort((a, b) => a - b);
+        const sorted = appEvents.map((e: any) => e.latencyMs).sort((a: any, b: any) => a - b);
         const getPct = (p: number) => sorted[Math.min(Math.floor((p / 100) * sorted.length), sorted.length - 1)];
         return { p50: getPct(50), p95: getPct(95), p99: getPct(99) };
       }
@@ -1573,9 +1577,9 @@ function App() {
     // Calculate mock/real active aggregate metrics
     const stats = {
       totalApps: apps.length,
-      activeApps: apps.filter(a => a.status === 'active' || a.status === 'online').length,
-      degradedApps: apps.filter(a => a.status === 'degraded').length,
-      totalMemory: Math.round(apps.reduce((sum, app) => {
+      activeApps: apps.filter((a: any) => a.status === 'active' || a.status === 'online').length,
+      degradedApps: apps.filter((a: any) => a.status === 'degraded').length,
+      totalMemory: Math.round(apps.reduce((sum: number, app: any) => {
         if (app.status === 'offline') return sum;
         if (app.mem !== undefined && app.mem !== null) return sum + app.mem;
         const base = app.slug === 'reference-python' ? 180 : app.slug === 'example-forge-app' ? 110 : 85;
@@ -1828,7 +1832,7 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {apps.map((app) => {
+                {apps.map((app: any) => {
                   const isSelected = app.slug === activeSlug;
                   const isDegraded = app.status === 'degraded';
                   const isOffline = app.status === 'offline';
@@ -2815,6 +2819,338 @@ function App() {
     );
   };
 
+  // VIEW 8: Org Hierarchy & CSV Help
+  const renderOrgHelpView = () => {
+    const validatePaste = () => {
+      if (!csvPaste.trim()) {
+        setValidationResult({ status: 'empty', errors: [] });
+        return;
+      }
+      const lines = csvPaste.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length === 0) {
+        setValidationResult({ status: 'empty', errors: [] });
+        return;
+      }
+      
+      const errors: string[] = [];
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      
+      const expected = ['eid', 'name', 'email', 'role', 'designation', 'vertical', 'managereid'];
+      const missing = expected.filter(e => !headers.includes(e));
+      if (missing.length > 0) {
+        errors.push(`Header row is missing required column(s): ${missing.join(', ')}`);
+      }
+
+      const rows: any[] = [];
+      const eids = new Set<string>();
+      const emailSet = new Set<string>();
+
+      for (let i = 1; i < lines.length; i++) {
+        const cells = lines[i].split(',').map(c => c.trim());
+        const rowData: Record<string, string> = {};
+        headers.forEach((h, idx) => {
+          rowData[h] = cells[idx] || '';
+        });
+
+        const lineNum = i + 1;
+        
+        if (!rowData.eid) {
+          errors.push(`Line ${lineNum}: Missing EID`);
+        } else {
+          if (eids.has(rowData.eid)) {
+            errors.push(`Line ${lineNum}: Duplicate EID "${rowData.eid}" in file`);
+          }
+          eids.add(rowData.eid);
+        }
+
+        if (!rowData.email) {
+          errors.push(`Line ${lineNum}: Missing Email`);
+        } else {
+          if (!rowData.email.includes('@')) {
+            errors.push(`Line ${lineNum}: Invalid Email address "${rowData.email}"`);
+          }
+          if (emailSet.has(rowData.email)) {
+            errors.push(`Line ${lineNum}: Duplicate Email "${rowData.email}" in file`);
+          }
+          emailSet.add(rowData.email);
+        }
+
+        if (!rowData.name) {
+          errors.push(`Line ${lineNum}: Missing Name`);
+        }
+
+        if (rowData.role) {
+          const validRoles = ['super_admin', 'admin', 'user', 'read_only_admin'];
+          if (!validRoles.includes(rowData.role)) {
+            errors.push(`Line ${lineNum}: Invalid Role "${rowData.role}" (Must be one of: ${validRoles.join(', ')})`);
+          }
+        }
+
+        rows.push(rowData);
+      }
+
+      const parentMap = new Map<string, string>();
+      rows.forEach(r => {
+        if (r.eid && r.managereid) {
+          parentMap.set(r.eid, r.managereid);
+        }
+      });
+
+      rows.forEach(r => {
+        if (!r.eid) return;
+        let slow = r.eid;
+        let fast = r.eid;
+        let cycle = false;
+        
+        while (slow && fast) {
+          slow = parentMap.get(slow) || '';
+          const temp = parentMap.get(fast) || '';
+          fast = parentMap.get(temp) || '';
+          if (slow && slow === fast) {
+            cycle = true;
+            break;
+          }
+        }
+
+        if (cycle) {
+          errors.push(`Circular Reporting Loop detected involving EID "${r.eid}"!`);
+        }
+      });
+
+      if (errors.length === 0) {
+        setValidationResult({ status: 'valid', errors: [], rowCount: rows.length });
+      } else {
+        setValidationResult({ status: 'invalid', errors, rowCount: rows.length });
+      }
+    };
+
+    return (
+      <div className="flex flex-col gap-6 w-full animate-fadeIn text-left">
+        <div className="bg-bgCard border border-borderColor rounded-xl p-6 shadow-md">
+          <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+            <HelpCircle className="text-primary-hover" size={24} />
+            Generic Org Hierarchy & CSV Blueprint Guide
+          </h2>
+          <p className="text-xs text-textMuted mt-2 leading-relaxed">
+            SG Forge implements a highly polymorphic, multi-dimensional organizational data model designed to support any business taxonomy.
+            Use this interactive guide to understand the schema architecture, design guidelines, and validate CSV batch files before ingestion.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-bgCard border border-borderColor rounded-xl p-5 flex flex-col gap-4 shadow-md">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-borderColor pb-2">
+              Architectural Philosophy
+            </h3>
+            
+            <div className="space-y-4 text-xs text-textMuted">
+              <div>
+                <h4 className="font-bold text-white text-xs">1. Dynamic Taxonomy Support</h4>
+                <p className="mt-1">
+                  Instead of rigid databases mapping departments and divisions to fixed columns, SG Forge uses a unified, self-referencing tree structures utilizing Postgres <code>ltree</code> extensions for fast path resolution, allowing deep nesting (e.g. Company &rarr; Vertical &rarr; Department &rarr; Team &rarr; Pod).
+                </p>
+              </div>
+              
+              <div>
+                <h4 className="font-bold text-white text-xs">2. Relational Reporting Relationships</h4>
+                <p className="mt-1">
+                  Line management is governed by the self-referencing <code>managerId</code> field in the main personnel tables. Standard users must have reporting lines; admins and super admins are decoupled to enforce segregation of administrative duties.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-white text-xs">3. Custom Fields Flexibility (JSONB)</h4>
+                <p className="mt-1">
+                  Both structural metadata nodes and users have an <code>extendedAttributes</code> JSONB payload to host customized client fields (e.g., cost centers, office locations, timezone codes, active certifications) without schema migration requirements.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-bgCard border border-borderColor rounded-xl p-5 flex flex-col gap-4 shadow-md">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-borderColor pb-2">
+              Primary Schema Entities
+            </h3>
+            
+            <div className="space-y-3">
+              <div className="p-3 bg-bgMain rounded-lg border border-borderColor/60">
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-xs text-primary font-bold">users</span>
+                  <span className="text-[10px] bg-successGlow border border-success/30 text-success px-1.5 py-0.5 rounded font-mono">Table</span>
+                </div>
+                <p className="text-[11px] text-textMuted mt-1">
+                  Represents individual personnel directory. Connects manager report paths, core role types, and maps designations & verticals.
+                </p>
+              </div>
+
+              <div className="p-3 bg-bgMain rounded-lg border border-borderColor/60">
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-xs text-primary font-bold">org_nodes</span>
+                  <span className="text-[10px] bg-successGlow border border-success/30 text-success px-1.5 py-0.5 rounded font-mono">Table</span>
+                </div>
+                <p className="text-[11px] text-textMuted mt-1">
+                  Vertical reporting tree nodes utilizing the postgres <code>ltree</code> class for fast ancestor/descendant resolution queries.
+                </p>
+              </div>
+
+              <div className="p-3 bg-bgMain rounded-lg border border-borderColor/60">
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-xs text-primary font-bold">structural_metadata</span>
+                  <span className="text-[10px] bg-successGlow border border-success/30 text-success px-1.5 py-0.5 rounded font-mono">Table</span>
+                </div>
+                <p className="text-[11px] text-textMuted mt-1">
+                  Polymorphic matrix lookup defining company levels, locations, verticals, and sorting orders.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-bgCard border border-borderColor rounded-xl p-5 flex flex-col gap-4 shadow-md">
+          <div className="flex flex-col md:flex-row justify-between md:items-center gap-2 border-b border-borderColor pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">CSV Ingestion Specifications</h3>
+              <p className="text-xs text-textMuted mt-1">Ensure CSV files conform to these exact header structures to run error-free bulk-ingests.</p>
+            </div>
+            <button
+              onClick={() => {
+                const csvData = "EID,Name,Email,Role,Designation,Vertical,ManagerEID\nE1001,John Doe,john.doe@company.com,user,Software Engineer,Engineering,\nE1002,Jane Smith,jane.smith@company.com,user,Director,Engineering,E1001\nE1003,Bob Johnson,bob.johnson@company.com,user,Team Lead,Engineering,E1002";
+                navigator.clipboard.writeText(csvData);
+                showToast("Sample template copied to clipboard!", "success");
+              }}
+              className="px-3.5 py-1.5 bg-primary/20 hover:bg-primary border border-primary/30 text-primary-hover hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+            >
+              📋 Copy Sample Template
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-bgTh/30 text-textMuted font-bold border-b border-borderColor">
+                  <th className="px-4 py-2">Column Header</th>
+                  <th className="px-4 py-2">Required</th>
+                  <th className="px-4 py-2">Type / Format</th>
+                  <th className="px-4 py-2">Purpose & Schema Mapping</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-borderColor/60 text-textMuted leading-relaxed">
+                <tr>
+                  <td className="px-4 py-3 font-mono text-white font-bold">EID</td>
+                  <td className="px-4 py-3 text-warning font-semibold">Yes</td>
+                  <td className="px-4 py-3 font-mono text-[11px]">VARCHAR</td>
+                  <td className="px-4 py-3">Unique personnel code (e.g. <code>E1029</code>). Acts as lookup key during updates.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-white font-bold">Name</td>
+                  <td className="px-4 py-3 text-warning font-semibold">Yes</td>
+                  <td className="px-4 py-3 font-mono text-[11px]">VARCHAR</td>
+                  <td className="px-4 py-3">Full name of the employee.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-white font-bold">Email</td>
+                  <td className="px-4 py-3 text-warning font-semibold">Yes</td>
+                  <td className="px-4 py-3 font-mono text-[11px]">VARCHAR (Unique)</td>
+                  <td className="px-4 py-3">Corporate email address. Used as secondary key.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-white font-bold">Role</td>
+                  <td className="px-4 py-3 text-textMuted">No</td>
+                  <td className="px-4 py-3 font-mono text-[11px]">user | admin | super_admin</td>
+                  <td className="px-4 py-3">Security access level role inside the portal. Defaults to <code>user</code>.</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-white font-bold">Designation</td>
+                  <td className="px-4 py-3 text-textMuted">No</td>
+                  <td className="px-4 py-3 font-mono text-[11px]">VARCHAR</td>
+                  <td className="px-4 py-3">Maps or auto-creates metadata in <code>structural_metadata</code> (type: job_level).</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-white font-bold">Vertical</td>
+                  <td className="px-4 py-3 text-textMuted">No</td>
+                  <td className="px-4 py-3 font-mono text-[11px]">VARCHAR</td>
+                  <td className="px-4 py-3">Maps or auto-creates business division in <code>structural_metadata</code> (type: vertical).</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 font-mono text-white font-bold">ManagerEID</td>
+                  <td className="px-4 py-3 text-textMuted">No</td>
+                  <td className="px-4 py-3 font-mono text-[11px]">VARCHAR</td>
+                  <td className="px-4 py-3">EID of the direct reporting manager. Dynamically resolved to database <code>managerId</code>.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="bg-bgCard border border-borderColor rounded-xl p-5 flex flex-col gap-4 shadow-md">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+            Interactive CSV Validator Tool
+          </h3>
+          <p className="text-xs text-textMuted">
+            Paste your CSV draft file below to run validation rules locally before running database ingestions.
+          </p>
+
+          <div className="flex flex-col gap-3">
+            <textarea
+              className="bg-bgConsole border border-borderColor font-mono text-xs text-textConsole p-4 rounded-xl h-36 outline-none focus:border-primary focus:ring-1 focus:ring-primaryGlow"
+              placeholder="Paste your CSV contents here..."
+              value={csvPaste}
+              onChange={(e) => setCsvPaste(e.target.value)}
+            />
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={validatePaste}
+                className="px-4 py-2 bg-primary hover:bg-primaryHover text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+              >
+                Validate CSV Format
+              </button>
+              <button
+                onClick={() => {
+                  setCsvPaste('');
+                  setValidationResult(null);
+                }}
+                className="px-3.5 py-2 border border-borderColor rounded-lg text-xs text-textMuted hover:text-white transition-all cursor-pointer"
+              >
+                Reset
+              </button>
+            </div>
+
+            {validationResult && (
+              <div className={`p-4 rounded-xl border ${
+                validationResult.status === 'valid' 
+                  ? 'bg-successGlow/20 border-success/30 text-success' 
+                  : 'bg-errorGlow/20 border-error/30 text-error'
+              } animate-fadeIn`}>
+                <div className="flex items-center gap-2 font-bold text-xs">
+                  {validationResult.status === 'valid' ? (
+                    <>
+                      <CheckCircle2 size={16} />
+                      CSV structure validated successfully! ({validationResult.rowCount} personnel records parsed)
+                    </>
+                  ) : (
+                    <>
+                      <ShieldAlert size={16} />
+                      Validation failed with {validationResult.errors.length} issue(s)
+                    </>
+                  )}
+                </div>
+                
+                {validationResult.errors.length > 0 && (
+                  <ul className="list-disc ml-5 mt-2 space-y-1 text-xs text-textMuted font-mono">
+                    {validationResult.errors.map((err: string, i: number) => (
+                      <li key={i}>{err}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // --- Auth View Layout ---
   if (!isAuthenticated && !loading) {
     return (
@@ -2897,7 +3233,8 @@ function App() {
             { id: 'topology', icon: <GitBranch size={16} />, label: 'Monorepo Topology' },
             { id: 'db', icon: <Database size={16} />, label: 'Database Explorer' },
             { id: 'ecosystem', icon: <Cpu size={16} />, label: 'Forge Apps Ecosystem' },
-            { id: 'logs', icon: <Terminal size={16} />, label: 'Unified Logs Explorer' }
+            { id: 'logs', icon: <Terminal size={16} />, label: 'Unified Logs Explorer' },
+            { id: 'org-help', icon: <HelpCircle size={16} />, label: 'Org Hierarchy & CSV Help' }
           ].map((item) => {
             const isActive = activeTab === item.id;
             return (
@@ -3025,6 +3362,7 @@ function App() {
           {activeTab === 'db' && renderDbExplorerView()}
           {activeTab === 'ecosystem' && renderEcosystemView()}
           {activeTab === 'logs' && renderTelemetryLogsView()}
+          {activeTab === 'org-help' && renderOrgHelpView()}
         </div>
 
       </main>

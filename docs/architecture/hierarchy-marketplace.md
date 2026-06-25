@@ -97,3 +97,24 @@ sequenceDiagram
 
 *   **App Admins (`forge_app_admins`)**: App developers or business leads designated to review and endorse access requests for their application.
 *   **Access Requests (`forge_app_access_requests`)**: Ledger of access requests, tracking statuses through review states (`pending_app_admin`, `pending_super_admin`, `approved`, `rejected`).
+
+---
+
+## 6. CSV Bulk Ingest & Data Onboarding
+
+To onboard personnel records and configure the organizational reporting hierarchy at scale, administrators can import data using bulk ingestion templates.
+
+### CSV Layout Specifications
+The bulk-ingest CSV file must match this template structure:
+```csv
+EID,Name,Email,Role,Designation,Vertical,ManagerEID
+E1001,John Doe,john.doe@company.com,user,Software Engineer,Engineering,
+E1002,Jane Smith,jane.smith@company.com,user,Director,Engineering,E1001
+E1003,Bob Johnson,bob.johnson@company.com,user,Team Lead,Engineering,E1002
+```
+
+### Ingestion Rules & Data Validation
+1. **Case-Insensitive Resolution**: EID lookups and reporting links are queried case-insensitively using case-insensitive SQL functions.
+2. **Metadata Auto-Provisioning**: Job Designations and Verticals that do not exist in the database are automatically created in the `structural_metadata` table.
+3. **Admin Duty Segregation**: Standard users cannot report to administrative accounts. Admins and super admins are kept detached from the reporting tree.
+4. **Reporting Cycle Prevention**: Database triggers and backend routers validate manager links. If an onboarding row references a manager EID that leads to a cycle (e.g. Employee A reporting to Employee B, and Employee B reporting to Employee A), the transaction fails validation.

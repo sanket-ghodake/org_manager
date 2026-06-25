@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@database/connection';
 import { users, structuralMetadata } from '@database/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { getSession } from '@backend/auth/sessionManager';
 import { logEvent } from '@backend/utils/logger';
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
             managerId: users.managerId
           })
           .from(users)
-          .where(inArray(users.eid, Array.from(targetEids)))
+          .where(inArray(sql`lower(${users.eid})`, Array.from(targetEids)))
       : [];
 
     const userEidMap = new Map<string, string>(); // EID -> ID

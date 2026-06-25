@@ -18816,8 +18816,21 @@ var __iconNode = [
   ["path", { d: "M19 21V9", key: "unv183" }]
 ];
 var ChartNoAxesColumn = createLucideIcon("chart-no-axes-column", __iconNode);
-// node_modules/lucide-react/dist/esm/icons/triangle-alert.mjs
+// node_modules/lucide-react/dist/esm/icons/circle-check.mjs
 var __iconNode2 = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+];
+var CircleCheck = createLucideIcon("circle-check", __iconNode2);
+// node_modules/lucide-react/dist/esm/icons/circle-question-mark.mjs
+var __iconNode3 = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["path", { d: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3", key: "1u773s" }],
+  ["path", { d: "M12 17h.01", key: "p32p05" }]
+];
+var CircleQuestionMark = createLucideIcon("circle-question-mark", __iconNode3);
+// node_modules/lucide-react/dist/esm/icons/triangle-alert.mjs
+var __iconNode4 = [
   [
     "path",
     {
@@ -18828,9 +18841,9 @@ var __iconNode2 = [
   ["path", { d: "M12 9v4", key: "juzpu7" }],
   ["path", { d: "M12 17h.01", key: "p32p05" }]
 ];
-var TriangleAlert = createLucideIcon("triangle-alert", __iconNode2);
+var TriangleAlert = createLucideIcon("triangle-alert", __iconNode4);
 // node_modules/lucide-react/dist/esm/icons/activity.mjs
-var __iconNode3 = [
+var __iconNode5 = [
   [
     "path",
     {
@@ -18839,15 +18852,15 @@ var __iconNode3 = [
     }
   ]
 ];
-var Activity = createLucideIcon("activity", __iconNode3);
+var Activity = createLucideIcon("activity", __iconNode5);
 // node_modules/lucide-react/dist/esm/icons/chevron-down.mjs
-var __iconNode4 = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
-var ChevronDown = createLucideIcon("chevron-down", __iconNode4);
+var __iconNode6 = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+var ChevronDown = createLucideIcon("chevron-down", __iconNode6);
 // node_modules/lucide-react/dist/esm/icons/chevron-right.mjs
-var __iconNode5 = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
-var ChevronRight = createLucideIcon("chevron-right", __iconNode5);
+var __iconNode7 = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+var ChevronRight = createLucideIcon("chevron-right", __iconNode7);
 // node_modules/lucide-react/dist/esm/icons/cpu.mjs
-var __iconNode6 = [
+var __iconNode8 = [
   ["path", { d: "M12 20v2", key: "1lh1kg" }],
   ["path", { d: "M12 2v2", key: "tus03m" }],
   ["path", { d: "M17 20v2", key: "1rnc9c" }],
@@ -18863,16 +18876,16 @@ var __iconNode6 = [
   ["rect", { x: "4", y: "4", width: "16", height: "16", rx: "2", key: "1vbyd7" }],
   ["rect", { x: "8", y: "8", width: "8", height: "8", rx: "1", key: "z9xiuo" }]
 ];
-var Cpu = createLucideIcon("cpu", __iconNode6);
+var Cpu = createLucideIcon("cpu", __iconNode8);
 // node_modules/lucide-react/dist/esm/icons/database.mjs
-var __iconNode7 = [
+var __iconNode9 = [
   ["ellipse", { cx: "12", cy: "5", rx: "9", ry: "3", key: "msslwz" }],
   ["path", { d: "M3 5V19A9 3 0 0 0 21 19V5", key: "1wlel7" }],
   ["path", { d: "M3 12A9 3 0 0 0 21 12", key: "mv7ke4" }]
 ];
-var Database = createLucideIcon("database", __iconNode7);
+var Database = createLucideIcon("database", __iconNode9);
 // node_modules/lucide-react/dist/esm/icons/file-text.mjs
-var __iconNode8 = [
+var __iconNode10 = [
   [
     "path",
     {
@@ -18885,9 +18898,9 @@ var __iconNode8 = [
   ["path", { d: "M16 13H8", key: "t4e002" }],
   ["path", { d: "M16 17H8", key: "z1uh3a" }]
 ];
-var FileText = createLucideIcon("file-text", __iconNode8);
+var FileText = createLucideIcon("file-text", __iconNode10);
 // node_modules/lucide-react/dist/esm/icons/folder.mjs
-var __iconNode9 = [
+var __iconNode11 = [
   [
     "path",
     {
@@ -18896,45 +18909,45 @@ var __iconNode9 = [
     }
   ]
 ];
-var Folder = createLucideIcon("folder", __iconNode9);
+var Folder = createLucideIcon("folder", __iconNode11);
 // node_modules/lucide-react/dist/esm/icons/git-branch.mjs
-var __iconNode10 = [
+var __iconNode12 = [
   ["path", { d: "M15 6a9 9 0 0 0-9 9V3", key: "1cii5b" }],
   ["circle", { cx: "18", cy: "6", r: "3", key: "1h7g24" }],
   ["circle", { cx: "6", cy: "18", r: "3", key: "fqmcym" }]
 ];
-var GitBranch = createLucideIcon("git-branch", __iconNode10);
+var GitBranch = createLucideIcon("git-branch", __iconNode12);
 // node_modules/lucide-react/dist/esm/icons/lock.mjs
-var __iconNode11 = [
+var __iconNode13 = [
   ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
   ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
 ];
-var Lock = createLucideIcon("lock", __iconNode11);
+var Lock = createLucideIcon("lock", __iconNode13);
 // node_modules/lucide-react/dist/esm/icons/log-out.mjs
-var __iconNode12 = [
+var __iconNode14 = [
   ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
   ["path", { d: "M21 12H9", key: "dn1m92" }],
   ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
 ];
-var LogOut = createLucideIcon("log-out", __iconNode12);
+var LogOut = createLucideIcon("log-out", __iconNode14);
 // node_modules/lucide-react/dist/esm/icons/maximize-2.mjs
-var __iconNode13 = [
+var __iconNode15 = [
   ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
   ["path", { d: "m21 3-7 7", key: "1l2asr" }],
   ["path", { d: "m3 21 7-7", key: "tjx5ai" }],
   ["path", { d: "M9 21H3v-6", key: "wtvkvv" }]
 ];
-var Maximize2 = createLucideIcon("maximize-2", __iconNode13);
+var Maximize2 = createLucideIcon("maximize-2", __iconNode15);
 // node_modules/lucide-react/dist/esm/icons/minimize-2.mjs
-var __iconNode14 = [
+var __iconNode16 = [
   ["path", { d: "m14 10 7-7", key: "oa77jy" }],
   ["path", { d: "M20 10h-6V4", key: "mjg0md" }],
   ["path", { d: "m3 21 7-7", key: "tjx5ai" }],
   ["path", { d: "M4 14h6v6", key: "rmj7iw" }]
 ];
-var Minimize2 = createLucideIcon("minimize-2", __iconNode14);
+var Minimize2 = createLucideIcon("minimize-2", __iconNode16);
 // node_modules/lucide-react/dist/esm/icons/play.mjs
-var __iconNode15 = [
+var __iconNode17 = [
   [
     "path",
     {
@@ -18943,31 +18956,31 @@ var __iconNode15 = [
     }
   ]
 ];
-var Play = createLucideIcon("play", __iconNode15);
+var Play = createLucideIcon("play", __iconNode17);
 // node_modules/lucide-react/dist/esm/icons/refresh-cw.mjs
-var __iconNode16 = [
+var __iconNode18 = [
   ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
   ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
   ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
   ["path", { d: "M8 16H3v5", key: "1cv678" }]
 ];
-var RefreshCw = createLucideIcon("refresh-cw", __iconNode16);
+var RefreshCw = createLucideIcon("refresh-cw", __iconNode18);
 // node_modules/lucide-react/dist/esm/icons/search.mjs
-var __iconNode17 = [
+var __iconNode19 = [
   ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
   ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
 ];
-var Search = createLucideIcon("search", __iconNode17);
+var Search = createLucideIcon("search", __iconNode19);
 // node_modules/lucide-react/dist/esm/icons/server.mjs
-var __iconNode18 = [
+var __iconNode20 = [
   ["rect", { width: "20", height: "8", x: "2", y: "2", rx: "2", ry: "2", key: "ngkwjq" }],
   ["rect", { width: "20", height: "8", x: "2", y: "14", rx: "2", ry: "2", key: "iecqi9" }],
   ["line", { x1: "6", x2: "6.01", y1: "6", y2: "6", key: "16zg32" }],
   ["line", { x1: "6", x2: "6.01", y1: "18", y2: "18", key: "nzw8ys" }]
 ];
-var Server = createLucideIcon("server", __iconNode18);
+var Server = createLucideIcon("server", __iconNode20);
 // node_modules/lucide-react/dist/esm/icons/shield-alert.mjs
-var __iconNode19 = [
+var __iconNode21 = [
   [
     "path",
     {
@@ -18978,9 +18991,9 @@ var __iconNode19 = [
   ["path", { d: "M12 8v4", key: "1got3b" }],
   ["path", { d: "M12 16h.01", key: "1drbdi" }]
 ];
-var ShieldAlert = createLucideIcon("shield-alert", __iconNode19);
+var ShieldAlert = createLucideIcon("shield-alert", __iconNode21);
 // node_modules/lucide-react/dist/esm/icons/shield-check.mjs
-var __iconNode20 = [
+var __iconNode22 = [
   [
     "path",
     {
@@ -18990,34 +19003,34 @@ var __iconNode20 = [
   ],
   ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-var ShieldCheck = createLucideIcon("shield-check", __iconNode20);
+var ShieldCheck = createLucideIcon("shield-check", __iconNode22);
 // node_modules/lucide-react/dist/esm/icons/square.mjs
-var __iconNode21 = [
+var __iconNode23 = [
   ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }]
 ];
-var Square = createLucideIcon("square", __iconNode21);
+var Square = createLucideIcon("square", __iconNode23);
 // node_modules/lucide-react/dist/esm/icons/table.mjs
-var __iconNode22 = [
+var __iconNode24 = [
   ["path", { d: "M12 3v18", key: "108xh3" }],
   ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
   ["path", { d: "M3 9h18", key: "1pudct" }],
   ["path", { d: "M3 15h18", key: "5xshup" }]
 ];
-var Table = createLucideIcon("table", __iconNode22);
+var Table = createLucideIcon("table", __iconNode24);
 // node_modules/lucide-react/dist/esm/icons/terminal.mjs
-var __iconNode23 = [
+var __iconNode25 = [
   ["path", { d: "M12 19h8", key: "baeox8" }],
   ["path", { d: "m4 17 6-6-6-6", key: "1yngyt" }]
 ];
-var Terminal = createLucideIcon("terminal", __iconNode23);
+var Terminal = createLucideIcon("terminal", __iconNode25);
 // node_modules/lucide-react/dist/esm/icons/x.mjs
-var __iconNode24 = [
+var __iconNode26 = [
   ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
   ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
 ];
-var X = createLucideIcon("x", __iconNode24);
+var X = createLucideIcon("x", __iconNode26);
 // node_modules/lucide-react/dist/esm/icons/zap.mjs
-var __iconNode25 = [
+var __iconNode27 = [
   [
     "path",
     {
@@ -19026,7 +19039,7 @@ var __iconNode25 = [
     }
   ]
 ];
-var Zap = createLucideIcon("zap", __iconNode25);
+var Zap = createLucideIcon("zap", __iconNode27);
 // node_modules/recharts/es6/component/Tooltip.js
 var React10 = __toESM(require_react(), 1);
 var import_react22 = __toESM(require_react(), 1);
@@ -40361,6 +40374,8 @@ function App() {
   const [pollMenuOpen, setPollMenuOpen] = import_react50.useState(false);
   const [severityMenuOpen, setSeverityMenuOpen] = import_react50.useState(false);
   const [queryTemplateMenuOpen, setQueryTemplateMenuOpen] = import_react50.useState(false);
+  const [csvPaste, setCsvPaste] = import_react50.useState("");
+  const [validationResult, setValidationResult] = import_react50.useState(null);
   const sidebarResizerRef = import_react50.useRef(false);
   const dbResizerRef = import_react50.useRef(false);
   import_react50.useEffect(() => {
@@ -44243,6 +44258,595 @@ function App() {
       ]
     }, undefined, true, undefined, this);
   };
+  const renderOrgHelpView = () => {
+    const validatePaste = () => {
+      if (!csvPaste.trim()) {
+        setValidationResult({ status: "empty", errors: [] });
+        return;
+      }
+      const lines = csvPaste.split(`
+`).map((l) => l.trim()).filter(Boolean);
+      if (lines.length === 0) {
+        setValidationResult({ status: "empty", errors: [] });
+        return;
+      }
+      const errors3 = [];
+      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+      const expected = ["eid", "name", "email", "role", "designation", "vertical", "managereid"];
+      const missing = expected.filter((e) => !headers.includes(e));
+      if (missing.length > 0) {
+        errors3.push(`Header row is missing required column(s): ${missing.join(", ")}`);
+      }
+      const rows = [];
+      const eids = new Set;
+      const emailSet = new Set;
+      for (let i = 1;i < lines.length; i++) {
+        const cells = lines[i].split(",").map((c2) => c2.trim());
+        const rowData = {};
+        headers.forEach((h, idx) => {
+          rowData[h] = cells[idx] || "";
+        });
+        const lineNum = i + 1;
+        if (!rowData.eid) {
+          errors3.push(`Line ${lineNum}: Missing EID`);
+        } else {
+          if (eids.has(rowData.eid)) {
+            errors3.push(`Line ${lineNum}: Duplicate EID "${rowData.eid}" in file`);
+          }
+          eids.add(rowData.eid);
+        }
+        if (!rowData.email) {
+          errors3.push(`Line ${lineNum}: Missing Email`);
+        } else {
+          if (!rowData.email.includes("@")) {
+            errors3.push(`Line ${lineNum}: Invalid Email address "${rowData.email}"`);
+          }
+          if (emailSet.has(rowData.email)) {
+            errors3.push(`Line ${lineNum}: Duplicate Email "${rowData.email}" in file`);
+          }
+          emailSet.add(rowData.email);
+        }
+        if (!rowData.name) {
+          errors3.push(`Line ${lineNum}: Missing Name`);
+        }
+        if (rowData.role) {
+          const validRoles = ["super_admin", "admin", "user", "read_only_admin"];
+          if (!validRoles.includes(rowData.role)) {
+            errors3.push(`Line ${lineNum}: Invalid Role "${rowData.role}" (Must be one of: ${validRoles.join(", ")})`);
+          }
+        }
+        rows.push(rowData);
+      }
+      const parentMap = new Map;
+      rows.forEach((r2) => {
+        if (r2.eid && r2.managereid) {
+          parentMap.set(r2.eid, r2.managereid);
+        }
+      });
+      rows.forEach((r2) => {
+        if (!r2.eid)
+          return;
+        let slow = r2.eid;
+        let fast = r2.eid;
+        let cycle = false;
+        while (slow && fast) {
+          slow = parentMap.get(slow) || "";
+          const temp = parentMap.get(fast) || "";
+          fast = parentMap.get(temp) || "";
+          if (slow && slow === fast) {
+            cycle = true;
+            break;
+          }
+        }
+        if (cycle) {
+          errors3.push(`Circular Reporting Loop detected involving EID "${r2.eid}"!`);
+        }
+      });
+      if (errors3.length === 0) {
+        setValidationResult({ status: "valid", errors: [], rowCount: rows.length });
+      } else {
+        setValidationResult({ status: "invalid", errors: errors3, rowCount: rows.length });
+      }
+    };
+    return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+      className: "flex flex-col gap-6 w-full animate-fadeIn text-left",
+      children: [
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "bg-bgCard border border-borderColor rounded-xl p-6 shadow-md",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h2", {
+              className: "text-xl font-extrabold text-white flex items-center gap-2",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV(CircleQuestionMark, {
+                  className: "text-primary-hover",
+                  size: 24
+                }, undefined, false, undefined, this),
+                "Generic Org Hierarchy & CSV Blueprint Guide"
+              ]
+            }, undefined, true, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+              className: "text-xs text-textMuted mt-2 leading-relaxed",
+              children: "SG Forge implements a highly polymorphic, multi-dimensional organizational data model designed to support any business taxonomy. Use this interactive guide to understand the schema architecture, design guidelines, and validate CSV batch files before ingestion."
+            }, undefined, false, undefined, this)
+          ]
+        }, undefined, true, undefined, this),
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "grid grid-cols-1 lg:grid-cols-2 gap-6",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "bg-bgCard border border-borderColor rounded-xl p-5 flex flex-col gap-4 shadow-md",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h3", {
+                  className: "text-sm font-bold text-white uppercase tracking-wider border-b border-borderColor pb-2",
+                  children: "Architectural Philosophy"
+                }, undefined, false, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "space-y-4 text-xs text-textMuted",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                          className: "font-bold text-white text-xs",
+                          children: "1. Dynamic Taxonomy Support"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                          className: "mt-1",
+                          children: [
+                            "Instead of rigid databases mapping departments and divisions to fixed columns, SG Forge uses a unified, self-referencing tree structures utilizing Postgres ",
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("code", {
+                              children: "ltree"
+                            }, undefined, false, undefined, this),
+                            " extensions for fast path resolution, allowing deep nesting (e.g. Company → Vertical → Department → Team → Pod)."
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                          className: "font-bold text-white text-xs",
+                          children: "2. Relational Reporting Relationships"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                          className: "mt-1",
+                          children: [
+                            "Line management is governed by the self-referencing ",
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("code", {
+                              children: "managerId"
+                            }, undefined, false, undefined, this),
+                            " field in the main personnel tables. Standard users must have reporting lines; admins and super admins are decoupled to enforce segregation of administrative duties."
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h4", {
+                          className: "font-bold text-white text-xs",
+                          children: "3. Custom Fields Flexibility (JSONB)"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                          className: "mt-1",
+                          children: [
+                            "Both structural metadata nodes and users have an ",
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("code", {
+                              children: "extendedAttributes"
+                            }, undefined, false, undefined, this),
+                            " JSONB payload to host customized client fields (e.g., cost centers, office locations, timezone codes, active certifications) without schema migration requirements."
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this)
+                  ]
+                }, undefined, true, undefined, this)
+              ]
+            }, undefined, true, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "bg-bgCard border border-borderColor rounded-xl p-5 flex flex-col gap-4 shadow-md",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h3", {
+                  className: "text-sm font-bold text-white uppercase tracking-wider border-b border-borderColor pb-2",
+                  children: "Primary Schema Entities"
+                }, undefined, false, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "space-y-3",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "p-3 bg-bgMain rounded-lg border border-borderColor/60",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "flex justify-between items-center",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "font-mono text-xs text-primary font-bold",
+                              children: "users"
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "text-[10px] bg-successGlow border border-success/30 text-success px-1.5 py-0.5 rounded font-mono",
+                              children: "Table"
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                          className: "text-[11px] text-textMuted mt-1",
+                          children: "Represents individual personnel directory. Connects manager report paths, core role types, and maps designations & verticals."
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "p-3 bg-bgMain rounded-lg border border-borderColor/60",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "flex justify-between items-center",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "font-mono text-xs text-primary font-bold",
+                              children: "org_nodes"
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "text-[10px] bg-successGlow border border-success/30 text-success px-1.5 py-0.5 rounded font-mono",
+                              children: "Table"
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                          className: "text-[11px] text-textMuted mt-1",
+                          children: [
+                            "Vertical reporting tree nodes utilizing the postgres ",
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("code", {
+                              children: "ltree"
+                            }, undefined, false, undefined, this),
+                            " class for fast ancestor/descendant resolution queries."
+                          ]
+                        }, undefined, true, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "p-3 bg-bgMain rounded-lg border border-borderColor/60",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                          className: "flex justify-between items-center",
+                          children: [
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "font-mono text-xs text-primary font-bold",
+                              children: "structural_metadata"
+                            }, undefined, false, undefined, this),
+                            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("span", {
+                              className: "text-[10px] bg-successGlow border border-success/30 text-success px-1.5 py-0.5 rounded font-mono",
+                              children: "Table"
+                            }, undefined, false, undefined, this)
+                          ]
+                        }, undefined, true, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                          className: "text-[11px] text-textMuted mt-1",
+                          children: "Polymorphic matrix lookup defining company levels, locations, verticals, and sorting orders."
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this)
+                  ]
+                }, undefined, true, undefined, this)
+              ]
+            }, undefined, true, undefined, this)
+          ]
+        }, undefined, true, undefined, this),
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "bg-bgCard border border-borderColor rounded-xl p-5 flex flex-col gap-4 shadow-md",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "flex flex-col md:flex-row justify-between md:items-center gap-2 border-b border-borderColor pb-3",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h3", {
+                      className: "text-sm font-bold text-white uppercase tracking-wider",
+                      children: "CSV Ingestion Specifications"
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+                      className: "text-xs text-textMuted mt-1",
+                      children: "Ensure CSV files conform to these exact header structures to run error-free bulk-ingests."
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                  onClick: () => {
+                    const csvData = `EID,Name,Email,Role,Designation,Vertical,ManagerEID
+E1001,John Doe,john.doe@company.com,user,Software Engineer,Engineering,
+E1002,Jane Smith,jane.smith@company.com,user,Director,Engineering,E1001
+E1003,Bob Johnson,bob.johnson@company.com,user,Team Lead,Engineering,E1002`;
+                    navigator.clipboard.writeText(csvData);
+                    showToast("Sample template copied to clipboard!", "success");
+                  },
+                  className: "px-3.5 py-1.5 bg-primary/20 hover:bg-primary border border-primary/30 text-primary-hover hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer",
+                  children: "\uD83D\uDCCB Copy Sample Template"
+                }, undefined, false, undefined, this)
+              ]
+            }, undefined, true, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "overflow-x-auto",
+              children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("table", {
+                className: "w-full text-left text-xs border-collapse",
+                children: [
+                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("thead", {
+                    children: /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                      className: "bg-bgTh/30 text-textMuted font-bold border-b border-borderColor",
+                      children: [
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("th", {
+                          className: "px-4 py-2",
+                          children: "Column Header"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("th", {
+                          className: "px-4 py-2",
+                          children: "Required"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("th", {
+                          className: "px-4 py-2",
+                          children: "Type / Format"
+                        }, undefined, false, undefined, this),
+                        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("th", {
+                          className: "px-4 py-2",
+                          children: "Purpose & Schema Mapping"
+                        }, undefined, false, undefined, this)
+                      ]
+                    }, undefined, true, undefined, this)
+                  }, undefined, false, undefined, this),
+                  /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tbody", {
+                    className: "divide-y divide-borderColor/60 text-textMuted leading-relaxed",
+                    children: [
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-white font-bold",
+                            children: "EID"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 text-warning font-semibold",
+                            children: "Yes"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-[11px]",
+                            children: "VARCHAR"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3",
+                            children: [
+                              "Unique personnel code (e.g. ",
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("code", {
+                                children: "E1029"
+                              }, undefined, false, undefined, this),
+                              "). Acts as lookup key during updates."
+                            ]
+                          }, undefined, true, undefined, this)
+                        ]
+                      }, undefined, true, undefined, this),
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-white font-bold",
+                            children: "Name"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 text-warning font-semibold",
+                            children: "Yes"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-[11px]",
+                            children: "VARCHAR"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3",
+                            children: "Full name of the employee."
+                          }, undefined, false, undefined, this)
+                        ]
+                      }, undefined, true, undefined, this),
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-white font-bold",
+                            children: "Email"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 text-warning font-semibold",
+                            children: "Yes"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-[11px]",
+                            children: "VARCHAR (Unique)"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3",
+                            children: "Corporate email address. Used as secondary key."
+                          }, undefined, false, undefined, this)
+                        ]
+                      }, undefined, true, undefined, this),
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-white font-bold",
+                            children: "Role"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 text-textMuted",
+                            children: "No"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-[11px]",
+                            children: "user | admin | super_admin"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3",
+                            children: [
+                              "Security access level role inside the portal. Defaults to ",
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("code", {
+                                children: "user"
+                              }, undefined, false, undefined, this),
+                              "."
+                            ]
+                          }, undefined, true, undefined, this)
+                        ]
+                      }, undefined, true, undefined, this),
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-white font-bold",
+                            children: "Designation"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 text-textMuted",
+                            children: "No"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-[11px]",
+                            children: "VARCHAR"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3",
+                            children: [
+                              "Maps or auto-creates metadata in ",
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("code", {
+                                children: "structural_metadata"
+                              }, undefined, false, undefined, this),
+                              " (type: job_level)."
+                            ]
+                          }, undefined, true, undefined, this)
+                        ]
+                      }, undefined, true, undefined, this),
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-white font-bold",
+                            children: "Vertical"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 text-textMuted",
+                            children: "No"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-[11px]",
+                            children: "VARCHAR"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3",
+                            children: [
+                              "Maps or auto-creates business division in ",
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("code", {
+                                children: "structural_metadata"
+                              }, undefined, false, undefined, this),
+                              " (type: vertical)."
+                            ]
+                          }, undefined, true, undefined, this)
+                        ]
+                      }, undefined, true, undefined, this),
+                      /* @__PURE__ */ jsx_dev_runtime.jsxDEV("tr", {
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-white font-bold",
+                            children: "ManagerEID"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 text-textMuted",
+                            children: "No"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3 font-mono text-[11px]",
+                            children: "VARCHAR"
+                          }, undefined, false, undefined, this),
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV("td", {
+                            className: "px-4 py-3",
+                            children: [
+                              "EID of the direct reporting manager. Dynamically resolved to database ",
+                              /* @__PURE__ */ jsx_dev_runtime.jsxDEV("code", {
+                                children: "managerId"
+                              }, undefined, false, undefined, this),
+                              "."
+                            ]
+                          }, undefined, true, undefined, this)
+                        ]
+                      }, undefined, true, undefined, this)
+                    ]
+                  }, undefined, true, undefined, this)
+                ]
+              }, undefined, true, undefined, this)
+            }, undefined, false, undefined, this)
+          ]
+        }, undefined, true, undefined, this),
+        /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+          className: "bg-bgCard border border-borderColor rounded-xl p-5 flex flex-col gap-4 shadow-md",
+          children: [
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("h3", {
+              className: "text-sm font-bold text-white uppercase tracking-wider",
+              children: "Interactive CSV Validator Tool"
+            }, undefined, false, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("p", {
+              className: "text-xs text-textMuted",
+              children: "Paste your CSV draft file below to run validation rules locally before running database ingestions."
+            }, undefined, false, undefined, this),
+            /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+              className: "flex flex-col gap-3",
+              children: [
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("textarea", {
+                  className: "bg-bgConsole border border-borderColor font-mono text-xs text-textConsole p-4 rounded-xl h-36 outline-none focus:border-primary focus:ring-1 focus:ring-primaryGlow",
+                  placeholder: "Paste your CSV contents here...",
+                  value: csvPaste,
+                  onChange: (e) => setCsvPaste(e.target.value)
+                }, undefined, false, undefined, this),
+                /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: "flex items-center gap-3",
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                      onClick: validatePaste,
+                      className: "px-4 py-2 bg-primary hover:bg-primaryHover text-white text-xs font-bold rounded-lg transition-all cursor-pointer",
+                      children: "Validate CSV Format"
+                    }, undefined, false, undefined, this),
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("button", {
+                      onClick: () => {
+                        setCsvPaste("");
+                        setValidationResult(null);
+                      },
+                      className: "px-3.5 py-2 border border-borderColor rounded-lg text-xs text-textMuted hover:text-white transition-all cursor-pointer",
+                      children: "Reset"
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this),
+                validationResult && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                  className: `p-4 rounded-xl border ${validationResult.status === "valid" ? "bg-successGlow/20 border-success/30 text-success" : "bg-errorGlow/20 border-error/30 text-error"} animate-fadeIn`,
+                  children: [
+                    /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
+                      className: "flex items-center gap-2 font-bold text-xs",
+                      children: validationResult.status === "valid" ? /* @__PURE__ */ jsx_dev_runtime.jsxDEV(jsx_dev_runtime.Fragment, {
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV(CircleCheck, {
+                            size: 16
+                          }, undefined, false, undefined, this),
+                          "CSV structure validated successfully! (",
+                          validationResult.rowCount,
+                          " personnel records parsed)"
+                        ]
+                      }, undefined, true, undefined, this) : /* @__PURE__ */ jsx_dev_runtime.jsxDEV(jsx_dev_runtime.Fragment, {
+                        children: [
+                          /* @__PURE__ */ jsx_dev_runtime.jsxDEV(ShieldAlert, {
+                            size: 16
+                          }, undefined, false, undefined, this),
+                          "Validation failed with ",
+                          validationResult.errors.length,
+                          " issue(s)"
+                        ]
+                      }, undefined, true, undefined, this)
+                    }, undefined, false, undefined, this),
+                    validationResult.errors.length > 0 && /* @__PURE__ */ jsx_dev_runtime.jsxDEV("ul", {
+                      className: "list-disc ml-5 mt-2 space-y-1 text-xs text-textMuted font-mono",
+                      children: validationResult.errors.map((err, i) => /* @__PURE__ */ jsx_dev_runtime.jsxDEV("li", {
+                        children: err
+                      }, i, false, undefined, this))
+                    }, undefined, false, undefined, this)
+                  ]
+                }, undefined, true, undefined, this)
+              ]
+            }, undefined, true, undefined, this)
+          ]
+        }, undefined, true, undefined, this)
+      ]
+    }, undefined, true, undefined, this);
+  };
   if (!isAuthenticated && !loading) {
     return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
       className: "min-h-screen flex items-center justify-center bg-radial bg-bgMain select-none relative animate-fadeIn p-4",
@@ -44371,7 +44975,10 @@ function App() {
               }, undefined, false, undefined, this), label: "Forge Apps Ecosystem" },
               { id: "logs", icon: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(Terminal, {
                 size: 16
-              }, undefined, false, undefined, this), label: "Unified Logs Explorer" }
+              }, undefined, false, undefined, this), label: "Unified Logs Explorer" },
+              { id: "org-help", icon: /* @__PURE__ */ jsx_dev_runtime.jsxDEV(CircleQuestionMark, {
+                size: 16
+              }, undefined, false, undefined, this), label: "Org Hierarchy & CSV Help" }
             ].map((item) => {
               const isActive = activeTab === item.id;
               return /* @__PURE__ */ jsx_dev_runtime.jsxDEV("div", {
@@ -44525,7 +45132,8 @@ function App() {
               activeTab === "topology" && renderWorkspaceTopologyView(),
               activeTab === "db" && renderDbExplorerView(),
               activeTab === "ecosystem" && renderEcosystemView(),
-              activeTab === "logs" && renderTelemetryLogsView()
+              activeTab === "logs" && renderTelemetryLogsView(),
+              activeTab === "org-help" && renderOrgHelpView()
             ]
           }, undefined, true, undefined, this)
         ]
