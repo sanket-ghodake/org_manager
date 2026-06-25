@@ -22,29 +22,29 @@
   </div>
 
   <!-- Top Sticky Header (Full Width) -->
-  <header class="h-16 border-b border-[var(--border-color)] bg-[var(--bg-header)] flex items-center justify-between shrink-0 z-40 relative">
+  <header class="h-[45px] border-b border-[var(--border-color)] bg-[var(--bg-header)] flex items-center justify-between shrink-0 z-40 relative">
     <!-- Left Header Section (aligned with Sidebar width) -->
-    <div id="header-left" class="h-full flex items-center px-6 border-r border-[var(--border-color)] shrink-0 transition-all duration-300 relative" style="width: 256px;">
+    <div id="header-left" class="h-full flex items-center px-4 border-r border-[var(--border-color)] shrink-0 transition-all duration-300 relative" style="width: 256px;">
       <!-- Logo -->
-      <div class="flex items-center gap-3 overflow-hidden">
-        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-lg font-black bg-gradient-to-tr from-purple-600 to-pink-500 text-white shrink-0">
+      <div class="flex items-center gap-2.5 overflow-hidden">
+        <div class="w-7 h-7 rounded-md flex items-center justify-center text-base bg-gradient-to-tr from-purple-600 to-pink-500 text-white shrink-0">
           📊
         </div>
-        <div class="logo-text transition-opacity duration-300">
-          <h1 class="text-sm font-black tracking-wider text-[var(--text-primary)] whitespace-nowrap">SG_Dashboard</h1>
-          <p class="text-[10px] text-[var(--text-secondary)] whitespace-nowrap">TRR Strategy Portal</p>
+        <div class="logo-text transition-opacity duration-300 leading-none">
+          <h1 class="text-xs font-black tracking-wider text-[var(--text-primary)] whitespace-nowrap leading-tight">SG_Dashboard</h1>
+          <p class="text-[9px] text-[var(--text-secondary)] whitespace-nowrap leading-none mt-0.5">TRR Strategy Portal</p>
         </div>
       </div>
     </div>
 
     <!-- Right Header Section (aligned with Main Content) -->
-    <div class="flex-1 h-full flex items-center justify-between px-6 gap-4">
+    <div class="flex-1 h-full flex items-center justify-between px-4 gap-4">
       <!-- Search Input Container -->
       <div class="relative w-80 max-w-md">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-secondary)]">
           🔍
         </div>
-        <input type="text" id="header-search-input" oninput="handleHeaderSearch(this)" onfocus="handleHeaderSearch(this)" placeholder="Search employee dashboards..." class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl pl-9 pr-4 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-all">
+        <input type="text" id="header-search-input" oninput="handleHeaderSearch(this)" onfocus="handleHeaderSearch(this)" placeholder="Search employee dashboards..." class="w-full bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl pl-9 pr-4 py-1 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-all">
         <!-- Floating Dropdown Results -->
         <div id="header-search-results" class="absolute left-0 right-0 mt-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto hidden z-50 backdrop-blur-md custom-scrollbar">
           <!-- Dynamically populated -->
@@ -54,13 +54,13 @@
       <!-- Active Dashboard Holder -->
       <div id="header-active-user-container" class="flex items-center gap-2 select-none">
         <span class="text-[9px] font-bold text-[var(--text-secondary)] uppercase">Viewing Workspace:</span>
-        <span id="header-active-user-name" class="text-xs font-bold text-[var(--text-primary)] bg-[var(--bg-input)] px-2.5 py-1 rounded-lg border border-[var(--border-color)]">--</span>
+        <span id="header-active-user-name" class="text-[11px] font-bold text-[var(--text-primary)] bg-[var(--bg-input)] px-2 py-0.5 rounded-md border border-[var(--border-color)]">--</span>
       </div>
 
       <!-- Header Right Actions (Theme) -->
       <div class="flex items-center gap-4">
         <!-- Theme Selector Toggle -->
-        <button onclick="toggleTheme()" id="theme-toggle-btn" class="w-8 h-8 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] flex items-center justify-center border border-[var(--border-color)] text-sm transition-all" title="Toggle Theme">
+        <button onclick="toggleTheme()" id="theme-toggle-btn" class="w-7 h-7 rounded-md bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] flex items-center justify-center border border-[var(--border-color)] text-xs transition-all" title="Toggle Theme">
           🌌
         </button>
       </div>
@@ -122,7 +122,7 @@
     <!-- Main View Area -->
     <main class="flex-1 h-full flex flex-col overflow-hidden bg-[var(--bg-primary)]">
     <!-- Scrollable Content Area -->
-    <div class="flex-1 overflow-y-auto custom-scrollbar p-6" id="tab-content-container">
+    <div class="flex-1 overflow-y-auto custom-scrollbar pt-3 px-6 pb-6" id="tab-content-container">
 
       <!-- PANEL 1: MY DASHBOARD -->
       <div id="tab-my-dashboard" class="space-y-6">
