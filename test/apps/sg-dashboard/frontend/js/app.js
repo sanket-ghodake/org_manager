@@ -117,6 +117,9 @@ export function switchTab(tab) {
     }
     return;
   }
+  if (tab !== 'my-dashboard') {
+    closeSideReviewPanel();
+  }
   ui.switchTab(tab);
   if (tab === 'my-dashboard') {
     loadDashboard(currentDashboardUserId);
@@ -546,6 +549,15 @@ function addToSearchHistory(emp) {
 }
 
 export async function changeActiveEmployeeContext(userId, selectedDashboardId = '') {
+  const targetUserId = userId || userData.id;
+  if (activeReviewId && currentDashboardUserId && currentDashboardUserId !== targetUserId) {
+    const activeReview = window.cachedReviews ? window.cachedReviews.find(r => r.id === activeReviewId) : null;
+    if (activeReview && activeReview.employee_id !== targetUserId) {
+      ui.showCustomAlert('Please close or submit the current review panel before switching to another user\'s workspace.', 'Review Mode Active');
+      return;
+    }
+  }
+
   try {
     const isSelf = !userId || userId === userData.id;
     const isInitialLoad = !currentDashboardUserId;
@@ -672,13 +684,23 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
             </div>
           `;
         } else {
+          let reviewButtonHtml = '';
+          if (window.cachedReviews) {
+            const matchingReview = window.cachedReviews.find(r => r.employee_id === currentDashboardUserId && r.dashboard_id === currentDashboardId);
+            if (matchingReview) {
+              reviewButtonHtml = `<button onclick="openSideReviewPanelById('${matchingReview.id}')" class="px-2.5 py-1 rounded bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-400 font-bold border border-indigo-500/30 transition-all text-[10px] shrink-0 mr-2">Open Review Panel</button>`;
+            }
+          }
           warningBanner.className = "bg-amber-500/10 border-b border-amber-500/20 text-amber-500 px-6 py-2 text-xs font-medium flex items-center justify-between gap-2 select-none";
           warningBanner.innerHTML = `
             <div class="flex items-center gap-2">
               <span>⚠️</span>
               <span><strong>Read-Only Mode:</strong> You are viewing <strong>${ownerName}</strong>'s development dashboard workspace. Editing, status updates, and modifications are disabled.</span>
             </div>
-            <button onclick="resetToMyWorkspace()" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/35 text-amber-400 font-bold border border-amber-500/30 transition-all text-[10px] shrink-0">Reset to My Workspace</button>
+            <div class="flex items-center">
+              ${reviewButtonHtml}
+              <button onclick="resetToMyWorkspace()" class="px-2.5 py-1 rounded bg-amber-500/20 hover:bg-amber-500/35 text-amber-400 font-bold border border-amber-500/30 transition-all text-[10px] shrink-0">Reset to My Workspace</button>
+            </div>
           `;
         }
       } else {
@@ -1005,6 +1027,7 @@ export async function viewEmployeeSubmissions(empId) {
 
 
 export async function resetToMyWorkspace() {
+  closeSideReviewPanel();
   ui.switchTab('my-dashboard');
   await changeActiveEmployeeContext(userData.id);
 }
@@ -1262,6 +1285,14 @@ export async function openReviewModal(requestId) {
   const review = window.cachedReviews.find(r => r.id === requestId);
   if (!review) return;
 
+  // Authorization check: only author and respective manager (or Admin) can access review panes
+  const isAuthor = userData.id === review.employee_id;
+  const isManager = userData.id === review.manager_id;
+  if (!isAuthor && !isManager && userData.role !== 'Admin' && userData.role !== 'super_admin') {
+    await ui.showCustomAlert('Access Denied: Only the author and the respective manager are authorized to access this review pane.', 'Unauthorized');
+    return;
+  }
+
   activeReviewId = requestId;
 
   // Show premium loading state
@@ -1269,15 +1300,21 @@ export async function openReviewModal(requestId) {
   if (overlay) {
     overlay.classList.remove('hidden');
     const title = overlay.querySelector('h3');
-    if (title) title.textContent = 'Loading Submission Assets...';
+    if (title) title.textContent = 'Switching Workspace Context...';
   }
 
   try {
-    const data = await api.fetchUserDashboard(apiToken, review.employee_id, review.dashboard_id);
-    ui.populateReviewModal(review, data);
+    // Switch active employee context to load their dashboard live
+    await changeActiveEmployeeContext(review.employee_id, review.dashboard_id);
+
+    // Switch tab to "my-dashboard" to show it
+    ui.switchTab('my-dashboard');
+
+    // Open side review panel
+    openSideReviewPanel(review);
   } catch (err) {
     console.error(err);
-    await ui.showCustomAlert('Failed to load dashboard data for review.', 'Error');
+    await ui.showCustomAlert('Failed to load dashboard data for review: ' + err.message, 'Error');
   } finally {
     if (overlay) overlay.classList.add('hidden');
   }
@@ -1303,6 +1340,202 @@ export async function submitReviewAction(status) {
   } catch (err) {
     console.error(err);
     await ui.showCustomAlert('Failed to submit review decision: ' + err.message, 'Error');
+  }
+}
+
+export function openSideReviewPanel(review) {
+  const panel = document.getElementById('side-review-panel');
+  if (!panel) return;
+
+  // Authorization check: only author and respective manager (or Admin) can access review panes
+  const isAuthor = userData.id === review.employee_id;
+  const isManager = userData.id === review.manager_id;
+  if (!isAuthor && !isManager && userData.role !== 'Admin' && userData.role !== 'super_admin') {
+    ui.showCustomAlert('Access Denied: Only the author and the respective manager are authorized to access this review pane.', 'Unauthorized');
+    return;
+  }
+
+  activeReviewId = review.id;
+
+  // Populate side review panel fields
+  document.getElementById('side-review-employee-name').textContent = review.employee_name;
+  document.getElementById('side-review-employee-role').textContent = review.employee_designation || review.employee_role;
+  document.getElementById('side-review-program-line').textContent = review.dashboard_program || 'Selected Program';
+  
+  const statusBadge = document.getElementById('side-review-status-badge');
+  if (statusBadge) {
+    statusBadge.textContent = review.status;
+    statusBadge.className = 'text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider';
+    if (review.status === 'Submitted') {
+      statusBadge.classList.add('bg-indigo-500/20', 'text-indigo-400', 'border', 'border-indigo-500/30');
+    } else if (review.status === 'Approved') {
+      statusBadge.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
+    } else if (review.status === 'Needs Revision') {
+      statusBadge.classList.add('bg-rose-500/20', 'text-rose-400', 'border', 'border-rose-500/30');
+    } else {
+      statusBadge.classList.add('bg-gray-500/20', 'text-gray-400', 'border', 'border-gray-500/30');
+    }
+  }
+
+  const deadlineEl = document.getElementById('side-review-deadline');
+  if (deadlineEl) {
+    deadlineEl.textContent = review.deadline ? `Deadline: ${review.deadline}` : 'No deadline';
+  }
+
+  // Populate dynamic state card
+  const stateCard = document.getElementById('side-review-state-card');
+  const stateIcon = document.getElementById('side-review-state-icon');
+  const stateTitle = document.getElementById('side-review-state-title');
+  const stateDesc = document.getElementById('side-review-state-desc');
+
+  if (stateCard && stateIcon && stateTitle && stateDesc) {
+    if (review.status === 'Pending') {
+      stateCard.className = 'p-3.5 rounded-xl border border-amber-500/20 bg-amber-500/5 flex flex-col space-y-1.5 shadow-sm';
+      stateIcon.textContent = '⏳';
+      stateTitle.textContent = 'Awaiting Submission';
+      stateTitle.className = 'text-[10px] font-black uppercase tracking-wider text-amber-500';
+      stateDesc.textContent = 'The author needs to finalize their dashboard and submit it for review. Workspace editing is open for the employee.';
+    } else if (review.status === 'Submitted') {
+      stateCard.className = 'p-3.5 rounded-xl border border-indigo-500/20 bg-indigo-500/5 flex flex-col space-y-1.5 shadow-sm';
+      stateIcon.textContent = '📝';
+      stateTitle.textContent = 'Review Required';
+      stateTitle.className = 'text-[10px] font-black uppercase tracking-wider text-indigo-400';
+      stateDesc.textContent = 'Your review is required! Please verify the key skills, gaps, and training plan items on the left. Log comments and choose to Approve or Request Revision.';
+    } else if (review.status === 'Needs Revision') {
+      stateCard.className = 'p-3.5 rounded-xl border border-rose-500/20 bg-rose-500/5 flex flex-col space-y-1.5 shadow-sm';
+      stateIcon.textContent = '⚠️';
+      stateTitle.textContent = 'Rework in Progress';
+      stateTitle.className = 'text-[10px] font-black uppercase tracking-wider text-rose-400';
+      stateDesc.textContent = 'Revision requested. Awaiting employee to apply comments and re-submit. Workspace editing permissions have been reopened for the employee.';
+    } else if (review.status === 'Approved') {
+      stateCard.className = 'p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex flex-col space-y-1.5 shadow-sm';
+      stateIcon.textContent = '✓';
+      stateTitle.textContent = 'Approved & Finalized';
+      stateTitle.className = 'text-[10px] font-black uppercase tracking-wider text-emerald-400';
+      stateDesc.textContent = 'This program plan has been approved and signed off. Editing permissions are locked.';
+    } else {
+      stateCard.className = 'p-3.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-input)] flex flex-col space-y-1.5 shadow-sm';
+      stateIcon.textContent = '❓';
+      stateTitle.textContent = 'Unknown State';
+      stateTitle.className = 'text-[10px] font-black uppercase tracking-wider text-[var(--text-primary)]';
+      stateDesc.textContent = 'This request is in an unrecognized status.';
+    }
+  }
+
+  const feedbackInput = document.getElementById('side-review-comments-input');
+  if (feedbackInput) {
+    feedbackInput.value = review.feedback || '';
+    feedbackInput.disabled = review.status !== 'Submitted';
+  }
+
+  // Toggle buttons disabled states depending on whether request is in Submitted status (meaning actionable)
+  const isActionable = review.status === 'Submitted';
+  const btnRevision = document.getElementById('side-review-action-revision-btn');
+  const btnApprove = document.getElementById('side-review-action-approve-btn');
+
+  if (btnRevision && btnApprove) {
+    if (isActionable) {
+      btnRevision.classList.remove('opacity-50', 'cursor-not-allowed');
+      btnRevision.removeAttribute('disabled');
+      btnApprove.classList.remove('opacity-50', 'cursor-not-allowed');
+      btnApprove.removeAttribute('disabled');
+    } else {
+      btnRevision.classList.add('opacity-50', 'cursor-not-allowed');
+      btnRevision.setAttribute('disabled', 'true');
+      btnApprove.classList.add('opacity-50', 'cursor-not-allowed');
+      btnApprove.setAttribute('disabled', 'true');
+    }
+  }
+
+  // Show panel
+  panel.classList.remove('hidden');
+}
+
+export function closeSideReviewPanel() {
+  const panel = document.getElementById('side-review-panel');
+  if (panel) panel.classList.add('hidden');
+  activeReviewId = null;
+}
+
+export function openSideReviewPanelById(requestId) {
+  if (!window.cachedReviews) return;
+  const review = window.cachedReviews.find(r => r.id === requestId);
+  if (!review) return;
+
+  // Authorization check: only author and respective manager (or Admin) can access review panes
+  const isAuthor = userData.id === review.employee_id;
+  const isManager = userData.id === review.manager_id;
+  if (!isAuthor && !isManager && userData.role !== 'Admin' && userData.role !== 'super_admin') {
+    ui.showCustomAlert('Access Denied: Only the author and the respective manager are authorized to access this review pane.', 'Unauthorized');
+    return;
+  }
+
+  openSideReviewPanel(review);
+}
+
+export async function submitSideReview(status) {
+  if (!activeReviewId) return;
+  const feedback = document.getElementById('side-review-comments-input')?.value.trim() || '';
+
+  const confirmed = await ui.showCustomConfirm(`Are you sure you want to set this submission status to "${status}"?`, 'Submit Review');
+  if (!confirmed) return;
+
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+    const title = overlay.querySelector('h3');
+    if (title) title.textContent = 'Submitting Review Decision...';
+  }
+
+  try {
+    await api.reviewSubmission(apiToken, activeReviewId, status, feedback);
+    closeSideReviewPanel();
+    await ui.showCustomAlert(`Submission successfully updated to: ${status}`, 'Success');
+    
+    // Refresh the context to show the updated warning banner and status
+    await changeActiveEmployeeContext(currentDashboardUserId, currentDashboardId);
+    
+    // Reload submissions and reviews queue
+    await loadSubmissions();
+  } catch (err) {
+    console.error(err);
+    await ui.showCustomAlert('Failed to submit review decision: ' + err.message, 'Error');
+  } finally {
+    if (overlay) overlay.classList.add('hidden');
+  }
+}
+
+export function initSideReviewResize() {
+  const panel = document.getElementById('side-review-panel');
+  const resizer = document.getElementById('side-review-resizer');
+  if (!panel || !resizer) return;
+
+  let startX, startWidth;
+
+  resizer.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    startWidth = parseInt(document.defaultView.getComputedStyle(panel).width, 10);
+    document.documentElement.addEventListener('mousemove', doDrag, false);
+    document.documentElement.addEventListener('mouseup', stopDrag, false);
+    document.body.style.cursor = 'col-resize';
+    document.body.classList.add('select-none');
+  });
+
+  function doDrag(e) {
+    const deltaX = startX - e.clientX;
+    let newWidth = startWidth + deltaX;
+
+    if (newWidth < 300) newWidth = 300;
+    if (newWidth > 700) newWidth = 700;
+
+    panel.style.width = `${newWidth}px`;
+  }
+
+  function stopDrag() {
+    document.documentElement.removeEventListener('mousemove', doDrag, false);
+    document.documentElement.removeEventListener('mouseup', stopDrag, false);
+    document.body.style.cursor = '';
+    document.body.classList.remove('select-none');
   }
 }
 
@@ -1578,6 +1811,7 @@ async function initializeApplication() {
 
   await changeActiveEmployeeContext(userData.id);
   ui.convertNativeSelectsToCustom();
+  initSideReviewResize();
   startBackgroundSync();
 }
 
@@ -1694,6 +1928,10 @@ window.filterReviewsQueue = filterReviewsQueue;
 window.openReviewModal = openReviewModal;
 window.closeReviewModal = closeReviewModal;
 window.submitReviewAction = submitReviewAction;
+window.closeSideReviewPanel = closeSideReviewPanel;
+window.submitSideReview = submitSideReview;
+window.openSideReviewPanelById = openSideReviewPanelById;
+window.initSideReviewResize = initSideReviewResize;
 window.showProfilePopup = showProfilePopup;
 window.handleLogout = handleLogout;
 

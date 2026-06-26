@@ -1,0 +1,122 @@
+{
+  "backend/config.ts": {
+    "mtime": 1782318364.4146369,
+    "ast_hash": "9d85f1dcd5287f13ced3a68ecb78db78",
+    "semantic_hash": ""
+  },
+  "backend/db/client.ts": {
+    "mtime": 1782436735.9723816,
+    "ast_hash": "d202f92deb49474dde312b04c4d49665",
+    "semantic_hash": ""
+  },
+  "backend/middleware/auth.ts": {
+    "mtime": 1782275524.787952,
+    "ast_hash": "b41d255fac89ee59c70a61e3ab22980b",
+    "semantic_hash": ""
+  },
+  "backend/routes/auth.ts": {
+    "mtime": 1782354058.5355666,
+    "ast_hash": "9fb21d16c3cc7b093e89d64f501de630",
+    "semantic_hash": ""
+  },
+  "backend/routes/config.ts": {
+    "mtime": 1782275533.5609984,
+    "ast_hash": "46ee6a5d7c2c827aa53a18093effd33a",
+    "semantic_hash": ""
+  },
+  "backend/routes/dashboard.ts": {
+    "mtime": 1782365561.2634134,
+    "ast_hash": "74b47b262a746211a21776db00f18f13",
+    "semantic_hash": ""
+  },
+  "backend/routes/submissions.ts": {
+    "mtime": 1782436755.943329,
+    "ast_hash": "3b4a6869dbf6cd1a995532867ca46628",
+    "semantic_hash": ""
+  },
+  "backend/routes/team.ts": {
+    "mtime": 1782365372.3937755,
+    "ast_hash": "da504b1f94e0a5c1109c891828781f75",
+    "semantic_hash": ""
+  },
+  "backend/server.ts": {
+    "mtime": 1782276016.7568789,
+    "ast_hash": "3a63289d7c55ce219270ccd1d92475a8",
+    "semantic_hash": ""
+  },
+  "backend/utils/hierarchy.ts": {
+    "mtime": 1782298156.8711936,
+    "ast_hash": "310621b86eaefddec0cb275bba86561f",
+    "semantic_hash": ""
+  },
+  "backend/utils/portal.ts": {
+    "mtime": 1782322666.499768,
+    "ast_hash": "c331a5f6fa58c1a61c85d569c5fadb92",
+    "semantic_hash": ""
+  },
+  "frontend/js/api.js": {
+    "mtime": 1782436829.930142,
+    "ast_hash": "54ded8bd071e88dc376b551031655380",
+    "semantic_hash": ""
+  },
+  "frontend/js/app.js": {
+    "mtime": 1782437842.3445082,
+    "ast_hash": "0e9393f37913c81ea766fc2c1c31abac",
+    "semantic_hash": ""
+  },
+  "frontend/js/sidebar.js": {
+    "mtime": 1782353122.8242366,
+    "ast_hash": "226f83104bd02fc2e2dbfa2722a6a448",
+    "semantic_hash": ""
+  },
+  "frontend/js/ui.js": {
+    "mtime": 1782436840.1951168,
+    "ast_hash": "7ba0a83cb0837b5d404dd7a0eb3ef56e",
+    "semantic_hash": ""
+  },
+  "package.json": {
+    "mtime": 1782275608.994374,
+    "ast_hash": "aaa5361116420ca399faa312c070527b",
+    "semantic_hash": ""
+  },
+  "test/seed-dummy-data.ts": {
+    "mtime": 1782436740.5823696,
+    "ast_hash": "8b59f169b8234235f416d3f70eb852ed",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1782275604.359352,
+    "ast_hash": "afd628c099402b20116acc162a1c4bcf",
+    "semantic_hash": ""
+  },
+  "backend/README.md": {
+    "mtime": 1782275558.4081266,
+    "ast_hash": "27fda46d7a6c63926b9a185631da8276",
+    "semantic_hash": ""
+  },
+  "db/README.md": {
+    "mtime": 1782275517.447913,
+    "ast_hash": "755ae3eb049947fb67e235c1d3196779",
+    "semantic_hash": ""
+  },
+  "docker-compose.yml": {
+    "mtime": 1782320345.3015132,
+    "ast_hash": "b832df2aa1345c4c11461a22e2359e5c",
+    "semantic_hash": ""
+  },
+  "docs/architecture.md": {
+    "mtime": 1782318378.1966825,
+    "ast_hash": "577ee3c7b808dbe5cd3cd328209719da",
+    "semantic_hash": ""
+  },
+  "frontend/README.md": {
+    "mtime": 1782275599.3683283,
+    "ast_hash": "99c15089e048b4f4fbc52c14acba149b",
+    "semantic_hash": ""
+  },
+  "frontend/index.html": {
+    "mtime": 1782437824.2671468,
+    "ast_hash": "ae1fcc3bcf52386e35feb7a23e8c5ff0",
+    "semantic_hash": ""
+  }
+}
