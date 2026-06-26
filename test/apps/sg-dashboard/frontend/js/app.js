@@ -156,6 +156,13 @@ export function toggleTeamViewMode(mode) {
 
     loadHierarchyRoot();
   }
+
+  // Persist team view mode in sessionStorage securely
+  try {
+    sessionStorage.setItem('dashboard_team_view_mode', mode);
+  } catch (e) {
+    console.warn('Failed to save team view mode to sessionStorage:', e);
+  }
 }
 
 export function toggleTheme() {
@@ -522,7 +529,7 @@ export async function triggerRequestSubmission(empId) {
 
 function getSearchHistory() {
   try {
-    const raw = localStorage.getItem('past_searched_employees');
+    const raw = sessionStorage.getItem('past_searched_employees');
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
     return [];
@@ -542,7 +549,7 @@ function addToSearchHistory(emp) {
     if (history.length > 5) {
       history = history.slice(0, 5);
     }
-    localStorage.setItem('past_searched_employees', JSON.stringify(history));
+    sessionStorage.setItem('past_searched_employees', JSON.stringify(history));
   } catch (e) {
     console.error('Failed to update search history:', e);
   }
@@ -994,6 +1001,14 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
       await loadOrgExplorer(currentDashboardUserId);
     }
 
+    // Persist the active workspace state in sessionStorage securely
+    try {
+      sessionStorage.setItem('dashboard_active_employee_id', currentDashboardUserId);
+      sessionStorage.setItem('dashboard_active_dashboard_id', currentDashboardId);
+    } catch (e) {
+      console.warn('Failed to save active context to sessionStorage:', e);
+    }
+
     if (overlay) {
       overlay.classList.add('hidden');
     }
@@ -1005,6 +1020,16 @@ export async function changeActiveEmployeeContext(userId, selectedDashboardId = 
       overlay.classList.add('hidden');
     }
     await ui.showCustomAlert(`Failed to load workspace context: ${err.message}`, 'Error');
+
+    // Security/robustness fallback: Revert back to the logged in user's workspace
+    if (userId !== userData.id) {
+      console.log('Reverting to own workspace due to load failure...');
+      try {
+        sessionStorage.removeItem('dashboard_active_employee_id');
+        sessionStorage.removeItem('dashboard_active_dashboard_id');
+      } catch (e) {}
+      await changeActiveEmployeeContext(userData.id);
+    }
   }
 }
 
@@ -1588,6 +1613,15 @@ async function exchangeCodeForToken(code) {
       window.history.replaceState({}, document.title, cleanUrl);
     } catch (e) {}
 
+    // Clear navigation/context state from any prior session before setting new user context
+    try {
+      sessionStorage.removeItem('dashboard_active_employee_id');
+      sessionStorage.removeItem('dashboard_active_dashboard_id');
+      sessionStorage.removeItem('dashboard_active_tab');
+      sessionStorage.removeItem('dashboard_team_view_mode');
+      sessionStorage.removeItem('past_searched_employees');
+    } catch (e) {}
+
     sessionStorage.setItem('dashboard_api_token', apiToken);
     sessionStorage.setItem('dashboard_user_data', JSON.stringify(userData));
 
@@ -1601,9 +1635,10 @@ async function exchangeCodeForToken(code) {
       window.history.replaceState({}, document.title, cleanUrl);
     } catch (e) {}
 
-    // Clear any invalid session credentials
-    sessionStorage.removeItem('dashboard_api_token');
-    sessionStorage.removeItem('dashboard_user_data');
+    // Clear any invalid session credentials securely
+    try {
+      sessionStorage.clear();
+    } catch (e) {}
 
     ui.showAuthError('Federated session expired or invalid. Redirecting to Single Sign-On...');
     setTimeout(() => {
@@ -1809,7 +1844,37 @@ async function initializeApplication() {
     }
   });
 
-  await changeActiveEmployeeContext(userData.id);
+  // Retrieve saved navigation and context states
+  const savedEmployeeId = sessionStorage.getItem('dashboard_active_employee_id');
+  const savedDashboardId = sessionStorage.getItem('dashboard_active_dashboard_id');
+  const savedTab = sessionStorage.getItem('dashboard_active_tab');
+  const savedTeamMode = sessionStorage.getItem('dashboard_team_view_mode');
+
+  // Input validation & sanitization to prevent potential XSS or structure injection
+  const validTabs = ['my-dashboard', 'submissions', 'team-view', 'history-versions'];
+  const tabToRestore = (savedTab && validTabs.includes(savedTab)) ? savedTab : 'my-dashboard';
+
+  const validTeamModes = ['list', 'tree'];
+  const teamModeToRestore = (savedTeamMode && validTeamModes.includes(savedTeamMode)) ? savedTeamMode : 'list';
+
+  const targetEmployeeId = (savedEmployeeId && typeof savedEmployeeId === 'string' && savedEmployeeId.trim()) ? savedEmployeeId.trim() : userData.id;
+  const targetDashboardId = (savedDashboardId && typeof savedDashboardId === 'string' && savedDashboardId.trim()) ? savedDashboardId.trim() : '';
+
+  // Apply restored team view mode immediately so layout matches before loading org chart
+  toggleTeamViewMode(teamModeToRestore);
+
+  // Load employee context
+  await changeActiveEmployeeContext(targetEmployeeId, targetDashboardId);
+
+  // Visually restore the active tab and load tab-specific dynamic data if needed
+  if (tabToRestore !== 'my-dashboard') {
+    ui.switchTab(tabToRestore);
+    if (tabToRestore === 'history-versions') {
+      loadHistoryAndVersions();
+      loadTrashHistory();
+    }
+  }
+
   ui.convertNativeSelectsToCustom();
   initSideReviewResize();
   startBackgroundSync();
@@ -2347,8 +2412,9 @@ export function resetOrgChartFocus() {
 export function collapseAllHierarchyNodes() {}
 
 export function handleLogout() {
-  sessionStorage.removeItem('dashboard_api_token');
-  sessionStorage.removeItem('dashboard_user_data');
+  try {
+    sessionStorage.clear();
+  } catch (e) {}
   window.location.reload();
 }
 

@@ -68,6 +68,13 @@ export function switchTab(tab) {
   if (activeNavBtn) {
     activeNavBtn.classList.add('sidebar-active', 'text-[var(--text-primary)]');
   }
+
+  // Persist the active tab in sessionStorage securely
+  try {
+    sessionStorage.setItem('dashboard_active_tab', tab);
+  } catch (e) {
+    console.warn('Failed to save active tab to sessionStorage:', e);
+  }
 }
 
 // Set Theme
