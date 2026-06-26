@@ -8,6 +8,19 @@ let currentDashboardId = null;
 let currentDashboardData = null;
 let currentDashboardUserId = null;
 let cachedUsers = [];
+
+Object.defineProperty(window, 'currentDashboardId', {
+  get: () => currentDashboardId,
+  set: (val) => { currentDashboardId = val; }
+});
+Object.defineProperty(window, 'currentDashboardUserId', {
+  get: () => currentDashboardUserId,
+  set: (val) => { currentDashboardUserId = val; }
+});
+Object.defineProperty(window, 'userData', {
+  get: () => userData,
+  set: (val) => { userData = val; }
+});
 let parentOrigin = '';
 let portalOrigin = '';
 let directoryFetched = false;
@@ -2198,16 +2211,20 @@ export function showProfilePopup(event) {
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
 }
 
-export async function saveCurrentVersion() {
+export async function saveCurrentVersion(dashboardId = null) {
   if (!apiToken) return;
-  if (!currentDashboardId) {
+  const targetId = dashboardId || currentDashboardId;
+  if (!targetId) {
     await ui.showCustomAlert('No active dashboard program loaded to save a version of.', 'Action Restricted');
     return;
   }
   const isSelf = currentDashboardUserId === userData.id;
-  const isDeleted = !!currentDashboardData.is_deleted;
-  if (!isSelf || isDeleted) {
-    await ui.showCustomAlert('You cannot save version snapshots of a read-only or deleted workspace.', 'Action Restricted');
+  if (!isSelf) {
+    await ui.showCustomAlert('You cannot save version snapshots of a read-only workspace.', 'Action Restricted');
+    return;
+  }
+  if (targetId === currentDashboardId && currentDashboardData && currentDashboardData.is_deleted) {
+    await ui.showCustomAlert('You cannot save version snapshots of a deleted workspace.', 'Action Restricted');
     return;
   }
 
@@ -2219,7 +2236,7 @@ export async function saveCurrentVersion() {
   if (name === null) return;
   const versionName = name.trim() || `Snapshot ${new Date().toLocaleString()}`;
   try {
-    await api.saveVersion(apiToken, currentDashboardId, versionName);
+    await api.saveVersion(apiToken, targetId, versionName);
     await ui.showCustomAlert('Dashboard version saved successfully!', 'Success');
     await loadHistoryAndVersions();
   } catch (err) {
@@ -2227,23 +2244,23 @@ export async function saveCurrentVersion() {
   }
 }
 
-export async function restoreVersionAction(versionId, versionName) {
-  const confirmed = await ui.showCustomConfirm(`Are you sure you want to restore the dashboard version "${versionName}"? Current active goals and links will be overwritten with the snapshot.`, 'Restore Version');
+export async function restoreVersionAction(dashboardId, versionId, versionName) {
+  const confirmed = await ui.showCustomConfirm(`Are you sure you want to restore this dashboard version "${versionName}"? Current active goals and links will be overwritten with the snapshot.`, 'Restore Version');
   if (!confirmed) return;
   try {
-    await api.restoreVersion(apiToken, currentDashboardId, versionId);
+    await api.restoreVersion(apiToken, dashboardId, versionId);
     await ui.showCustomAlert(`Dashboard restored to version "${versionName}" successfully.`, 'Success');
-    await changeActiveEmployeeContext(currentDashboardUserId, currentDashboardId);
+    await changeActiveEmployeeContext(currentDashboardUserId, dashboardId);
   } catch (err) {
     await ui.showCustomAlert('Failed to restore version: ' + err.message, 'Error');
   }
 }
 
-export async function deleteVersionAction(versionId) {
+export async function deleteVersionAction(dashboardId, versionId) {
   const confirmed = await ui.showCustomConfirm('Are you sure you want to delete this version snapshot permanently?', 'Delete Version');
   if (!confirmed) return;
   try {
-    await api.deleteVersion(apiToken, currentDashboardId, versionId);
+    await api.deleteVersion(apiToken, dashboardId, versionId);
     await loadHistoryAndVersions();
   } catch (err) {
     await ui.showCustomAlert('Failed to delete version: ' + err.message, 'Error');
@@ -2295,10 +2312,19 @@ export async function loadHistoryAndVersions() {
   if (!apiToken) return;
 
   const versionsContainer = document.getElementById('versions-list');
+  const drawerActiveContainer = document.getElementById('drawer-active-list');
+  
   if (versionsContainer) {
     versionsContainer.innerHTML = `
       <div class="flex items-center justify-center p-8 text-[var(--text-secondary)] text-xs">
-        <span class="animate-spin mr-2">⏳</span> Loading versions...
+        <span class="animate-spin mr-2">⏳</span> Loading program versions...
+      </div>
+    `;
+  }
+  if (drawerActiveContainer) {
+    drawerActiveContainer.innerHTML = `
+      <div class="flex items-center justify-center p-8 text-[var(--text-secondary)] text-xs">
+        <span class="animate-spin mr-2">⏳</span> Loading program versions...
       </div>
     `;
   }
@@ -2315,31 +2341,35 @@ export async function loadHistoryAndVersions() {
     }
   }
 
-  if (!currentDashboardId) {
-    if (versionsContainer) {
-      versionsContainer.innerHTML = `
-        <div class="flex flex-col items-center justify-center p-8 bg-[var(--bg-input)] rounded-xl border border-[var(--border-color)] text-center text-[var(--text-secondary)]">
-          <span class="text-2xl mb-2">📁</span>
-          <p class="text-xs font-semibold">No active dashboard program loaded.</p>
-          <p class="text-[10px] text-gray-500 mt-1">Please select or create a dashboard program first.</p>
-        </div>
-      `;
-    }
-    return;
-  }
-
   try {
-    const versionsData = await api.fetchVersions(apiToken, currentDashboardId);
-    ui.renderVersions(versionsData.versions);
+    // 1. Fetch all dashboards (includeDeleted = false)
+    const dashData = await api.fetchDashboards(apiToken, currentDashboardUserId, false);
+    const activeDashboards = dashData.dashboards || [];
+
+    // 2. Fetch versions for each active dashboard in parallel
+    const activeDashboardsWithVersions = await Promise.all(
+      activeDashboards.map(async (d) => {
+        try {
+          const versionsData = await api.fetchVersions(apiToken, d.id);
+          return { ...d, versions: versionsData.versions || [] };
+        } catch (e) {
+          console.warn('Failed to fetch versions for dashboard:', d.id, e);
+          return { ...d, versions: [] };
+        }
+      })
+    );
+
+    // 3. Render
+    ui.renderVersions(activeDashboardsWithVersions);
   } catch (err) {
-    console.error('Failed to load versions:', err);
-    if (versionsContainer) {
-      versionsContainer.innerHTML = `
-        <div class="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl text-center">
-          ⚠️ Failed to load versions: ${err.message}
-        </div>
-      `;
-    }
+    console.error('Failed to load active programs versions:', err);
+    const errorHtml = `
+      <div class="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl text-center">
+        ⚠️ Failed to load versions: ${err.message}
+      </div>
+    `;
+    if (versionsContainer) versionsContainer.innerHTML = errorHtml;
+    if (drawerActiveContainer) drawerActiveContainer.innerHTML = errorHtml;
   }
 }
 
@@ -2347,8 +2377,17 @@ export async function loadTrashHistory() {
   if (!apiToken) return;
 
   const historyContainer = document.getElementById('history-list');
+  const drawerTrashContainer = document.getElementById('drawer-trash-list');
+
   if (historyContainer) {
     historyContainer.innerHTML = `
+      <div class="flex items-center justify-center p-8 text-[var(--text-secondary)] text-xs">
+        <span class="animate-spin mr-2">⏳</span> Loading trash history and version snapshots...
+      </div>
+    `;
+  }
+  if (drawerTrashContainer) {
+    drawerTrashContainer.innerHTML = `
       <div class="flex items-center justify-center p-8 text-[var(--text-secondary)] text-xs">
         <span class="animate-spin mr-2">⏳</span> Loading trash history and version snapshots...
       </div>
@@ -2375,13 +2414,13 @@ export async function loadTrashHistory() {
     ui.renderHistory(dashboardsWithVersions);
   } catch (err) {
     console.error('Failed to load history:', err);
-    if (historyContainer) {
-      historyContainer.innerHTML = `
-        <div class="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl text-center">
-          ⚠️ Failed to load trash history: ${err.message}
-        </div>
-      `;
-    }
+    const errorHtml = `
+      <div class="p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl text-center">
+        ⚠️ Failed to load trash history: ${err.message}
+      </div>
+    `;
+    if (historyContainer) historyContainer.innerHTML = errorHtml;
+    if (drawerTrashContainer) drawerTrashContainer.innerHTML = errorHtml;
   }
 }
 
@@ -2414,6 +2453,61 @@ export async function deleteDeletedDashboardVersion(dashboardId, versionId) {
   }
 }
 
+export function openVersionsDrawer() {
+  const container = document.getElementById('versions-drawer-container');
+  const panel = document.getElementById('versions-drawer-panel');
+  const backdrop = document.getElementById('versions-drawer-backdrop');
+
+  if (!container || !panel || !backdrop) return;
+
+  container.classList.remove('hidden');
+  setTimeout(() => {
+    panel.classList.remove('translate-x-full');
+    backdrop.classList.remove('opacity-0');
+    backdrop.classList.add('opacity-100');
+  }, 10);
+
+  loadHistoryAndVersions();
+  loadTrashHistory();
+}
+
+export function closeVersionsDrawer() {
+  const container = document.getElementById('versions-drawer-container');
+  const panel = document.getElementById('versions-drawer-panel');
+  const backdrop = document.getElementById('versions-drawer-backdrop');
+
+  if (!container || !panel || !backdrop) return;
+
+  panel.classList.add('translate-x-full');
+  backdrop.classList.remove('opacity-100');
+  backdrop.classList.add('opacity-0');
+
+  setTimeout(() => {
+    container.classList.add('hidden');
+  }, 300);
+}
+
+export function switchDrawerTab(tab) {
+  const btnActive = document.getElementById('drawer-tab-active');
+  const btnTrash = document.getElementById('drawer-tab-trash');
+  const secActive = document.getElementById('drawer-sec-active');
+  const secTrash = document.getElementById('drawer-sec-trash');
+
+  if (!btnActive || !btnTrash || !secActive || !secTrash) return;
+
+  if (tab === 'active') {
+    btnActive.className = "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-sm";
+    btnTrash.className = "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]";
+    secActive.classList.remove('hidden');
+    secTrash.classList.add('hidden');
+  } else {
+    btnTrash.className = "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-sm";
+    btnActive.className = "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]";
+    secTrash.classList.remove('hidden');
+    secActive.classList.add('hidden');
+  }
+}
+
 // Bind globals for inline/HTML action triggers
 window.saveCurrentVersion = saveCurrentVersion;
 window.restoreVersionAction = restoreVersionAction;
@@ -2424,6 +2518,9 @@ window.loadHistoryAndVersions = loadHistoryAndVersions;
 window.loadTrashHistory = loadTrashHistory;
 window.restoreDeletedDashboardToVersion = restoreDeletedDashboardToVersion;
 window.deleteDeletedDashboardVersion = deleteDeletedDashboardVersion;
+window.openVersionsDrawer = openVersionsDrawer;
+window.closeVersionsDrawer = closeVersionsDrawer;
+window.switchDrawerTab = switchDrawerTab;
 
 // Auto boot session
 initSession();

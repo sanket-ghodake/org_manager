@@ -557,5 +557,82 @@ html.zoom-compensation {
   }
 }
 
+/* History & Versions Drawer Styles */
+#versions-drawer-container {
+  transition: visibility 0.3s;
+}
+
+#versions-drawer-container.hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#versions-drawer-panel {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  background: var(--bg-sidebar);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+#versions-drawer-container:not(.hidden) #versions-drawer-panel {
+  transform: translateX(0);
+}
+
+#versions-drawer-container:not(.hidden) #versions-drawer-backdrop {
+  opacity: 1;
+}
+
+/* Custom Accordion classes for versions & history per program */
+.program-accordion-item {
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background: var(--bg-card);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.program-accordion-item:hover {
+  border-color: var(--accent);
+}
+
+.program-accordion-header {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  transition: background 0.2s ease;
+}
+
+.program-accordion-header:hover {
+  background: var(--bg-hover);
+}
+
+.program-accordion-content {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+  display: none;
+}
+
+.program-accordion-content.expanded {
+  display: block;
+}
+
+.accordion-chevron {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.accordion-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+
 
 

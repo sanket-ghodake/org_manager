@@ -2257,181 +2257,319 @@ window.addEventListener('scroll', () => {
 
 export function renderHistory(deletedDashboards) {
   const container = document.getElementById('history-list');
-  if (!container) return;
-  container.innerHTML = '';
+  const drawerContainer = document.getElementById('drawer-trash-list');
 
-  if (!deletedDashboards || deletedDashboards.length === 0) {
-    container.innerHTML = `
-      <div class="flex flex-col items-center justify-center p-8 bg-[var(--bg-input)] rounded-xl border border-[var(--border-color)] text-center text-[var(--text-secondary)]">
-        <span class="text-2xl mb-2">🗑️</span>
-        <p class="text-xs font-semibold">Your trash history is empty.</p>
-        <p class="text-[10px] text-gray-500 mt-1">Deleted dashboards will appear here so you can restore them.</p>
-      </div>
-    `;
-    return;
-  }
+  const renderTo = (parent, isDrawer) => {
+    if (!parent) return;
+    parent.innerHTML = '';
 
-  deletedDashboards.forEach(d => {
-    const deletedDate = d.deleted_at ? new Date(d.deleted_at).toLocaleString() : new Date(d.updated_at).toLocaleString();
-    const item = document.createElement('div');
-    item.className = "p-4 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] space-y-3 hover:border-red-500/20 hover:shadow-md transition-all";
-    
-    // Header row
-    const header = document.createElement('div');
-    header.className = "flex items-center justify-between gap-4";
-    header.innerHTML = `
-      <div class="flex flex-col min-w-0">
-        <span class="text-xs font-bold text-[var(--text-primary)] truncate">${d.program_line || 'Untitled Program'}</span>
-        <span class="text-[10px] text-gray-500 mt-1">Deleted: ${deletedDate}</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="restore-dash-btn-${d.id}" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition-all cursor-pointer">
-          Restore Program
-        </button>
-        <button id="delete-perm-dash-btn-${d.id}" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer">
-          Destroy Forever
-        </button>
-      </div>
-    `;
-    item.appendChild(header);
+    if (!deletedDashboards || deletedDashboards.length === 0) {
+      parent.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-8 bg-[var(--bg-input)] rounded-xl border border-[var(--border-color)] text-center text-[var(--text-secondary)]">
+          <span class="text-2xl mb-2">🗑️</span>
+          <p class="text-xs font-semibold">Your trash history is empty.</p>
+          <p class="text-[10px] text-gray-500 mt-1">Deleted dashboards will appear here so you can restore them.</p>
+        </div>
+      `;
+      return;
+    }
 
-    // Collapsible Snapshots section
-    const versions = d.versions || [];
-    if (versions.length > 0) {
-      const toggleWrapper = document.createElement('div');
-      toggleWrapper.className = "pt-2 border-t border-[var(--border-color)]/50";
+    deletedDashboards.forEach(d => {
+      const deletedDate = d.deleted_at ? new Date(d.deleted_at).toLocaleString() : new Date(d.updated_at).toLocaleString();
+      const card = document.createElement('div');
+      card.className = "program-accordion-item mb-3 hover:border-red-500/20";
       
-      const versionsToggleBtn = document.createElement('button');
-      versionsToggleBtn.className = "text-[10px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 focus:outline-none transition-all cursor-pointer";
-      versionsToggleBtn.innerHTML = `<span>📁</span> View Saved Snapshots (${versions.length})`;
+      // Header row
+      const header = document.createElement('div');
+      header.className = "program-accordion-header";
       
-      const versionsContainer = document.createElement('div');
-      versionsContainer.className = "hidden pl-4 border-l-2 border-indigo-500/20 mt-2 space-y-2 transition-all";
+      const leftPart = document.createElement('div');
+      leftPart.className = "flex items-center gap-2 min-w-0";
+
+      // Chevron
+      const chevron = document.createElement('span');
+      chevron.className = "accordion-chevron text-[10px] text-gray-500 transform transition-transform";
+      chevron.innerHTML = '▶';
+      leftPart.appendChild(chevron);
+
+      // Program Name
+      const name = document.createElement('span');
+      name.className = "font-bold text-[11px] truncate text-[var(--text-primary)]";
+      name.textContent = d.program_line || 'Untitled Program';
+      leftPart.appendChild(name);
+
+      // Deleted tag
+      const delTag = document.createElement('span');
+      delTag.className = "px-1.5 py-0.5 rounded text-[8px] font-black tracking-wide uppercase bg-red-500/10 border border-red-500/20 text-red-400 shrink-0";
+      delTag.textContent = "Deleted";
+      leftPart.appendChild(delTag);
+
+      header.appendChild(leftPart);
+
+      // Right actions: Restore/Destroy Buttons
+      const rightPart = document.createElement('div');
+      rightPart.className = "flex items-center gap-1.5 shrink-0";
+
+      const restoreBtn = document.createElement('button');
+      restoreBtn.className = "px-2 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 font-bold transition-all cursor-pointer text-[9px]";
+      restoreBtn.textContent = "Restore";
+      restoreBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (typeof window.restoreDashboardAction === 'function') {
+          window.restoreDashboardAction(d.id);
+        }
+      };
+      rightPart.appendChild(restoreBtn);
+
+      const destroyBtn = document.createElement('button');
+      destroyBtn.className = "px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold transition-all cursor-pointer text-[9px]";
+      destroyBtn.textContent = "Destroy";
+      destroyBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (typeof window.deleteDashboardPermanentAction === 'function') {
+          window.deleteDashboardPermanentAction(d.id);
+        }
+      };
+      rightPart.appendChild(destroyBtn);
+
+      header.appendChild(rightPart);
+      card.appendChild(header);
+
+      // Content section for versions snapshots
+      const content = document.createElement('div');
+      content.className = "program-accordion-content";
       
-      versionsToggleBtn.onclick = () => {
-        const isHidden = versionsContainer.classList.contains('hidden');
-        if (isHidden) {
-          versionsContainer.classList.remove('hidden');
-          versionsToggleBtn.innerHTML = `<span>📂</span> Hide Saved Snapshots (${versions.length})`;
+      header.onclick = (e) => {
+        if (e.target.closest('button') || e.target.closest('a')) return;
+        const expanded = content.classList.contains('expanded');
+        if (expanded) {
+          content.classList.remove('expanded');
+          chevron.classList.remove('expanded', 'rotate-90');
         } else {
-          versionsContainer.classList.add('hidden');
-          versionsToggleBtn.innerHTML = `<span>📁</span> View Saved Snapshots (${versions.length})`;
+          content.classList.add('expanded');
+          chevron.classList.add('expanded', 'rotate-90');
         }
       };
 
-      versions.forEach(v => {
-        const verRow = document.createElement('div');
-        verRow.className = "flex items-center justify-between p-2 rounded bg-[var(--bg-input)] border border-[var(--border-color)] text-[10px]";
-        verRow.innerHTML = `
-          <div class="flex flex-col min-w-0 pr-2">
-            <span class="font-semibold text-[var(--text-primary)] truncate">${v.version_name || 'Snapshot'}</span>
-            <span class="text-[9px] text-gray-500 mt-0.5">${new Date(v.created_at).toLocaleString()}</span>
-          </div>
-          <div class="flex items-center gap-1.5 shrink-0">
-            <button id="restore-ver-btn-${v.id}" class="px-2 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 font-bold transition-all cursor-pointer text-[9px]">
-              Restore State
-            </button>
-            <button id="delete-ver-btn-${v.id}" class="px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold transition-all cursor-pointer text-[9px]">
-              Delete
-            </button>
-          </div>
-        `;
-        versionsContainer.appendChild(verRow);
+      const versions = d.versions || [];
+      if (versions.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = "text-[10px] text-gray-500 italic py-1 pl-1";
+        empty.textContent = "No saved version snapshots.";
+        content.appendChild(empty);
+      } else {
+        versions.forEach(v => {
+          const row = document.createElement('div');
+          row.className = "flex items-center justify-between p-2 mb-1.5 rounded bg-[var(--bg-input)] border border-[var(--border-color)] text-[10px] hover:border-indigo-500/30 transition-all";
+          
+          const info = document.createElement('div');
+          info.className = "flex flex-col min-w-0 pr-2";
 
-        const restoreVerBtn = verRow.querySelector(`#restore-ver-btn-${v.id}`);
-        if (restoreVerBtn) {
+          const vName = document.createElement('span');
+          vName.className = "font-semibold text-[var(--text-primary)] truncate";
+          vName.textContent = v.version_name || 'Snapshot';
+          info.appendChild(vName);
+
+          const vDate = document.createElement('span');
+          vDate.className = "text-[9px] text-gray-500 mt-0.5";
+          vDate.textContent = new Date(v.created_at).toLocaleString();
+          info.appendChild(vDate);
+
+          row.appendChild(info);
+
+          const actions = document.createElement('div');
+          actions.className = "flex items-center gap-1.5 shrink-0";
+
+          const restoreVerBtn = document.createElement('button');
+          restoreVerBtn.className = "px-2 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 font-bold transition-all cursor-pointer text-[9px]";
+          restoreVerBtn.textContent = "Restore State";
           restoreVerBtn.onclick = () => {
             if (typeof window.restoreDeletedDashboardToVersion === 'function') {
               window.restoreDeletedDashboardToVersion(d.id, v.id, v.version_name);
             }
           };
-        }
+          actions.appendChild(restoreVerBtn);
 
-        const deleteVerBtn = verRow.querySelector(`#delete-ver-btn-${v.id}`);
-        if (deleteVerBtn) {
+          const deleteVerBtn = document.createElement('button');
+          deleteVerBtn.className = "px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold transition-all cursor-pointer text-[9px]";
+          deleteVerBtn.textContent = "Delete";
           deleteVerBtn.onclick = () => {
             if (typeof window.deleteDeletedDashboardVersion === 'function') {
               window.deleteDeletedDashboardVersion(d.id, v.id);
             }
           };
-        }
-      });
+          actions.appendChild(deleteVerBtn);
 
-      toggleWrapper.appendChild(versionsToggleBtn);
-      toggleWrapper.appendChild(versionsContainer);
-      item.appendChild(toggleWrapper);
-    } else {
-      const noVer = document.createElement('div');
-      noVer.className = "text-[9px] text-gray-500 italic pl-1";
-      noVer.textContent = "No saved version snapshots.";
-      item.appendChild(noVer);
-    }
-
-    container.appendChild(item);
-
-    // Bind parent actions
-    item.querySelector(`#restore-dash-btn-${d.id}`).onclick = () => {
-      if (typeof window.restoreDashboardAction === 'function') {
-        window.restoreDashboardAction(d.id);
+          row.appendChild(actions);
+          content.appendChild(row);
+        });
       }
-    };
-    item.querySelector(`#delete-perm-dash-btn-${d.id}`).onclick = () => {
-      if (typeof window.deleteDashboardPermanentAction === 'function') {
-        window.deleteDashboardPermanentAction(d.id);
-      }
-    };
-  });
+
+      card.appendChild(content);
+      parent.appendChild(card);
+    });
+  };
+
+  renderTo(container, false);
+  renderTo(drawerContainer, true);
 }
 
-export function renderVersions(versions) {
+export function renderVersions(activeDashboardsWithVersions) {
   const container = document.getElementById('versions-list');
-  if (!container) return;
-  container.innerHTML = '';
+  const drawerContainer = document.getElementById('drawer-active-list');
 
-  if (!versions || versions.length === 0) {
-    container.innerHTML = `
-      <div class="flex flex-col items-center justify-center p-8 bg-[var(--bg-input)] rounded-xl border border-[var(--border-color)] text-center text-[var(--text-secondary)]">
-        <span class="text-2xl mb-2">🔖</span>
-        <p class="text-xs font-semibold">No version snapshots saved.</p>
-        <p class="text-[10px] text-gray-500 mt-1">Save a snapshot of the current dashboard using the bookmark icon or the button above.</p>
-      </div>
-    `;
-    return;
-  }
+  const renderTo = (parent, isDrawer) => {
+    if (!parent) return;
+    parent.innerHTML = '';
 
-  versions.forEach(v => {
-    const createdDate = new Date(v.created_at).toLocaleString();
-    const item = document.createElement('div');
-    item.className = "flex items-center justify-between p-4 bg-[var(--bg-card)] rounded-xl border border-[var(--border-color)] hover:border-indigo-500/30 hover:bg-[var(--bg-hover)] transition-all";
-    item.innerHTML = `
-      <div class="flex flex-col min-w-0">
-        <span class="text-xs font-bold text-[var(--text-primary)] truncate">${v.version_name || 'Saved Snapshot'}</span>
-        <span class="text-[10px] text-gray-500 mt-1">Saved: ${createdDate}</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="restore-ver-btn-${v.id}" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer">
-          Jump Back
-        </button>
-        <button id="delete-ver-btn-${v.id}" class="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer">
-          Delete
-        </button>
-      </div>
-    `;
+    if (!activeDashboardsWithVersions || activeDashboardsWithVersions.length === 0) {
+      parent.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-8 bg-[var(--bg-input)] rounded-xl border border-[var(--border-color)] text-center text-[var(--text-secondary)]">
+          <span class="text-2xl mb-2">🔖</span>
+          <p class="text-xs font-semibold">No active program dashboards found.</p>
+        </div>
+      `;
+      return;
+    }
 
-    container.appendChild(item);
+    activeDashboardsWithVersions.forEach(d => {
+      const isCurrentActive = d.id === window.currentDashboardId;
+      const card = document.createElement('div');
+      card.className = "program-accordion-item mb-3";
 
-    // Wire up events dynamically
-    item.querySelector(`#restore-ver-btn-${v.id}`).onclick = () => {
-      if (typeof window.restoreVersionAction === 'function') {
-        window.restoreVersionAction(v.id, v.version_name);
+      // Header row
+      const header = document.createElement('div');
+      header.className = "program-accordion-header";
+      
+      const leftPart = document.createElement('div');
+      leftPart.className = "flex items-center gap-2 min-w-0";
+
+      // Chevron
+      const chevron = document.createElement('span');
+      chevron.className = `accordion-chevron text-[10px] text-gray-500 transform transition-transform ${isCurrentActive ? 'expanded rotate-90' : ''}`;
+      chevron.innerHTML = '▶';
+      leftPart.appendChild(chevron);
+
+      // Program Name
+      const name = document.createElement('span');
+      name.className = "font-bold text-[11px] truncate text-[var(--text-primary)]";
+      name.textContent = d.program_line || 'Untitled Program';
+      leftPart.appendChild(name);
+
+      // Active Pill
+      if (isCurrentActive) {
+        const activePill = document.createElement('span');
+        activePill.className = "px-1.5 py-0.5 rounded text-[8px] font-black tracking-wide uppercase bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0";
+        activePill.textContent = "Active Workspace";
+        leftPart.appendChild(activePill);
       }
-    };
-    item.querySelector(`#delete-ver-btn-${v.id}`).onclick = () => {
-      if (typeof window.deleteVersionAction === 'function') {
-        window.deleteVersionAction(v.id);
+
+      header.appendChild(leftPart);
+
+      // Right actions: Save Snapshot button
+      const rightPart = document.createElement('div');
+      rightPart.className = "flex items-center gap-1.5 shrink-0";
+      
+      const saveBtn = document.createElement('button');
+      saveBtn.className = "px-2 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition-all font-bold text-[9px] cursor-pointer flex items-center justify-center gap-1 shadow-sm";
+      saveBtn.innerHTML = "<span>🔖</span> Save Snapshot";
+      saveBtn.title = "Save Snapshot for this program";
+      saveBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (typeof window.saveCurrentVersion === 'function') {
+          window.saveCurrentVersion(d.id);
+        }
+      };
+      
+      // Don't show save button if viewing another user's workspace
+      if (window.currentDashboardUserId === window.userData?.id && !d.is_deleted) {
+        rightPart.appendChild(saveBtn);
       }
-    };
-  });
+
+      header.appendChild(rightPart);
+      card.appendChild(header);
+
+      // Content section for snapshots list
+      const content = document.createElement('div');
+      content.className = `program-accordion-content ${isCurrentActive ? 'expanded' : ''}`;
+      
+      // Accordion click toggle
+      header.onclick = (e) => {
+        // Prevent expanding/collapsing if clicking on buttons
+        if (e.target.closest('button') || e.target.closest('a')) return;
+        const expanded = content.classList.contains('expanded');
+        if (expanded) {
+          content.classList.remove('expanded');
+          chevron.classList.remove('expanded', 'rotate-90');
+        } else {
+          content.classList.add('expanded');
+          chevron.classList.add('expanded', 'rotate-90');
+        }
+      };
+
+      const versions = d.versions || [];
+      if (versions.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = "text-[10px] text-gray-500 italic py-1 pl-1";
+        empty.textContent = "No saved version snapshots.";
+        content.appendChild(empty);
+      } else {
+        versions.forEach(v => {
+          const row = document.createElement('div');
+          row.className = "flex items-center justify-between p-2 mb-1.5 rounded bg-[var(--bg-input)] border border-[var(--border-color)] text-[10px] hover:border-[var(--accent)]/30 transition-all";
+          
+          const info = document.createElement('div');
+          info.className = "flex flex-col min-w-0 pr-2";
+          
+          const vName = document.createElement('span');
+          vName.className = "font-semibold text-[var(--text-primary)] truncate";
+          vName.textContent = v.version_name || 'Snapshot';
+          info.appendChild(vName);
+
+          const vDate = document.createElement('span');
+          vDate.className = "text-[9px] text-gray-500 mt-0.5";
+          vDate.textContent = new Date(v.created_at).toLocaleString();
+          info.appendChild(vDate);
+
+          row.appendChild(info);
+
+          const actions = document.createElement('div');
+          actions.className = "flex items-center gap-1.5 shrink-0";
+
+          const restoreBtn = document.createElement('button');
+          restoreBtn.className = "px-2 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold transition-all cursor-pointer text-[9px]";
+          restoreBtn.textContent = "Restore";
+          restoreBtn.onclick = () => {
+            if (typeof window.restoreVersionAction === 'function') {
+              window.restoreVersionAction(d.id, v.id, v.version_name);
+            }
+          };
+          actions.appendChild(restoreBtn);
+
+          if (window.currentDashboardUserId === window.userData?.id) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = "px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold transition-all cursor-pointer text-[9px]";
+            deleteBtn.textContent = "Delete";
+            deleteBtn.onclick = () => {
+              if (typeof window.deleteVersionAction === 'function') {
+                window.deleteVersionAction(d.id, v.id);
+              }
+            };
+            actions.appendChild(deleteBtn);
+          }
+
+          row.appendChild(actions);
+          content.appendChild(row);
+        });
+      }
+
+      card.appendChild(content);
+      parent.appendChild(card);
+    });
+  };
+
+  renderTo(container, false);
+  renderTo(drawerContainer, true);
 }
 
 export function showRequestSubmissionModal(employeeName, dashboards) {
