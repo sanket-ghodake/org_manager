@@ -1010,27 +1010,114 @@ export function closeReviewModal() {
 }
 
 // Render Team View
+// Render Team View
 export function renderTeam(team, currentUserId, currentUserRole) {
   const statsContainer = document.getElementById('team-stats-banner');
   const gridContainer = document.getElementById('team-grid');
 
   if (!statsContainer || !gridContainer) return;
 
-  // 1. Calculate stats
-  const totalCount = team.length;
+  // 1. Calculate stats and group by employee
+  const employeesMap = new Map();
+  team.forEach(emp => {
+    if (!employeesMap.has(emp.id)) {
+      employeesMap.set(emp.id, {
+        id: emp.id,
+        name: emp.name,
+        email: emp.email,
+        role: emp.role,
+        managerId: emp.managerId,
+        designation: emp.designation,
+        dashboards: []
+      });
+    }
+    if (emp.hasDashboard) {
+      // Submission Status Badge
+      let submissionBadge = `<span class="px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-wider bg-slate-500/10 text-slate-400 border-slate-500/20">Draft / No Submission</span>`;
+      if (emp.lastSubmissionStatus) {
+        let badgeClass = 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+        let statusText = emp.lastSubmissionStatus;
+        if (emp.lastSubmissionStatus === 'Pending' || emp.lastSubmissionStatus === 'Submitted') {
+          badgeClass = 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+          statusText = 'Awaiting Review ⏳';
+        } else if (emp.lastSubmissionStatus === 'Approved') {
+          badgeClass = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+          statusText = 'Approved ✓';
+        } else if (emp.lastSubmissionStatus === 'Needs Revision') {
+          badgeClass = 'text-rose-400 bg-rose-500/10 border-rose-500/20';
+          statusText = 'Revision Required ⚠️';
+        }
+        
+        submissionBadge = `
+          <span class="font-extrabold px-2.5 py-0.5 rounded border text-[9px] uppercase tracking-wider ${badgeClass}" title="Deadline: ${emp.lastSubmissionDeadline || '-'}">
+            ${statusText}
+          </span>
+        `;
+      } else {
+        submissionBadge = `<span class="px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border-amber-500/20">Not Submitted</span>`;
+      }
+
+      employeesMap.get(emp.id).dashboards.push({
+        dashboardId: emp.dashboardId,
+        dashboardProgram: emp.dashboardProgram,
+        skillsCount: emp.skillsCount,
+        gapsCount: emp.gapsCount,
+        plansCount: emp.plansCount,
+        plansCompletedCount: emp.plansCompletedCount,
+        lastSubmissionStatus: emp.lastSubmissionStatus,
+        lastSubmissionDeadline: emp.lastSubmissionDeadline,
+        submissionBadge: submissionBadge
+      });
+    }
+  });
+
+  const groupedEmployees = Array.from(employeesMap.values());
+
+  const totalCount = groupedEmployees.length;
+  const activeDashboards = team.filter(emp => emp.hasDashboard).length;
+  const awaitingReview = team.filter(emp => emp.hasDashboard && (emp.lastSubmissionStatus === 'Pending' || emp.lastSubmissionStatus === 'Submitted')).length;
+  const approvedPlans = team.filter(emp => emp.hasDashboard && emp.lastSubmissionStatus === 'Approved').length;
 
   statsContainer.innerHTML = `
-    <div class="flex flex-col">
-      <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Total Team</span>
+    <div class="flex flex-col p-2 select-none">
+      <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+        Total Team
+      </span>
       <span class="text-3xl font-black text-[var(--text-primary)] mt-1.5">${totalCount}</span>
+      <span class="text-[9px] text-[var(--text-secondary)] mt-1">Registered members</span>
+    </div>
+    <div class="flex flex-col p-2 select-none border-l border-[var(--border-color)]">
+      <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+        Active Dashboards
+      </span>
+      <span class="text-3xl font-black text-[var(--text-primary)] mt-1.5">${activeDashboards}</span>
+      <span class="text-[9px] text-[var(--text-secondary)] mt-1">Development plans created</span>
+    </div>
+    <div class="flex flex-col p-2 select-none border-l border-[var(--border-color)]">
+      <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+        Awaiting Review
+      </span>
+      <span class="text-3xl font-black text-amber-400 mt-1.5">${awaitingReview}</span>
+      <span class="text-[9px] text-[var(--text-secondary)] mt-1">Pending approval decision</span>
+    </div>
+    <div class="flex flex-col p-2 select-none border-l border-[var(--border-color)]">
+      <span class="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        Approved Plans
+      </span>
+      <span class="text-3xl font-black text-emerald-400 mt-1.5">${approvedPlans}</span>
+      <span class="text-[9px] text-[var(--text-secondary)] mt-1">Successfully signed off</span>
     </div>
   `;
 
-  // 2. Render Cards Grid
+  // 2. Render List View
   gridContainer.innerHTML = '';
 
-  if (team.length === 0) {
-    gridContainer.className = "flex justify-center items-center py-12 text-[var(--text-secondary)] w-full col-span-full";
+  if (groupedEmployees.length === 0) {
+    gridContainer.className = "flex justify-center items-center py-12 text-[var(--text-secondary)] w-full";
     gridContainer.innerHTML = `
       <div class="text-center space-y-3 flex flex-col items-center">
         <span class="text-3xl">👥</span>
@@ -1043,146 +1130,185 @@ export function renderTeam(team, currentUserId, currentUserRole) {
     return;
   }
 
-  gridContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+  // Set the container class to full-width and remove card grid layout
+  gridContainer.className = "w-full overflow-x-auto custom-scrollbar bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-lg";
 
-  team.forEach(emp => {
+  // Create table element
+  const table = document.createElement('table');
+  table.className = "w-full text-left text-xs border-collapse";
+
+  // Create table header
+  const thead = document.createElement('thead');
+  thead.className = "border-b border-[var(--border-color)] bg-[var(--bg-input)]/50 text-[9px] uppercase font-black tracking-wider text-[var(--text-secondary)] select-none";
+  thead.innerHTML = `
+    <tr>
+      <th class="py-3.5 pl-6">Team Member</th>
+      <th class="py-3.5">Dashboards</th>
+      <th class="py-3.5">In Review</th>
+      <th class="py-3.5">Rework</th>
+      <th class="py-3.5">Approved</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+
+  // Create table body
+  const tbody = document.createElement('tbody');
+  tbody.className = "divide-y divide-[var(--border-color)]";
+
+  groupedEmployees.forEach(emp => {
     const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const avatarGradient = emp.dashboards.length > 0 ? 'from-[var(--accent)]/30 to-indigo-500/20' : 'from-slate-600/30 to-slate-500/20';
     
-    // Status Badge & Styles
-    let statusClass = 'bg-slate-500/10 text-slate-400 border-slate-500/20';
-    let statusLabel = 'No Plan';
-    let borderClass = 'border-[var(--border-color)]';
-    let avatarGradient = 'from-slate-600/30 to-slate-500/20';
+    // Counts
+    const totalDashboards = emp.dashboards.length;
+    const inReviewCount = emp.dashboards.filter(d => d.lastSubmissionStatus === 'Pending' || d.lastSubmissionStatus === 'Submitted').length;
+    const reworkCount = emp.dashboards.filter(d => d.lastSubmissionStatus === 'Needs Revision').length;
+    const approvedCount = emp.dashboards.filter(d => d.lastSubmissionStatus === 'Approved').length;
 
-    if (emp.hasDashboard) {
-      statusClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      statusLabel = 'Active Plan';
-      borderClass = 'hover:border-[var(--accent)]/30';
-      avatarGradient = 'from-[var(--accent)]/30 to-indigo-500/20';
-    }
-
-    // Submission Status Alert Badge
-    let submissionHtml = '';
-    if (emp.lastSubmissionStatus) {
-      let badgeClass = 'text-slate-400 bg-slate-500/10 border-slate-500/20';
-      let statusText = emp.lastSubmissionStatus;
-      if (emp.lastSubmissionStatus === 'Pending' || emp.lastSubmissionStatus === 'Submitted') {
-        badgeClass = 'text-blue-400 bg-blue-500/10 border-blue-500/20';
-        statusText = 'Awaiting Review ⏳';
-      } else if (emp.lastSubmissionStatus === 'Approved') {
-        badgeClass = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-        statusText = 'Approved ✓';
-      } else if (emp.lastSubmissionStatus === 'Needs Revision') {
-        badgeClass = 'text-rose-400 bg-rose-500/10 border-rose-500/20';
-        statusText = 'Revision Required ⚠️';
-      }
-      
-      submissionHtml = `
-        <div class="mt-4 pt-3.5 border-t border-[var(--border-color)] flex items-center justify-between text-[10px] select-none">
-          <span class="text-[var(--text-secondary)] font-semibold uppercase tracking-wider">Review Status</span>
-          <span class="font-extrabold px-2.5 py-0.5 rounded border ${badgeClass}" title="Deadline: ${emp.lastSubmissionDeadline || '-'}">
-            ${statusText}
-          </span>
-        </div>
-      `;
-    }
-
-    // Dashboard metadata sections
-    let metadataHtml = '';
-    if (emp.hasDashboard) {
-      const progName = emp.dashboardProgram || 'General Program';
-      const progressPercent = emp.plansCount > 0 ? Math.round((emp.plansCompletedCount / emp.plansCount) * 100) : 0;
-      
-      metadataHtml = `
-        <!-- Active Program line -->
-        <div class="mt-3.5 bg-[var(--bg-input)] rounded-lg p-2.5 border border-[var(--border-color)] flex items-center gap-2 select-none">
-          <span class="text-sm">💡</span>
-          <div class="min-w-0 flex-1">
-            <div class="text-[8px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">Active Program</div>
-            <div class="text-xs font-bold text-[var(--text-primary)] truncate" title="${progName}">${progName}</div>
-          </div>
-        </div>
-
-        <!-- Skills and Gaps Count row -->
-        <div class="flex items-center gap-2.5 mt-3 select-none">
-          <div class="flex-1 flex items-center justify-between bg-blue-500/5 border border-blue-500/15 p-2 rounded-lg text-blue-400">
-            <div class="flex items-center gap-1.5 text-[10px] font-semibold">
-              <span>🔑</span>
-              <span>Skills</span>
-            </div>
-            <span class="font-black text-xs font-mono bg-blue-500/10 px-1.5 py-0.5 rounded">${emp.skillsCount}</span>
-          </div>
-          <div class="flex-1 flex items-center justify-between bg-amber-500/5 border border-amber-500/15 p-2 rounded-lg text-amber-400">
-            <div class="flex items-center gap-1.5 text-[10px] font-semibold">
-              <span>⚠️</span>
-              <span>Gaps</span>
-            </div>
-            <span class="font-black text-xs font-mono bg-amber-500/10 px-1.5 py-0.5 rounded">${emp.gapsCount}</span>
-          </div>
-        </div>
-
-        <!-- Training Plan progress -->
-        <div class="space-y-1.5 mt-3.5 select-none">
-          <div class="flex justify-between text-[9px] text-[var(--text-secondary)] font-extrabold uppercase tracking-wider">
-            <span>Training Progress</span>
-            <span class="font-mono text-[10px] text-[var(--text-primary)]">${emp.plansCompletedCount}/${emp.plansCount} Done</span>
-          </div>
-          <div class="w-full bg-[var(--bg-input)] rounded-full h-1.5 overflow-hidden border border-[var(--border-color)]">
-            <div class="bg-indigo-500 h-1.5 rounded-full transition-all duration-500" style="width: ${progressPercent}%"></div>
-          </div>
-        </div>
-      `;
-    } else {
-      metadataHtml = `
-        <div class="mt-3.5 bg-yellow-500/5 border border-yellow-500/10 text-yellow-400 rounded-lg p-3 text-center text-[10px] font-semibold select-none">
-          ⚠️ No Active SG Dashboard program has been created for this employee yet.
-        </div>
-      `;
-    }
-
-    // Card element
-    const card = document.createElement('div');
-    card.className = `bg-[var(--bg-card)] border ${borderClass} rounded-2xl p-5 shadow-sm hover:shadow-md hover:translate-y-[-2px] transition-all flex flex-col justify-between`;
-
-    let actions = '';
-    if (emp.hasDashboard) {
-      actions += `<button onclick="viewEmployeeDashboard('${emp.id}')" class="flex-1 text-center font-bold text-xs bg-indigo-500 hover:bg-indigo-600 text-white py-2.5 rounded-xl transition-all shadow-sm">View Dashboard</button>`;
-    }
+    // Parent Row
+    const row = document.createElement('tr');
+    row.className = "employee-row cursor-pointer hover:bg-[var(--bg-hover)] transition-colors align-middle font-medium border-b border-[var(--border-color)]";
+    row.setAttribute('data-employee-id', emp.id);
     
-    // Add Submissions history button for direct/indirect report review
-    actions += `<button onclick="viewEmployeeSubmissions('${emp.id}')" class="px-3 text-center font-bold text-xs bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] py-2.5 rounded-xl transition-all border border-[var(--border-color)]" title="View all submissions">Submissions</button>`;
-
-    if (emp.managerId === currentUserId || currentUserRole === 'Admin') {
-      actions += `<button onclick="triggerRequestSubmission('${emp.id}')" class="px-3 text-center font-bold text-xs bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] py-2.5 rounded-xl transition-all border border-[var(--border-color)]" title="Request update / freeze deadline">Request Update</button>`;
-    }
-
-    card.innerHTML = `
-      <div>
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex items-center gap-3 min-w-0">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr ${avatarGradient} text-[var(--text-primary)] flex items-center justify-center font-extrabold text-sm border border-[var(--border-color)] select-none shrink-0">
-              ${initials}
-            </div>
-            <div class="min-w-0">
-              <h3 class="text-base font-bold text-[var(--text-primary)] truncate" title="${emp.name}">${emp.name}</h3>
-              <p class="text-xs text-[var(--text-secondary)] truncate font-semibold mt-0.5" title="${emp.designation || emp.role}">${emp.designation || emp.role}</p>
-            </div>
+    row.innerHTML = `
+      <td class="py-4 pl-6">
+        <div class="flex items-center gap-3">
+          <span class="chevron-icon text-[var(--text-secondary)] transition-transform duration-200 text-[10px] w-4 select-none">►</span>
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr ${avatarGradient} text-[var(--text-primary)] flex items-center justify-center font-extrabold text-xs border border-[var(--border-color)] select-none shrink-0">
+            ${initials}
           </div>
-          <span class="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border shrink-0 ${statusClass}">
-            ${statusLabel}
-          </span>
+          <div class="min-w-0">
+            <h4 class="text-sm font-bold text-[var(--text-primary)] truncate" title="${emp.name}">${emp.name}</h4>
+            <p class="text-[10px] text-[var(--text-secondary)] font-semibold uppercase tracking-wider mt-0.5 truncate" title="${emp.designation || emp.role}">${emp.designation || emp.role}</p>
+            <p class="text-[9px] text-[var(--text-secondary)] font-mono mt-0.5 select-text truncate" title="${emp.email}">${emp.email}</p>
+          </div>
         </div>
-        <p class="text-[10px] text-[var(--text-secondary)] font-mono truncate mt-3 select-text">${emp.email}</p>
-        
-        ${metadataHtml}
-        ${submissionHtml}
-      </div>
-      <div class="flex gap-2.5 mt-5">
-        ${actions}
-      </div>
+      </td>
+      <td class="py-4">
+        <span class="px-2.5 py-1 rounded bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border-color)] font-mono font-bold text-xs select-none">
+          ${totalDashboards}
+        </span>
+      </td>
+      <td class="py-4">
+        <span class="font-mono font-bold text-xs ${inReviewCount > 0 ? 'text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded' : 'text-[var(--text-secondary)]'}">
+          ${inReviewCount}
+        </span>
+      </td>
+      <td class="py-4">
+        <span class="font-mono font-bold text-xs ${reworkCount > 0 ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded' : 'text-[var(--text-secondary)]'}">
+          ${reworkCount}
+        </span>
+      </td>
+      <td class="py-4">
+        <span class="font-mono font-bold text-xs ${approvedCount > 0 ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded' : 'text-[var(--text-secondary)]'}">
+          ${approvedCount}
+        </span>
+      </td>
     `;
+    tbody.appendChild(row);
 
-    gridContainer.appendChild(card);
+    // Expand Row
+    const expandRow = document.createElement('tr');
+    expandRow.id = `details-${emp.id}`;
+    expandRow.className = "hidden bg-[var(--bg-input)]/25";
+    
+    let dashboardsListHtml = '';
+    if (totalDashboards > 0) {
+      dashboardsListHtml = emp.dashboards.map(dash => `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 hover:bg-[var(--bg-hover)] transition-colors">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="text-lg select-none">💡</span>
+            <div>
+              <div class="text-[8px] text-[var(--text-secondary)] uppercase font-bold tracking-wider">Program / Dashboard</div>
+              <div class="text-xs font-bold text-[var(--text-primary)] truncate max-w-[240px]" title="${dash.dashboardProgram || 'General Program'}">
+                ${dash.dashboardProgram || 'General Program'}
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-4 sm:gap-6 flex-wrap sm:flex-nowrap">
+            <!-- Review Status Badge -->
+            <div class="shrink-0">
+              <div class="text-[8px] text-[var(--text-secondary)] uppercase font-bold tracking-wider mb-1">Status</div>
+              ${dash.submissionBadge}
+            </div>
+
+            <!-- Mini Progress / Stats -->
+            <div class="flex items-center gap-2 select-none shrink-0">
+              <span class="inline-flex items-center gap-1 text-[9px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded" title="${dash.skillsCount} Skills">
+                🔑 ${dash.skillsCount}
+              </span>
+              <span class="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded" title="${dash.gapsCount} Gaps">
+                ⚠️ ${dash.gapsCount}
+              </span>
+              <span class="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded" title="${dash.plansCompletedCount}/${dash.plansCount} Completed">
+                ✔ ${dash.plansCompletedCount}/${dash.plansCount}
+              </span>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="viewEmployeeDashboard('${dash.dashboardId}')" class="text-center font-bold text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white px-2.5 py-1.5 rounded-lg transition-all shadow-sm">View Dashboard</button>
+              <button onclick="viewEmployeeSubmissions('${emp.id}')" class="text-center font-bold text-[10px] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] px-2.5 py-1.5 rounded-lg transition-all border border-[var(--border-color)]" title="View all submissions">Submissions</button>
+              ${(emp.managerId === currentUserId || currentUserRole === 'Admin') ? `
+                <button onclick="triggerRequestSubmission('${emp.id}')" class="text-center font-bold text-[10px] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] px-2.5 py-1.5 rounded-lg transition-all border border-[var(--border-color)]" title="Request update / freeze deadline">Request Update</button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      dashboardsListHtml = `
+        <div class="p-5 text-center text-[10px] text-[var(--text-secondary)] font-semibold">
+          ⚠️ No active program/dashboard created for this employee yet.
+        </div>
+      `;
+    }
+
+    expandRow.innerHTML = `
+      <td colspan="5" class="p-0 border-t border-[var(--border-color)]">
+        <div class="py-4 px-6 md:px-12 space-y-2">
+          <h5 class="text-[9px] uppercase font-black tracking-wider text-[var(--text-secondary)] select-none mb-1.5">Employee Dashboards & Programs</h5>
+          <div class="divide-y divide-[var(--border-color)] bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl overflow-hidden shadow-inner">
+            ${dashboardsListHtml}
+          </div>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(expandRow);
+  });
+
+  table.appendChild(tbody);
+  gridContainer.appendChild(table);
+
+  // Bind click events on employee-row to expand/collapse
+  const rows = tbody.querySelectorAll('.employee-row');
+  rows.forEach(row => {
+    row.addEventListener('click', (e) => {
+      // Avoid toggling if clicking on text selection or buttons inside the row (if any)
+      if (e.target.closest('button') || e.target.closest('a') || window.getSelection().toString()) return;
+      
+      const empId = row.getAttribute('data-employee-id');
+      const detailsRow = tbody.querySelector(`#details-${empId}`);
+      const chevron = row.querySelector('.chevron-icon');
+      
+      if (detailsRow) {
+        const isHidden = detailsRow.classList.contains('hidden');
+        if (isHidden) {
+          detailsRow.classList.remove('hidden');
+          if (chevron) {
+            chevron.textContent = '▼';
+            chevron.classList.add('text-[var(--accent)]');
+          }
+        } else {
+          detailsRow.classList.add('hidden');
+          if (chevron) {
+            chevron.textContent = '►';
+            chevron.classList.remove('text-[var(--accent)]');
+          }
+        }
+      }
+    });
   });
 }
 

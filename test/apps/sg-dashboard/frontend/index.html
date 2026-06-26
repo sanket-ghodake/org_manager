@@ -428,7 +428,7 @@
           <!-- Clean view toggle -->
           <div class="flex items-center bg-[var(--bg-card)] p-1 rounded-xl border border-[var(--border-color)] shadow-sm">
             <button onclick="toggleTeamViewMode('list')" id="btn-team-list-mode" class="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-[var(--bg-hover)] text-[var(--text-primary)] shadow-sm">
-              📋 Team Grid
+              📋 Team List
             </button>
             <button onclick="toggleTeamViewMode('tree')" id="btn-team-tree-mode" class="px-4 py-2 rounded-lg text-xs font-bold transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
               🕸️ Org Chart Explorer
@@ -436,15 +436,15 @@
           </div>
         </div>
 
-        <!-- Mode A: Stunning Grid Cards (Redesigned from scratch) -->
+        <!-- Mode A: Stunning Team List (Redesigned from scratch) -->
         <div id="team-list-mode-container" class="space-y-6">
           <!-- Elegant Health Stats Summary -->
           <div id="team-stats-banner" class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)]">
             <!-- Populated via JS with large fonts -->
           </div>
 
-          <!-- Cards Grid -->
-          <div id="team-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- List Table Container -->
+          <div id="team-grid" class="w-full">
             <!-- Populated via JS -->
           </div>
         </div>

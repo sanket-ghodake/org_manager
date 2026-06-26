@@ -1,16 +1,16 @@
 # Graph Report - sg-dashboard  (2026-06-26)
 
 ## Corpus Check
-- 22 files · ~38,342 words
+- 22 files · ~36,653 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 227 nodes · 332 edges · 20 communities (16 shown, 4 thin omitted)
+- 223 nodes · 326 edges · 18 communities (14 shown, 4 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b2f8267c`
+- Built from commit: `69dcac02`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -21,11 +21,9 @@
 - [[_COMMUNITY_Community 3|Community 3]]
 - [[_COMMUNITY_Community 4|Community 4]]
 - [[_COMMUNITY_Community 5|Community 5]]
-- [[_COMMUNITY_Community 6|Community 6]]
 - [[_COMMUNITY_Community 7|Community 7]]
 - [[_COMMUNITY_Community 8|Community 8]]
 - [[_COMMUNITY_Community 9|Community 9]]
-- [[_COMMUNITY_Community 10|Community 10]]
 - [[_COMMUNITY_Community 11|Community 11]]
 - [[_COMMUNITY_Community 12|Community 12]]
 - [[_COMMUNITY_Community 13|Community 13]]
@@ -39,7 +37,7 @@
 1. `changeActiveEmployeeContext()` - 19 edges
 2. `switchTab()` - 12 edges
 3. `loadMyDashboard()` - 11 edges
-4. `loadSubmissions()` - 11 edges
+4. `loadSubmissions()` - 10 edges
 5. `db` - 6 edges
 6. `loadTeamView()` - 6 edges
 7. `initializeApplication()` - 6 edges
@@ -56,7 +54,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (20 total, 4 thin omitted)
+## Communities (18 total, 4 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.06
@@ -67,44 +65,36 @@ Cohesion: 0.14
 Nodes (9): fastify, db, initDb(), FastifyInstance, registerAuthMiddleware(), seedDummyData(), checkUplineManager(), candidates (+1 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.09
-Nodes (4): cachedUsers, lastActivityTime, openSideReviewPanel(), openSideReviewPanelById()
+Cohesion: 0.10
+Nodes (4): cachedUsers, closeReviewModal(), lastActivityTime, submitReviewAction()
 
 ### Community 4 - "Community 4"
-Cohesion: 0.18
-Nodes (17): changeActiveEmployeeContext(), closeSideReviewPanel(), deleteDashboardPermanentAction(), deleteDeletedDashboardVersion(), focusOnEmployee(), loadDashboard(), loadTrashHistory(), openReviewModal() (+9 more)
+Cohesion: 0.15
+Nodes (22): changeActiveEmployeeContext(), closeSideReviewPanel(), focusOnEmployee(), freezeSubmission(), loadDashboard(), loadSubmissions(), loadTeamView(), openReviewModal() (+14 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.14
 Nodes (13): dependencies, fastify, @fastify/jwt, @fastify/static, @libsql/client, description, devDependencies, @types/node (+5 more)
-
-### Community 6 - "Community 6"
-Cohesion: 0.24
-Nodes (11): closeReviewModal(), closeTimelineModal(), freezeSubmission(), loadSubmissions(), loadTeamView(), submitDashboard(), submitDirectDashboard(), submitReviewAction() (+3 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.20
 Nodes (9): 1. Federated SSO Handshake, 1. System Topology, 1. Volume-Isolated Database, 2. Authentication & Data Flow, 2. User Directory Caching & Instant Search, 2. Write-Ahead Logging (WAL) Mode, 3. Resource & RAM Constraints (< 1GB RAM), 3. Storage and Scaling Strategy (+1 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.25
-Nodes (8): cycleGapSeverity(), cyclePlanBadgeType(), deleteItem(), loadMyDashboard(), updateItemLinks(), updatePlanCompletedQuarter(), updatePlanStatus(), updatePlanTargetQuarter()
+Cohesion: 0.17
+Nodes (13): addQuickItem(), cycleGapSeverity(), cyclePlanBadgeType(), deleteItem(), loadMyDashboard(), performBackgroundSync(), refreshActiveDashboardSilently(), updateAllSuggestions() (+5 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.33
 Nodes (7): adjustFontScaling(), exchangeCodeForToken(), initializeApplication(), initSession(), initSideReviewResize(), redirectToSSO(), startBackgroundSync()
-
-### Community 10 - "Community 10"
-Cohesion: 0.40
-Nodes (5): addQuickItem(), performBackgroundSync(), refreshActiveDashboardSilently(), updateAllSuggestions(), updateSyncStatusUI()
 
 ### Community 11 - "Community 11"
 Cohesion: 0.50
 Nodes (4): addToSearchHistory(), getSearchHistory(), handleHeaderSearch(), renderSearchResults()
 
 ### Community 12 - "Community 12"
-Cohesion: 0.50
-Nodes (4): deleteVersionAction(), loadHistoryAndVersions(), openVersionsDrawer(), saveCurrentVersion()
+Cohesion: 0.25
+Nodes (8): deleteDashboardPermanentAction(), deleteDeletedDashboardVersion(), deleteVersionAction(), loadHistoryAndVersions(), loadTrashHistory(), openVersionsDrawer(), restoreDashboardAction(), saveCurrentVersion()
 
 ### Community 13 - "Community 13"
 Cohesion: 0.50
@@ -126,17 +116,17 @@ Nodes (3): Directory Structure, Setup & Running, TRR Strategy SG_Dashboard App
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `changeActiveEmployeeContext()` connect `Community 4` to `Community 3`, `Community 6`, `Community 9`, `Community 10`, `Community 11`, `Community 13`?**
+- **Why does `changeActiveEmployeeContext()` connect `Community 4` to `Community 3`, `Community 8`, `Community 9`, `Community 11`, `Community 12`, `Community 13`?**
   _High betweenness centrality (0.003) - this node is a cross-community bridge._
 - **What connects `FastifyInstance`, `fastify`, `candidates` to the rest of the system?**
   _29 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.05832147937411095 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.058823529411764705 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06060606060606061 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.14039408866995073 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._
-- **Should `Community 5` be split into smaller, more focused modules?**
-  _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09523809523809523 - nodes in this community are weakly interconnected._
+- **Should `Community 4` be split into smaller, more focused modules?**
+  _Cohesion score 0.1471861471861472 - nodes in this community are weakly interconnected._
