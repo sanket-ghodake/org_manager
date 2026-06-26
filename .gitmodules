@@ -1,0 +1,4 @@
+[submodule "test/apps/sg-dashboard"]
+	path = test/apps/sg-dashboard
+	url = /home/sanket/Desktop/Sanket/sg-dashboard-remote.git
+	branch = main
