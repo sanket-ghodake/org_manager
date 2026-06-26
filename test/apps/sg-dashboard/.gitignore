@@ -1,0 +1,11 @@
+node_modules/
+volume/local.db
+volume/local.db-shm
+volume/local.db-wal
+graphify-out/
+.env
+.venv/
+dist/
+build/
+coverage/
+test_output.log
